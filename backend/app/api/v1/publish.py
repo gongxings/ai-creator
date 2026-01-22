@@ -1,139 +1,69 @@
 """
-发布管理API路由
+发布管理API
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.utils.deps import get_current_user
 from app.models.user import User
-from app.models.publish import PlatformAccount, PublishRecord, PlatformType, PublishStatus
-from app.models.creation import Creation
+from app.models.publish import PlatformAccount, PublishHistory
 from app.schemas.publish import (
+    PlatformInfo,
+    PlatformLoginInfo,
     PlatformAccountCreate,
     PlatformAccountUpdate,
     PlatformAccountResponse,
-    PlatformAccountListResponse,
-    PublishCreate,
-    PublishUpdate,
-    PublishRecordResponse,
-    PublishRecordListResponse,
-    PublishStatusResponse,
-    BatchPublishResponse,
-    PlatformInfo,
-    PlatformListResponse
+    CookieUpdateRequest,
+    CookieValidationResponse,
+    PublishRequest,
+    PublishResponse,
+    PublishHistoryResponse
 )
-from app.services.publish.publisher_factory import PublisherFactory
-from app.core.security import encrypt_data, decrypt_data
+from app.services.publish.platforms import get_platform, PLATFORM_REGISTRY
 
 router = APIRouter()
 
 
-# ============ 平台信息相关 ============
-
-@router.get("/platforms", response_model=PlatformListResponse)
-async def get_supported_platforms():
+@router.get("/platforms", response_model=List[PlatformInfo])
+async def get_platforms():
     """获取支持的平台列表"""
-    platforms = [
-        PlatformInfo(
-            platform=PlatformType.WECHAT,
-            name="微信公众号",
-            description="发布文章到微信公众号",
-            icon="wechat",
-            supported_content_types=["article"],
-            max_title_length=64,
-            max_content_length=20000,
-            supports_scheduling=True,
-            auth_type="oauth"
-        ),
-        PlatformInfo(
-            platform=PlatformType.XIAOHONGSHU,
-            name="小红书",
-            description="发布笔记到小红书",
-            icon="xiaohongshu",
-            supported_content_types=["note", "image"],
-            max_title_length=20,
-            max_content_length=1000,
-            supports_scheduling=False,
-            auth_type="cookie"
-        ),
-        PlatformInfo(
-            platform=PlatformType.DOUYIN,
-            name="抖音",
-            description="发布视频到抖音",
-            icon="douyin",
-            supported_content_types=["video"],
-            max_title_length=55,
-            supports_scheduling=True,
-            auth_type="oauth"
-        ),
-        PlatformInfo(
-            platform=PlatformType.KUAISHOU,
-            name="快手",
-            description="发布视频到快手",
-            icon="kuaishou",
-            supported_content_types=["video"],
-            max_title_length=50,
-            supports_scheduling=True,
-            auth_type="oauth"
-        ),
-        PlatformInfo(
-            platform=PlatformType.TOUTIAO,
-            name="今日头条",
-            description="发布文章到今日头条",
-            icon="toutiao",
-            supported_content_types=["article"],
-            max_title_length=30,
-            supports_scheduling=True,
-            auth_type="oauth"
-        ),
-        PlatformInfo(
-            platform=PlatformType.BAIJIAHAO,
-            name="百家号",
-            description="发布文章到百家号",
-            icon="baijiahao",
-            supported_content_types=["article", "video"],
-            max_title_length=40,
-            supports_scheduling=True,
-            auth_type="oauth"
-        ),
-        PlatformInfo(
-            platform=PlatformType.ZHIHU,
-            name="知乎",
-            description="发布文章到知乎",
-            icon="zhihu",
-            supported_content_types=["article"],
-            max_title_length=100,
-            supports_scheduling=False,
-            auth_type="cookie"
-        ),
-        PlatformInfo(
-            platform=PlatformType.JIANSHU,
-            name="简书",
-            description="发布文章到简书",
-            icon="jianshu",
-            supported_content_types=["article"],
-            max_title_length=100,
-            supports_scheduling=False,
-            auth_type="cookie"
+    platforms = []
+    for name, publisher_class in PLATFORM_REGISTRY.items():
+        publisher = publisher_class()
+        platforms.append(PlatformInfo(
+            platform=name,
+            name=publisher.get_platform_name(),
+            login_url=publisher.get_login_url(),
+            supported_types=publisher.supported_types
+        ))
+    return platforms
+
+
+@router.get("/platforms/{platform}/login-info", response_model=PlatformLoginInfo)
+async def get_platform_login_info(platform: str):
+    """获取平台登录信息"""
+    try:
+        publisher = get_platform(platform)
+        return PlatformLoginInfo(
+            platform=platform,
+            name=publisher.get_platform_name(),
+            login_url=publisher.get_login_url(),
+            instructions=f"请在浏览器中登录{publisher.get_platform_name()}，然后返回此页面更新Cookie"
         )
-    ]
-    
-    return PlatformListResponse(platforms=platforms)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
-# ============ 平台账号管理 ============
-
-@router.post("/platforms/bind", response_model=PlatformAccountResponse, status_code=status.HTTP_201_CREATED)
-async def bind_platform_account(
+@router.post("/platforms/accounts", response_model=PlatformAccountResponse)
+async def create_platform_account(
     account_data: PlatformAccountCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    """绑定平台账号"""
-    # 检查是否已绑定相同平台的账号
+    """创建平台账号"""
+    # 检查是否已存在
     existing = db.query(PlatformAccount).filter(
         PlatformAccount.user_id == current_user.id,
         PlatformAccount.platform == account_data.platform,
@@ -142,94 +72,63 @@ async def bind_platform_account(
     
     if existing:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="该平台账号已绑定"
+            status_code=400,
+            detail="该平台账号已存在"
         )
     
-    # 加密敏感信息
-    encrypted_access_token = None
-    encrypted_refresh_token = None
-    encrypted_credentials = None
-    
-    if account_data.access_token:
-        encrypted_access_token = encrypt_data(account_data.access_token)
-    if account_data.refresh_token:
-        encrypted_refresh_token = encrypt_data(account_data.refresh_token)
-    if account_data.credentials:
-        encrypted_credentials = account_data.credentials
-    
-    # 创建平台账号
-    platform_account = PlatformAccount(
+    # 创建账号
+    account = PlatformAccount(
         user_id=current_user.id,
         platform=account_data.platform,
         account_name=account_data.account_name,
-        account_id=account_data.account_id,
-        access_token=encrypted_access_token,
-        refresh_token=encrypted_refresh_token,
-        expires_at=account_data.expires_at,
-        credentials=encrypted_credentials,
-        config=account_data.config or {}
+        cookies_valid="unknown"
     )
     
-    db.add(platform_account)
+    db.add(account)
     db.commit()
-    db.refresh(platform_account)
+    db.refresh(account)
     
-    return platform_account
+    return PlatformAccountResponse(
+        id=account.id,
+        platform=account.platform,
+        account_name=account.account_name,
+        cookies_valid=account.cookies_valid,
+        cookies_updated_at=account.cookies_updated_at,
+        is_active=account.is_active,
+        created_at=account.created_at
+    )
 
 
-@router.get("/platforms/accounts", response_model=PlatformAccountListResponse)
+@router.get("/platforms/accounts", response_model=List[PlatformAccountResponse])
 async def get_platform_accounts(
-    platform: Optional[PlatformType] = Query(None),
-    is_active: Optional[str] = Query(None, pattern="^(active|inactive)$"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """获取用户的平台账号列表"""
-    query = db.query(PlatformAccount).filter(
+    accounts = db.query(PlatformAccount).filter(
         PlatformAccount.user_id == current_user.id
-    )
+    ).all()
     
-    if platform:
-        query = query.filter(PlatformAccount.platform == platform)
-    if is_active:
-        query = query.filter(PlatformAccount.is_active == is_active)
-    
-    accounts = query.order_by(PlatformAccount.created_at.desc()).all()
-    
-    return PlatformAccountListResponse(
-        total=len(accounts),
-        items=accounts
-    )
-
-
-@router.get("/platforms/accounts/{account_id}", response_model=PlatformAccountResponse)
-async def get_platform_account(
-    account_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """获取平台账号详情"""
-    account = db.query(PlatformAccount).filter(
-        PlatformAccount.id == account_id,
-        PlatformAccount.user_id == current_user.id
-    ).first()
-    
-    if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="平台账号不存在"
+    return [
+        PlatformAccountResponse(
+            id=account.id,
+            platform=account.platform,
+            account_name=account.account_name,
+            cookies_valid=account.cookies_valid,
+            cookies_updated_at=account.cookies_updated_at,
+            is_active=account.is_active,
+            created_at=account.created_at
         )
-    
-    return account
+        for account in accounts
+    ]
 
 
 @router.put("/platforms/accounts/{account_id}", response_model=PlatformAccountResponse)
 async def update_platform_account(
     account_id: int,
     account_data: PlatformAccountUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """更新平台账号"""
     account = db.query(PlatformAccount).filter(
@@ -238,34 +137,32 @@ async def update_platform_account(
     ).first()
     
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="平台账号不存在"
-        )
+        raise HTTPException(status_code=404, detail="平台账号不存在")
     
-    # 更新字段
-    update_data = account_data.dict(exclude_unset=True)
-    
-    # 加密敏感信息
-    if "access_token" in update_data and update_data["access_token"]:
-        update_data["access_token"] = encrypt_data(update_data["access_token"])
-    if "refresh_token" in update_data and update_data["refresh_token"]:
-        update_data["refresh_token"] = encrypt_data(update_data["refresh_token"])
-    
-    for field, value in update_data.items():
-        setattr(account, field, value)
+    if account_data.account_name is not None:
+        account.account_name = account_data.account_name
+    if account_data.is_active is not None:
+        account.is_active = account_data.is_active
     
     db.commit()
     db.refresh(account)
     
-    return account
+    return PlatformAccountResponse(
+        id=account.id,
+        platform=account.platform,
+        account_name=account.account_name,
+        cookies_valid=account.cookies_valid,
+        cookies_updated_at=account.cookies_updated_at,
+        is_active=account.is_active,
+        created_at=account.created_at
+    )
 
 
-@router.delete("/platforms/accounts/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/platforms/accounts/{account_id}")
 async def delete_platform_account(
     account_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """删除平台账号"""
     account = db.query(PlatformAccount).filter(
@@ -274,335 +171,242 @@ async def delete_platform_account(
     ).first()
     
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="平台账号不存在"
-        )
+        raise HTTPException(status_code=404, detail="平台账号不存在")
     
     db.delete(account)
     db.commit()
+    
+    return {"message": "删除成功"}
 
 
-# ============ 发布管理 ============
-
-@router.post("", response_model=BatchPublishResponse, status_code=status.HTTP_201_CREATED)
-async def publish_content(
-    publish_data: PublishCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+@router.post("/platforms/accounts/{account_id}/cookies", response_model=CookieValidationResponse)
+async def update_cookies(
+    account_id: int,
+    cookie_data: CookieUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    """发布内容到多个平台"""
-    # 验证创作是否存在
-    creation = db.query(Creation).filter(
-        Creation.id == publish_data.creation_id,
-        Creation.user_id == current_user.id
+    """更新平台账号Cookie"""
+    account = db.query(PlatformAccount).filter(
+        PlatformAccount.id == account_id,
+        PlatformAccount.user_id == current_user.id
     ).first()
     
-    if not creation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="创作不存在"
-        )
+    if not account:
+        raise HTTPException(status_code=404, detail="平台账号不存在")
     
-    # 验证平台账号
-    platform_accounts = db.query(PlatformAccount).filter(
-        PlatformAccount.id.in_(publish_data.platform_account_ids),
+    try:
+        # 获取平台发布器
+        publisher = get_platform(account.platform)
+        
+        # 保存Cookie
+        publisher.set_cookies(account, cookie_data.cookies, db)
+        
+        # 验证Cookie
+        is_valid = await publisher.validate_cookies(account)
+        
+        return CookieValidationResponse(
+            valid=is_valid,
+            message="Cookie验证成功" if is_valid else "Cookie验证失败，请重新登录",
+            cookies_updated_at=account.cookies_updated_at
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"更新Cookie失败: {str(e)}"
+        )
+
+
+@router.post("/platforms/accounts/{account_id}/validate", response_model=CookieValidationResponse)
+async def validate_cookies(
+    account_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """验证平台账号Cookie"""
+    account = db.query(PlatformAccount).filter(
+        PlatformAccount.id == account_id,
+        PlatformAccount.user_id == current_user.id
+    ).first()
+    
+    if not account:
+        raise HTTPException(status_code=404, detail="平台账号不存在")
+    
+    try:
+        publisher = get_platform(account.platform)
+        is_valid = await publisher.validate_cookies(account)
+        
+        return CookieValidationResponse(
+            valid=is_valid,
+            message="Cookie有效" if is_valid else "Cookie已失效，请重新登录",
+            cookies_updated_at=account.cookies_updated_at
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"验证Cookie失败: {str(e)}"
+        )
+
+
+@router.post("/publish", response_model=PublishResponse)
+async def publish_content(
+    publish_data: PublishRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """发布内容到平台（创建草稿）"""
+    # 获取平台账号
+    account = db.query(PlatformAccount).filter(
+        PlatformAccount.id == publish_data.account_id,
         PlatformAccount.user_id == current_user.id,
-        PlatformAccount.is_active == "active"
-    ).all()
+        PlatformAccount.is_active == True
+    ).first()
     
-    if len(platform_accounts) != len(publish_data.platform_account_ids):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="部分平台账号不存在或未激活"
-        )
+    if not account:
+        raise HTTPException(status_code=404, detail="平台账号不存在或未激活")
     
-    # 创建发布记录
-    records = []
-    success_count = 0
-    failed_count = 0
-    
-    for account in platform_accounts:
-        # 准备发布内容
-        title = publish_data.title or creation.title
-        content = publish_data.content or creation.content
+    try:
+        # 获取平台发布器
+        publisher = get_platform(account.platform)
         
-        # 创建发布记录
-        record = PublishRecord(
-            user_id=current_user.id,
-            creation_id=creation.id,
-            platform_account_id=account.id,
-            platform=account.platform,
-            status=PublishStatus.SCHEDULED if publish_data.scheduled_at else PublishStatus.PENDING,
-            title=title,
-            content=content,
+        # 检查Cookie有效性
+        publisher.check_cookies_or_raise(account)
+        
+        # 创建草稿
+        result = await publisher.create_draft(
+            account=account,
+            content=publish_data.content,
+            title=publish_data.title,
             cover_image=publish_data.cover_image,
-            media_urls=publish_data.media_urls,
+            images=publish_data.images,
+            video_url=publish_data.video_url,
             tags=publish_data.tags,
-            scheduled_at=publish_data.scheduled_at
+            location=publish_data.location
         )
         
-        db.add(record)
-        db.flush()
+        # 保存发布历史
+        history = PublishHistory(
+            user_id=current_user.id,
+            account_id=account.id,
+            creation_id=publish_data.creation_id,
+            platform=account.platform,
+            content_type=publish_data.content_type,
+            title=publish_data.title,
+            status="draft",
+            platform_post_id=result.get("draft_id"),
+            platform_url=result.get("draft_url")
+        )
         
-        # 如果不是定时发布，立即发布
-        if not publish_data.scheduled_at:
-            try:
-                # 获取发布器
-                publisher = PublisherFactory.get_publisher(account.platform)
-                
-                # 解密认证信息
-                access_token = decrypt_data(account.access_token) if account.access_token else None
-                
-                # 发布内容
-                record.status = PublishStatus.PUBLISHING
-                db.commit()
-                
-                result = await publisher.publish(
-                    title=title,
-                    content=content,
-                    cover_image=publish_data.cover_image,
-                    media_urls=publish_data.media_urls,
-                    tags=publish_data.tags,
-                    access_token=access_token,
-                    credentials=account.credentials
-                )
-                
-                # 更新发布记录
-                record.status = PublishStatus.SUCCESS
-                record.platform_post_id = result.get("post_id")
-                record.platform_url = result.get("url")
-                record.platform_response = result
-                record.published_at = datetime.utcnow()
-                success_count += 1
-                
-            except Exception as e:
-                record.status = PublishStatus.FAILED
-                record.error_message = str(e)
-                failed_count += 1
-            
-            db.commit()
+        db.add(history)
+        db.commit()
+        db.refresh(history)
         
-        db.refresh(record)
-        records.append(record)
-    
-    db.commit()
-    
-    return BatchPublishResponse(
-        success_count=success_count,
-        failed_count=failed_count,
-        records=records
-    )
+        return PublishResponse(
+            id=history.id,
+            platform=history.platform,
+            status=history.status,
+            platform_post_id=history.platform_post_id,
+            platform_url=history.platform_url,
+            message=result.get("message", "草稿创建成功"),
+            published_at=history.published_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"创建草稿失败: {str(e)}"
+        )
 
 
-@router.get("/history", response_model=PublishRecordListResponse)
+@router.get("/history", response_model=List[PublishHistoryResponse])
 async def get_publish_history(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    platform: Optional[PlatformType] = Query(None),
-    status: Optional[PublishStatus] = Query(None),
-    creation_id: Optional[int] = Query(None),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    platform: str = None,
+    status: str = None,
+    skip: int = 0,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """获取发布历史"""
-    query = db.query(PublishRecord).filter(
-        PublishRecord.user_id == current_user.id
+    query = db.query(PublishHistory).filter(
+        PublishHistory.user_id == current_user.id
     )
     
     if platform:
-        query = query.filter(PublishRecord.platform == platform)
+        query = query.filter(PublishHistory.platform == platform)
     if status:
-        query = query.filter(PublishRecord.status == status)
-    if creation_id:
-        query = query.filter(PublishRecord.creation_id == creation_id)
+        query = query.filter(PublishHistory.status == status)
     
-    total = query.count()
-    records = query.order_by(PublishRecord.created_at.desc()).offset(skip).limit(limit).all()
+    histories = query.order_by(
+        PublishHistory.created_at.desc()
+    ).offset(skip).limit(limit).all()
     
-    return PublishRecordListResponse(
-        total=total,
-        items=records
+    return [
+        PublishHistoryResponse(
+            id=h.id,
+            platform=h.platform,
+            account_name=h.account.account_name if h.account else None,
+            content_type=h.content_type,
+            title=h.title,
+            status=h.status,
+            platform_post_id=h.platform_post_id,
+            platform_url=h.platform_url,
+            error_message=h.error_message,
+            published_at=h.published_at,
+            created_at=h.created_at
+        )
+        for h in histories
+    ]
+
+
+@router.get("/history/{history_id}", response_model=PublishHistoryResponse)
+async def get_publish_history_detail(
+    history_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取发布历史详情"""
+    history = db.query(PublishHistory).filter(
+        PublishHistory.id == history_id,
+        PublishHistory.user_id == current_user.id
+    ).first()
+    
+    if not history:
+        raise HTTPException(status_code=404, detail="发布历史不存在")
+    
+    return PublishHistoryResponse(
+        id=history.id,
+        platform=history.platform,
+        account_name=history.account.account_name if history.account else None,
+        content_type=history.content_type,
+        title=history.title,
+        status=history.status,
+        platform_post_id=history.platform_post_id,
+        platform_url=history.platform_url,
+        error_message=history.error_message,
+        published_at=history.published_at,
+        created_at=history.created_at
     )
 
 
-@router.get("/{record_id}", response_model=PublishRecordResponse)
-async def get_publish_record(
-    record_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+@router.delete("/history/{history_id}")
+async def delete_publish_history(
+    history_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    """获取发布记录详情"""
-    record = db.query(PublishRecord).filter(
-        PublishRecord.id == record_id,
-        PublishRecord.user_id == current_user.id
+    """删除发布历史"""
+    history = db.query(PublishHistory).filter(
+        PublishHistory.id == history_id,
+        PublishHistory.user_id == current_user.id
     ).first()
     
-    if not record:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="发布记录不存在"
-        )
+    if not history:
+        raise HTTPException(status_code=404, detail="发布历史不存在")
     
-    return record
-
-
-@router.get("/{record_id}/status", response_model=PublishStatusResponse)
-async def get_publish_status(
-    record_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """获取发布状态"""
-    record = db.query(PublishRecord).filter(
-        PublishRecord.id == record_id,
-        PublishRecord.user_id == current_user.id
-    ).first()
-    
-    if not record:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="发布记录不存在"
-        )
-    
-    return PublishStatusResponse(
-        id=record.id,
-        platform=record.platform,
-        status=record.status,
-        platform_url=record.platform_url,
-        error_message=record.error_message,
-        published_at=record.published_at
-    )
-
-
-@router.put("/{record_id}", response_model=PublishRecordResponse)
-async def update_publish_record(
-    record_id: int,
-    update_data: PublishUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """更新发布记录（仅限未发布的记录）"""
-    record = db.query(PublishRecord).filter(
-        PublishRecord.id == record_id,
-        PublishRecord.user_id == current_user.id
-    ).first()
-    
-    if not record:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="发布记录不存在"
-        )
-    
-    if record.status not in [PublishStatus.PENDING, PublishStatus.SCHEDULED, PublishStatus.FAILED]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="只能更新待发布、已定时或失败的记录"
-        )
-    
-    # 更新字段
-    update_dict = update_data.dict(exclude_unset=True)
-    for field, value in update_dict.items():
-        setattr(record, field, value)
-    
+    db.delete(history)
     db.commit()
-    db.refresh(record)
     
-    return record
-
-
-@router.post("/{record_id}/retry", response_model=PublishRecordResponse)
-async def retry_publish(
-    record_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """重试发布"""
-    record = db.query(PublishRecord).filter(
-        PublishRecord.id == record_id,
-        PublishRecord.user_id == current_user.id
-    ).first()
-    
-    if not record:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="发布记录不存在"
-        )
-    
-    if record.status != PublishStatus.FAILED:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="只能重试失败的发布"
-        )
-    
-    # 获取平台账号
-    account = db.query(PlatformAccount).filter(
-        PlatformAccount.id == record.platform_account_id
-    ).first()
-    
-    if not account or account.is_active != "active":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="平台账号不可用"
-        )
-    
-    try:
-        # 获取发布器
-        publisher = PublisherFactory.get_publisher(account.platform)
-        
-        # 解密认证信息
-        access_token = decrypt_data(account.access_token) if account.access_token else None
-        
-        # 发布内容
-        record.status = PublishStatus.PUBLISHING
-        record.retry_count += 1
-        db.commit()
-        
-        result = await publisher.publish(
-            title=record.title,
-            content=record.content,
-            cover_image=record.cover_image,
-            media_urls=record.media_urls,
-            tags=record.tags,
-            access_token=access_token,
-            credentials=account.credentials
-        )
-        
-        # 更新发布记录
-        record.status = PublishStatus.SUCCESS
-        record.platform_post_id = result.get("post_id")
-        record.platform_url = result.get("url")
-        record.platform_response = result
-        record.published_at = datetime.utcnow()
-        record.error_message = None
-        
-    except Exception as e:
-        record.status = PublishStatus.FAILED
-        record.error_message = str(e)
-    
-    db.commit()
-    db.refresh(record)
-    
-    return record
-
-
-@router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_publish_record(
-    record_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """删除发布记录"""
-    record = db.query(PublishRecord).filter(
-        PublishRecord.id == record_id,
-        PublishRecord.user_id == current_user.id
-    ).first()
-    
-    if not record:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="发布记录不存在"
-        )
-    
-    db.delete(record)
-    db.commit()
+    return {"message": "删除成功"}

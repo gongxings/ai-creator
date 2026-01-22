@@ -1,287 +1,228 @@
 """
-抖音平台发布服务
+抖音平台发布服务（基于Cookie）
 """
-from typing import Dict, Any, Optional
-import httpx
-from .base import BasePlatform
+from typing import Dict, Any, Optional, List
+from playwright.async_api import async_playwright, Page
+from .base import BasePlatformPublisher
+from app.models.publish import PlatformAccount
 
 
-class DouyinPlatform(BasePlatform):
-    """抖音平台发布实现"""
+class DouyinPublisher(BasePlatformPublisher):
+    """抖音平台发布器（使用Cookie模拟浏览器操作）"""
     
-    platform_name = "douyin"
+    def get_platform_name(self) -> str:
+        """获取平台名称"""
+        return "抖音"
     
-    async def validate_credentials(self, credentials: Dict[str, Any]) -> bool:
+    def get_login_url(self) -> str:
+        """获取登录URL"""
+        return "https://creator.douyin.com/"
+    
+    async def validate_cookies(self, cookies: List[Dict[str, Any]]) -> bool:
         """
-        验证抖音账号凭证
+        验证Cookie是否有效
         
         Args:
-            credentials: 包含access_token等凭证信息
+            cookies: Cookie列表
             
         Returns:
-            bool: 凭证是否有效
+            bool: Cookie是否有效
         """
         try:
-            access_token = credentials.get("access_token")
-            open_id = credentials.get("open_id")
-            
-            if not access_token or not open_id:
-                return False
-            
-            # 调用抖音API验证token
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    "https://open.douyin.com/oauth/userinfo/",
-                    params={
-                        "access_token": access_token,
-                        "open_id": open_id
-                    },
-                    timeout=10.0
-                )
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context()
                 
-                if response.status_code == 200:
-                    result = response.json()
-                    return result.get("data", {}).get("error_code") == 0
-                return False
+                # 设置Cookie
+                await context.add_cookies(cookies)
+                
+                # 访问创作者中心
+                page = await context.new_page()
+                await page.goto("https://creator.douyin.com/", wait_until="networkidle")
+                
+                # 检查是否需要登录（如果跳转到登录页面说明Cookie无效）
+                current_url = page.url
+                is_valid = "login" not in current_url.lower()
+                
+                await browser.close()
+                return is_valid
                 
         except Exception as e:
-            self.logger.error(f"验证抖音凭证失败: {str(e)}")
+            self.logger.error(f"验证抖音Cookie失败: {str(e)}")
             return False
     
-    async def publish_content(
+    async def create_draft(
         self,
-        content: str,
-        title: str,
-        credentials: Dict[str, Any],
-        video_url: Optional[str] = None,
-        cover_url: Optional[str] = None,
-        **kwargs
+        account: PlatformAccount,
+        content: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        发布内容到抖音
+        创建抖音视频草稿
         
         Args:
-            content: 视频描述
-            title: 视频标题
-            credentials: 账号凭证
-            video_url: 视频URL
-            cover_url: 封面URL
-            **kwargs: 其他参数（poi_id, micro_app_id等）
-            
-        Returns:
-            Dict: 包含item_id的字典
-        """
-        try:
-            access_token = credentials.get("access_token")
-            open_id = credentials.get("open_id")
-            
-            if not video_url:
-                raise ValueError("抖音发布需要提供视频URL")
-            
-            # 上传视频
-            video_id = await self._upload_video(video_url, access_token, open_id)
-            if not video_id:
-                raise Exception("视频上传失败")
-            
-            # 准备发布数据
-            publish_data = {
-                "open_id": open_id,
-                "access_token": access_token,
-                "video_id": video_id,
-                "text": f"{title}\n\n{content}",
-            }
-            
-            # 添加封面
-            if cover_url:
-                cover_id = await self._upload_image(cover_url, access_token, open_id)
-                if cover_id:
-                    publish_data["cover_tsp"] = cover_id
-            
-            # 添加POI（地理位置）
-            if "poi_id" in kwargs:
-                publish_data["poi_id"] = kwargs["poi_id"]
-            
-            # 添加小程序
-            if "micro_app_id" in kwargs:
-                publish_data["micro_app_id"] = kwargs["micro_app_id"]
-                publish_data["micro_app_title"] = kwargs.get("micro_app_title", "")
-                publish_data["micro_app_url"] = kwargs.get("micro_app_url", "")
-            
-            # 发布视频
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    "https://open.douyin.com/video/create/",
-                    json=publish_data,
-                    timeout=30.0
-                )
+            account: 平台账号
+            content: 发布内容，包含：
+                - title: 视频标题
+                - description: 视频描述
+                - video_url: 视频文件URL
+                - cover_url: 封面图URL（必需）
+                - tags: 标签列表（可选）
+                - location: 位置信息（可选）
                 
-                if response.status_code == 200:
-                    result = response.json()
-                    data = result.get("data", {})
-                    
-                    if data.get("error_code") == 0:
-                        item_id = data.get("item_id")
-                        return {
-                            "item_id": item_id,
-                            "share_url": f"https://www.douyin.com/video/{item_id}"
-                        }
-                    else:
-                        raise Exception(f"发布失败: {data.get('description')}")
-                else:
-                    raise Exception(f"发布失败: {response.text}")
-                    
-        except Exception as e:
-            self.logger.error(f"发布到抖音失败: {str(e)}")
-            raise
-    
-    async def _upload_video(
-        self,
-        video_url: str,
-        access_token: str,
-        open_id: str
-    ) -> Optional[str]:
+        Returns:
+            Dict: 包含draft_url的字典
         """
-        上传视频到抖音
+        # 检查Cookie
+        self.check_cookies_or_raise(account)
+        cookies = self.get_cookies(account)
         
-        Args:
-            video_url: 视频URL
-            access_token: 访问令牌
-            open_id: 用户open_id
-            
-        Returns:
-            str: 视频ID
-        """
+        # 验证必需字段
+        if not content.get("video_url"):
+            raise ValueError("抖音发布需要提供视频URL")
+        if not content.get("cover_url"):
+            raise ValueError("抖音发布需要提供封面图URL")
+        
         try:
-            async with httpx.AsyncClient() as client:
-                # 下载视频
-                video_response = await client.get(video_url, timeout=60.0)
-                video_data = video_response.content
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=False)  # 视频上传建议使用有头模式
+                context = await browser.new_context()
+                await context.add_cookies(cookies)
                 
-                # 初始化上传
-                init_response = await client.post(
-                    "https://open.douyin.com/video/upload/",
-                    params={
-                        "open_id": open_id,
-                        "access_token": access_token
-                    },
-                    timeout=10.0
-                )
+                page = await context.new_page()
                 
-                if init_response.status_code != 200:
-                    return None
-                
-                init_result = init_response.json()
-                upload_url = init_result.get("data", {}).get("upload_url")
-                
-                if not upload_url:
-                    return None
+                # 访问发布页面
+                await page.goto("https://creator.douyin.com/creator-micro/content/upload", wait_until="networkidle")
+                await page.wait_for_timeout(2000)
                 
                 # 上传视频文件
-                files = {"video": ("video.mp4", video_data, "video/mp4")}
-                upload_response = await client.post(
-                    upload_url,
-                    files=files,
-                    timeout=120.0
-                )
+                await self._upload_video(page, content["video_url"])
                 
-                if upload_response.status_code == 200:
-                    upload_result = upload_response.json()
-                    return upload_result.get("data", {}).get("video_id")
-                    
+                # 等待视频处理
+                await page.wait_for_timeout(5000)
+                
+                # 上传封面图
+                await self._upload_cover(page, content["cover_url"])
+                
+                # 填写标题
+                title_input = await page.wait_for_selector('input[placeholder*="标题"]', timeout=10000)
+                await title_input.fill(content.get("title", ""))
+                
+                # 填写描述
+                if content.get("description"):
+                    desc_input = await page.query_selector('div[contenteditable="true"]')
+                    if desc_input:
+                        await desc_input.fill(content["description"])
+                
+                # 添加标签
+                if content.get("tags"):
+                    await self._add_tags(page, content["tags"])
+                
+                # 添加位置
+                if content.get("location"):
+                    location_btn = await page.query_selector('text="添加位置"')
+                    if location_btn:
+                        await location_btn.click()
+                        await page.wait_for_timeout(1000)
+                        location_input = await page.query_selector('input[placeholder*="搜索"]')
+                        if location_input:
+                            await location_input.fill(content["location"])
+                            await page.wait_for_timeout(1000)
+                            # 选择第一个结果
+                            first_result = await page.query_selector('.location-item:first-child')
+                            if first_result:
+                                await first_result.click()
+                
+                # 保存草稿
+                draft_btn = await page.wait_for_selector('button:has-text("存草稿")', timeout=10000)
+                await draft_btn.click()
+                
+                # 等待保存完成
+                await page.wait_for_timeout(3000)
+                
+                await browser.close()
+                
+                return {
+                    "success": True,
+                    "draft_url": "https://creator.douyin.com/creator-micro/content/manage",
+                    "message": "草稿已保存到抖音创作者中心"
+                }
+                
         except Exception as e:
-            self.logger.error(f"上传视频失败: {str(e)}")
-            return None
+            self.logger.error(f"创建抖音草稿失败: {str(e)}")
+            raise Exception(f"创建抖音草稿失败: {str(e)}")
     
-    async def _upload_image(
-        self,
-        image_url: str,
-        access_token: str,
-        open_id: str
-    ) -> Optional[str]:
-        """
-        上传图片到抖音
+    async def _upload_video(self, page: Page, video_url: str):
+        """上传视频"""
+        # 下载视频到临时文件
+        import httpx
+        import tempfile
+        import os
         
-        Args:
-            image_url: 图片URL
-            access_token: 访问令牌
-            open_id: 用户open_id
+        async with httpx.AsyncClient() as client:
+            response = await client.get(video_url, timeout=120.0)
             
-        Returns:
-            str: 图片ID
-        """
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+                tmp.write(response.content)
+                tmp_path = tmp.name
+        
         try:
-            async with httpx.AsyncClient() as client:
-                # 下载图片
-                image_response = await client.get(image_url, timeout=30.0)
-                image_data = image_response.content
-                
-                # 上传到抖音
-                files = {"image": ("cover.jpg", image_data, "image/jpeg")}
-                response = await client.post(
-                    "https://open.douyin.com/image/upload/",
-                    params={
-                        "open_id": open_id,
-                        "access_token": access_token
-                    },
-                    files=files,
-                    timeout=30.0
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    return result.get("data", {}).get("image_id")
-                    
-        except Exception as e:
-            self.logger.error(f"上传图片失败: {str(e)}")
-            return None
+            # 找到上传按钮并上传
+            upload_input = await page.query_selector('input[type="file"][accept*="video"]')
+            if upload_input:
+                await upload_input.set_input_files(tmp_path)
+        finally:
+            # 清理临时文件
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
     
-    async def get_publish_status(
-        self,
-        publish_id: str,
-        credentials: Dict[str, Any]
-    ) -> str:
-        """
-        获取发布状态
+    async def _upload_cover(self, page: Page, cover_url: str):
+        """上传封面图"""
+        import httpx
+        import tempfile
+        import os
         
-        Args:
-            publish_id: 视频ID
-            credentials: 账号凭证
+        async with httpx.AsyncClient() as client:
+            response = await client.get(cover_url, timeout=30.0)
             
-        Returns:
-            str: 状态（published, reviewing, failed）
-        """
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+                tmp.write(response.content)
+                tmp_path = tmp.name
+        
         try:
-            access_token = credentials.get("access_token")
-            open_id = credentials.get("open_id")
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    "https://open.douyin.com/video/data/",
-                    params={
-                        "open_id": open_id,
-                        "access_token": access_token,
-                        "item_ids": publish_id
-                    },
-                    timeout=10.0
-                )
+            # 点击封面编辑按钮
+            cover_btn = await page.query_selector('text="选择封面"')
+            if cover_btn:
+                await cover_btn.click()
+                await page.wait_for_timeout(1000)
                 
-                if response.status_code == 200:
-                    result = response.json()
-                    data = result.get("data", {})
-                    
-                    if data.get("error_code") == 0:
-                        items = data.get("list", [])
-                        if items:
-                            status = items[0].get("status")
-                            # 映射抖音状态到统一状态
-                            status_map = {
-                                1: "published",  # 已发布
-                                2: "reviewing",  # 审核中
-                                3: "failed",     # 审核失败
-                                4: "failed"      # 已删除
-                            }
-                            return status_map.get(status, "unknown")
-                    
+                # 上传封面图片
+                cover_input = await page.query_selector('input[type="file"][accept*="image"]')
+                if cover_input:
+                    await cover_input.set_input_files(tmp_path)
+        finally:
+            # 清理临时文件
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    
+    async def _add_tags(self, page: Page, tags: List[str]):
+        """添加标签"""
+        try:
+            # 点击添加话题按钮
+            topic_btn = await page.query_selector('text="添加话题"')
+            if topic_btn:
+                await topic_btn.click()
+                await page.wait_for_timeout(1000)
+                
+                # 添加每个标签（最多30个）
+                for tag in tags[:30]:
+                    tag_input = await page.query_selector('input[placeholder*="搜索话题"]')
+                    if tag_input:
+                        await tag_input.fill(f"#{tag}")
+                        await page.wait_for_timeout(500)
+                        # 选择第一个结果或创建新话题
+                        first_result = await page.query_selector('.topic-item:first-child')
+                        if first_result:
+                            await first_result.click()
+                        await page.wait_for_timeout(500)
         except Exception as e:
-            self.logger.error(f"获取发布状态失败: {str(e)}")
-            return "unknown"
+            self.logger.warning(f"添加标签失败: {str(e)}")

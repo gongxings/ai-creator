@@ -44,6 +44,7 @@ class PlatformAccountCreate(PlatformAccountBase):
     refresh_token: Optional[str] = None
     expires_at: Optional[datetime] = None
     credentials: Optional[Dict[str, Any]] = None
+    cookies: Optional[Dict[str, str]] = None  # Cookie字典
 
 
 class PlatformAccountUpdate(BaseModel):
@@ -56,6 +57,7 @@ class PlatformAccountUpdate(BaseModel):
     credentials: Optional[Dict[str, Any]] = None
     config: Optional[Dict[str, Any]] = None
     is_active: Optional[str] = Field(None, pattern="^(active|inactive)$")
+    cookies: Optional[Dict[str, str]] = None  # Cookie字典
 
 
 class PlatformAccountResponse(PlatformAccountBase):
@@ -64,6 +66,8 @@ class PlatformAccountResponse(PlatformAccountBase):
     user_id: int
     is_active: str
     expires_at: Optional[datetime] = None
+    cookies_valid: Optional[str] = None  # Cookie有效性状态
+    cookies_updated_at: Optional[datetime] = None  # Cookie更新时间
     created_at: datetime
     updated_at: datetime
 
@@ -93,6 +97,7 @@ class PublishCreate(PublishContentBase):
     creation_id: int
     platform_account_ids: List[int] = Field(..., min_items=1)
     scheduled_at: Optional[datetime] = None
+    create_draft_only: bool = Field(default=True, description="是否仅创建草稿（不直接发布）")
 
     @validator('scheduled_at')
     def validate_scheduled_at(cls, v):
@@ -173,3 +178,26 @@ class PlatformInfo(BaseModel):
 class PlatformListResponse(BaseModel):
     """支持的平台列表"""
     platforms: List[PlatformInfo]
+
+
+# ============ Cookie管理相关 ============
+
+class CookieUpdateRequest(BaseModel):
+    """更新Cookie请求"""
+    cookies: Dict[str, str] = Field(..., description="Cookie字典")
+
+
+class CookieValidationResponse(BaseModel):
+    """Cookie验证响应"""
+    is_valid: bool
+    message: str
+    login_url: Optional[str] = None  # 如果Cookie无效，返回登录URL
+
+
+class PlatformLoginInfo(BaseModel):
+    """平台登录信息"""
+    platform: PlatformType
+    platform_name: str
+    login_url: str
+    instructions: str  # 登录说明
+    cookie_keys: List[str]  # 需要的Cookie键名

@@ -32,6 +32,10 @@ zhipuai==2.0.1
 # 工具库
 python-dotenv==1.0.0
 pyyaml==6.0.1
+cryptography==41.0.7
+
+# 浏览器自动化
+playwright==1.40.0
 
 # 日志
 loguru==0.7.2

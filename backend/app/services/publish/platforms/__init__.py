@@ -1,24 +1,24 @@
 """
 平台发布服务包
 """
-from .base import BasePlatform
-from .wechat import WechatPlatform
-from .xiaohongshu import XiaohongshuPlatform
-from .douyin import DouyinPlatform
-from .kuaishou import KuaishouPlatform
-from .toutiao import ToutiaoPlatform
+from .base import BasePlatformPublisher
+from .wechat import WeChatPublisher
+from .xiaohongshu import XiaohongshuPublisher
+from .douyin import DouyinPublisher
+from .kuaishou import KuaishouPublisher
+from .toutiao import ToutiaoPublisher
 
 # 平台注册表
 PLATFORM_REGISTRY = {
-    "wechat": WechatPlatform,
-    "xiaohongshu": XiaohongshuPlatform,
-    "douyin": DouyinPlatform,
-    "kuaishou": KuaishouPlatform,
-    "toutiao": ToutiaoPlatform,
+    "wechat": WeChatPublisher,
+    "xiaohongshu": XiaohongshuPublisher,
+    "douyin": DouyinPublisher,
+    "kuaishou": KuaishouPublisher,
+    "toutiao": ToutiaoPublisher,
 }
 
 
-def get_platform(platform_name: str) -> BasePlatform:
+def get_platform(platform_name: str) -> BasePlatformPublisher:
     """
     获取平台实例
     
@@ -26,7 +26,7 @@ def get_platform(platform_name: str) -> BasePlatform:
         platform_name: 平台名称
         
     Returns:
-        BasePlatform: 平台实例
+        BasePlatformPublisher: 平台实例
         
     Raises:
         ValueError: 不支持的平台
@@ -38,12 +38,12 @@ def get_platform(platform_name: str) -> BasePlatform:
 
 
 __all__ = [
-    "BasePlatform",
-    "WechatPlatform",
-    "XiaohongshuPlatform",
-    "DouyinPlatform",
-    "KuaishouPlatform",
-    "ToutiaoPlatform",
+    "BasePlatformPublisher",
+    "WeChatPublisher",
+    "XiaohongshuPublisher",
+    "DouyinPublisher",
+    "KuaishouPublisher",
+    "ToutiaoPublisher",
     "PLATFORM_REGISTRY",
     "get_platform",
 ]

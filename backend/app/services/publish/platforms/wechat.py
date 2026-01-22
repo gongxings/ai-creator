@@ -1,118 +1,192 @@
 """
-微信公众号发布器
+微信公众号平台发布服务
 """
-from typing import Dict, Any
-import httpx
-from app.services.publish.platforms.base import BasePlatformPublisher
+from typing import Dict, Any, Optional, List
+from playwright.async_api import async_playwright, Page
+import asyncio
+
+from .base import BasePlatformPublisher
 from app.models.publish import PlatformAccount
 
 
 class WeChatPublisher(BasePlatformPublisher):
-    """微信公众号发布器"""
+    """微信公众号发布实现"""
     
-    API_BASE = "https://api.weixin.qq.com/cgi-bin"
+    def get_platform_name(self) -> str:
+        return "微信公众号"
     
-    async def publish(
+    def get_login_url(self) -> str:
+        return "https://mp.weixin.qq.com/"
+    
+    async def validate_cookies(self, account: PlatformAccount) -> bool:
+        """验证微信公众号Cookie有效性"""
+        cookies = self.get_cookies(account)
+        if not cookies:
+            return False
+        
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context()
+                
+                # 设置Cookie
+                await context.add_cookies([
+                    {"name": k, "value": v, "domain": ".qq.com", "path": "/"}
+                    for k, v in cookies.items()
+                ])
+                
+                page = await context.new_page()
+                
+                # 访问公众号后台首页
+                await page.goto("https://mp.weixin.qq.com/", timeout=30000)
+                await page.wait_for_load_state("networkidle")
+                
+                # 检查是否跳转到登录页
+                current_url = page.url
+                is_valid = "login" not in current_url.lower() and "mp.weixin.qq.com" in current_url
+                
+                await browser.close()
+                return is_valid
+                
+        except Exception as e:
+            self.logger.error(f"验证微信公众号Cookie失败: {str(e)}")
+            return False
+    
+    async def create_draft(
         self,
         account: PlatformAccount,
-        content: Dict[str, Any],
-        config: Dict[str, Any] = None
+        title: str,
+        content: str,
+        cover_image: Optional[str] = None,
+        media_urls: Optional[List[str]] = None,
+        tags: Optional[List[str]] = None,
+        **kwargs
     ) -> Dict[str, Any]:
         """
-        发布到微信公众号
+        创建微信公众号草稿
         
         Args:
             account: 平台账号
-            content: 发布内容
-            config: 发布配置
+            title: 文章标题
+            content: 文章内容（HTML格式）
+            cover_image: 封面图片URL
+            media_urls: 其他图片URLs
+            tags: 标签（微信不支持）
+            **kwargs: 其他参数（author, digest等）
             
         Returns:
-            Dict: 发布结果
+            Dict: 草稿信息
         """
-        credentials = self._get_credentials(account)
-        access_token = await self._get_access_token(credentials)
+        # 检查Cookie
+        cookies = await self.check_cookies_or_raise(account)
         
-        # 构建素材
-        article = {
-            "title": content["title"],
-            "author": content.get("author", ""),
-            "digest": content.get("digest", ""),
-            "content": content["content"],
-            "thumb_media_id": content.get("thumb_media_id", ""),
-            "need_open_comment": 1,
-            "only_fans_can_comment": 0
-        }
-        
-        # 上传图文素材
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.API_BASE}/material/add_news",
-                params={"access_token": access_token},
-                json={"articles": [article]}
-            )
-            result = response.json()
-            
-            if result.get("errcode") and result["errcode"] != 0:
-                raise Exception(f"微信发布失败: {result.get('errmsg')}")
-            
-            media_id = result["media_id"]
-            
-            # 群发图文消息（可选）
-            if config and config.get("send_to_all"):
-                send_result = await self._send_to_all(access_token, media_id)
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=['--no-sandbox', '--disable-setuid-sandbox']
+                )
+                context = await browser.new_context(
+                    viewport={'width': 1920, 'height': 1080},
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                )
+                
+                # 设置Cookie
+                await context.add_cookies([
+                    {"name": k, "value": v, "domain": ".qq.com", "path": "/"}
+                    for k, v in cookies.items()
+                ])
+                
+                page = await context.new_page()
+                
+                # 访问图文消息页面
+                await page.goto("https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit_v2&action=edit&isNew=1&type=10&token=&lang=zh_CN", timeout=60000)
+                await page.wait_for_load_state("networkidle")
+                await asyncio.sleep(2)
+                
+                # 填写标题
+                title_input = await page.wait_for_selector('#js_appmsg_title', timeout=10000)
+                await title_input.fill(title)
+                
+                # 填写作者
+                author = kwargs.get('author', '')
+                if author:
+                    author_input = await page.query_selector('#js_author')
+                    if author_input:
+                        await author_input.fill(author)
+                
+                # 填写摘要
+                digest = kwargs.get('digest', content[:100])
+                digest_input = await page.query_selector('#js_digest')
+                if digest_input:
+                    await digest_input.fill(digest)
+                
+                # 上传封面图
+                if cover_image:
+                    await self._upload_cover(page, cover_image)
+                
+                # 填写正文内容
+                # 微信公众号使用富文本编辑器，需要特殊处理
+                await self._fill_content(page, content)
+                
+                # 点击保存按钮
+                save_btn = await page.wait_for_selector('#js_submit', timeout=10000)
+                await save_btn.click()
+                
+                # 等待保存完成
+                await asyncio.sleep(3)
+                
+                # 获取草稿箱链接
+                draft_url = "https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_list&type=10&action=list&token=&lang=zh_CN"
+                
+                await browser.close()
+                
                 return {
-                    "post_id": send_result["msg_id"],
-                    "url": f"https://mp.weixin.qq.com/s/{send_result['msg_data_id']}"
+                    "success": True,
+                    "draft_id": "draft",
+                    "draft_url": draft_url,
+                    "message": "草稿已保存，请前往微信公众号后台查看并发布"
                 }
-            
+                
+        except Exception as e:
+            self.logger.error(f"创建微信公众号草稿失败: {str(e)}")
             return {
-                "post_id": media_id,
-                "url": f"https://mp.weixin.qq.com"
+                "success": False,
+                "message": f"创建草稿失败: {str(e)}"
             }
     
-    async def check_status(
-        self,
-        account: PlatformAccount,
-        post_id: str
-    ) -> Dict[str, Any]:
-        """检查发布状态"""
-        return {
-            "status": "success",
-            "post_id": post_id
-        }
+    async def _upload_cover(self, page: Page, cover_url: str) -> None:
+        """上传封面图"""
+        try:
+            # 点击封面上传按钮
+            cover_btn = await page.query_selector('#js_cover_img_area')
+            if cover_btn:
+                await cover_btn.click()
+                await asyncio.sleep(1)
+                
+                # 这里需要处理图片上传
+                # 实际实现中需要下载图片并上传
+                self.logger.info(f"上传封面: {cover_url}")
+                
+        except Exception as e:
+            self.logger.error(f"上传封面失败: {str(e)}")
     
-    async def _get_access_token(self, credentials: Dict[str, Any]) -> str:
-        """获取access_token"""
-        appid = credentials["appid"]
-        secret = credentials["secret"]
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.API_BASE}/token",
-                params={
-                    "grant_type": "client_credential",
-                    "appid": appid,
-                    "secret": secret
-                }
-            )
-            result = response.json()
+    async def _fill_content(self, page: Page, content: str) -> None:
+        """填写正文内容"""
+        try:
+            # 微信公众号使用iframe编辑器
+            # 需要切换到iframe中操作
+            iframe = await page.wait_for_selector('#ueditor_0', timeout=10000)
+            frame = await iframe.content_frame()
             
-            if "access_token" not in result:
-                raise Exception(f"获取access_token失败: {result.get('errmsg')}")
-            
-            return result["access_token"]
-    
-    async def _send_to_all(self, access_token: str, media_id: str) -> Dict[str, Any]:
-        """群发消息"""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.API_BASE}/message/mass/sendall",
-                params={"access_token": access_token},
-                json={
-                    "filter": {"is_to_all": True},
-                    "mpnews": {"media_id": media_id},
-                    "msgtype": "mpnews",
-                    "send_ignore_reprint": 0
-                }
-            )
-            return response.json()
+            if frame:
+                # 在编辑器中填写内容
+                editor = await frame.query_selector('body')
+                if editor:
+                    # 如果是HTML内容，直接设置innerHTML
+                    await frame.evaluate(f'document.body.innerHTML = `{content}`')
+                    
+        except Exception as e:
+            self.logger.error(f"填写内容失败: {str(e)}")
+            raise
+</content

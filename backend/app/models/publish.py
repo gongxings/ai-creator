@@ -46,6 +46,12 @@ class PlatformAccount(Base):
     expires_at = Column(DateTime, comment="令牌过期时间")
     credentials = Column(JSON, comment="其他认证信息")
     
+    # Cookie认证（加密存储）
+    cookies = Column(Text, comment="平台登录Cookie（加密）")
+    cookies_updated_at = Column(DateTime, comment="Cookie更新时间")
+    cookies_valid = Column(SQLEnum(enum.Enum("valid", "invalid", "unknown", name="cookie_status")), 
+                          default="unknown", comment="Cookie有效性")
+    
     # 账号配置
     config = Column(JSON, comment="平台特定配置")
     is_active = Column(SQLEnum(enum.Enum("active", "inactive", name="account_status")), 
