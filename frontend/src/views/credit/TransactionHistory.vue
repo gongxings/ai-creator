@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getTransactions } from '@/api/credit'
+import { getCreditTransactions } from '@/api/credit'
 
 interface Transaction {
   id: number
@@ -141,7 +141,7 @@ const loadTransactions = async () => {
       params.transaction_type = filters.type
     }
 
-    const response = await getTransactions(params)
+    const response = await getCreditTransactions(params)
     transactions.value = response.data.items
     pagination.total = response.data.total
   } catch (error: any) {

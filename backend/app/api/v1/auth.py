@@ -18,19 +18,19 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User
-from app.schemas.auth import (
-    Token,
-    UserCreate,
+from app.schemas.user import (
+    TokenResponse,
+    UserRegister,
     UserLogin,
     UserResponse,
-    RefreshToken,
+    PasswordChange,
 )
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=UserResponse)
-def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
+def register(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
     """
     用户注册
     """
@@ -55,7 +55,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
         username=user_in.username,
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
-        full_name=user_in.full_name,
+        nickname=user_in.nickname,
     )
     db.add(user)
     db.commit()
@@ -64,7 +64,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
     return user
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=TokenResponse)
 def login(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
     """
     用户登录
@@ -91,11 +91,12 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
 
 
-@router.post("/refresh", response_model=Token)
-def refresh_token(token_in: RefreshToken, db: Session = Depends(get_db)) -> Any:
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(refresh_token: str, db: Session = Depends(get_db)) -> Any:
     """
     刷新访问令牌
     """
@@ -103,7 +104,7 @@ def refresh_token(token_in: RefreshToken, db: Session = Depends(get_db)) -> Any:
     
     try:
         payload = jwt.decode(
-            token_in.refresh_token,
+            refresh_token,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM],
         )
@@ -128,13 +129,14 @@ def refresh_token(token_in: RefreshToken, db: Session = Depends(get_db)) -> Any:
         )
     
     # 生成新的访问令牌和刷新令牌
-    access_token = create_access_token(subject=user.id)
-    refresh_token = create_refresh_token(subject=user.id)
+    new_access_token = create_access_token(subject=user.id)
+    new_refresh_token = create_refresh_token(subject=user.id)
     
     return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
         "token_type": "bearer",
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
 
 
@@ -150,29 +152,21 @@ def get_current_user_info(
 
 @router.put("/me", response_model=UserResponse)
 def update_current_user(
-    full_name: str = None,
-    email: str = None,
+    user_update: dict,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Any:
     """
     更新当前用户信息
     """
-    if full_name:
-        current_user.full_name = full_name
+    if "nickname" in user_update:
+        current_user.nickname = user_update["nickname"]
     
-    if email:
-        # 检查邮箱是否已被其他用户使用
-        existing_user = db.query(User).filter(
-            User.email == email,
-            User.id != current_user.id
-        ).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="邮箱已被使用",
-            )
-        current_user.email = email
+    if "avatar" in user_update:
+        current_user.avatar = user_update["avatar"]
+    
+    if "phone" in user_update:
+        current_user.phone = user_update["phone"]
     
     db.commit()
     db.refresh(current_user)
@@ -182,21 +176,20 @@ def update_current_user(
 
 @router.post("/change-password")
 def change_password(
-    old_password: str,
-    new_password: str,
+    password_change: PasswordChange,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Any:
     """
     修改密码
     """
-    if not verify_password(old_password, current_user.hashed_password):
+    if not verify_password(password_change.old_password, current_user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="原密码错误",
         )
     
-    current_user.hashed_password = get_password_hash(new_password)
+    current_user.hashed_password = get_password_hash(password_change.new_password)
     db.commit()
     
     return {"message": "密码修改成功"}

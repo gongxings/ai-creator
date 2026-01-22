@@ -170,7 +170,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Document, Edit } from '@element-plus/icons-vue'
-import { creationsApi } from '@/api/creations'
+import * as creationsApi from '@/api/creations'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -204,4 +204,400 @@ const toolNameMap: Record<string, string> = {
   story_novel: '故事',
   business_plan: '商业',
   work_report: '报告',
-  resume:
+  resume: '简历',
+  lesson_plan: '教案',
+  content_rewrite: '改写',
+  translation: '翻译'
+}
+
+const toolIconMap: Record<string, any> = {
+  wechat_article: Document,
+  xiaohongshu_note: Edit,
+  official_document: Document,
+  marketing_copy: Edit,
+  academic_paper: Document,
+  press_release: Document,
+  video_script: Edit,
+  story_novel: Edit,
+  business_plan: Document,
+  work_report: Document,
+  resume: Document,
+  lesson_plan: Document,
+  content_rewrite: Edit,
+  translation: Edit
+}
+
+const toolColorMap: Record<string, string> = {
+  wechat_article: '#07c160',
+  xiaohongshu_note: '#ff2442',
+  official_document: '#409eff',
+  marketing_copy: '#f56c6c',
+  academic_paper: '#909399',
+  press_release: '#67c23a',
+  video_script: '#e6a23c',
+  story_novel: '#c71585',
+  business_plan: '#1e90ff',
+  work_report: '#409eff',
+  resume: '#67c23a',
+  lesson_plan: '#e6a23c',
+  content_rewrite: '#909399',
+  translation: '#409eff'
+}
+
+// 获取创作列表
+const fetchCreations = async () => {
+  loading.value = true
+  try {
+    const params: any = {
+      page: pagination.page,
+      page_size: pagination.pageSize
+    }
+
+    if (filterForm.toolType) {
+      params.tool_type = filterForm.toolType
+    }
+
+    if (filterForm.keyword) {
+      params.keyword = filterForm.keyword
+    }
+
+    if (filterForm.dateRange && filterForm.dateRange.length === 2) {
+      params.start_date = dayjs(filterForm.dateRange[0]).format('YYYY-MM-DD')
+      params.end_date = dayjs(filterForm.dateRange[1]).format('YYYY-MM-DD')
+    }
+
+    const response = await creationsApi.getCreations(params)
+    creationList.value = response.data.items
+    pagination.total = response.data.total
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取创作列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 搜索
+const handleSearch = () => {
+  pagination.page = 1
+  fetchCreations()
+}
+
+// 重置
+const handleReset = () => {
+  filterForm.toolType = ''
+  filterForm.dateRange = null
+  filterForm.keyword = ''
+  pagination.page = 1
+  fetchCreations()
+}
+
+// 分页变化
+const handlePageChange = (page: number) => {
+  pagination.page = page
+  fetchCreations()
+}
+
+const handleSizeChange = (size: number) => {
+  pagination.pageSize = size
+  pagination.page = 1
+  fetchCreations()
+}
+
+// 行点击
+const handleRowClick = (row: any) => {
+  handleView(row)
+}
+
+// 查看详情
+const handleView = (row: any) => {
+  currentCreation.value = row
+  showDetailDialog.value = true
+}
+
+// 编辑
+const handleEdit = (row: any) => {
+  router.push({
+    name: 'WritingEditor',
+    query: {
+      id: row.id,
+      tool_type: row.tool_type
+    }
+  })
+}
+
+// 从详情编辑
+const handleEditFromDetail = () => {
+  if (currentCreation.value) {
+    showDetailDialog.value = false
+    handleEdit(currentCreation.value)
+  }
+}
+
+// 删除
+const handleDelete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这条创作记录吗？删除后无法恢复。',
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    await creationsApi.deleteCreation(row.id)
+    ElMessage.success('删除成功')
+    fetchCreations()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '删除失败')
+    }
+  }
+}
+
+// 复制内容
+const handleCopyContent = async () => {
+  if (!currentCreation.value) return
+
+  try {
+    // 创建临时元素来提取纯文本
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = currentCreation.value.content
+    const text = tempDiv.textContent || tempDiv.innerText || ''
+
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('内容已复制到剪贴板')
+  } catch (error) {
+    ElMessage.error('复制失败，请手动复制')
+  }
+}
+
+// 工具辅助函数
+const getToolName = (toolType: string) => {
+  return toolNameMap[toolType] || toolType
+}
+
+const getToolIcon = (toolType: string) => {
+  return toolIconMap[toolType] || Document
+}
+
+const getToolColor = (toolType: string) => {
+  return toolColorMap[toolType] || '#409eff'
+}
+
+const getToolTagType = (toolType: string) => {
+  const typeMap: Record<string, any> = {
+    wechat_article: 'success',
+    xiaohongshu_note: 'danger',
+    official_document: 'primary',
+    marketing_copy: 'warning',
+    academic_paper: 'info',
+    press_release: 'success',
+    video_script: 'warning',
+    story_novel: '',
+    business_plan: 'primary',
+    work_report: 'primary',
+    resume: 'success',
+    lesson_plan: 'warning',
+    content_rewrite: 'info',
+    translation: 'primary'
+  }
+  return typeMap[toolType] || ''
+}
+
+const getContentPreview = (content: string) => {
+  if (!content) return ''
+  // 移除HTML标签
+  const text = content.replace(/<[^>]*>/g, '')
+  // 截取前100个字符
+  return text.length > 100 ? text.substring(0, 100) + '...' : text
+}
+
+const formatDate = (date: string) => {
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+}
+
+const getWordCount = (content: string) => {
+  if (!content) return 0
+  // 移除HTML标签
+  const text = content.replace(/<[^>]*>/g, '')
+  // 计算字数（中文按字符，英文按单词）
+  const chineseCount = (text.match(/[\u4e00-\u9fa5]/g) || []).length
+  const englishCount = (text.match(/[a-zA-Z]+/g) || []).length
+  return chineseCount + englishCount
+}
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchCreations()
+})
+</script>
+
+<style scoped lang="scss">
+.creation-history {
+  padding: 20px;
+
+  .history-container {
+    margin-top: 20px;
+
+    .filter-card {
+      margin-bottom: 20px;
+    }
+
+    .list-card {
+      .title-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .el-icon {
+          font-size: 18px;
+        }
+
+        span {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      .content-preview {
+        color: #606266;
+        line-height: 1.5;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .pagination-container {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  .detail-content {
+    .content-display {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #f5f7fa;
+      border-radius: 4px;
+      min-height: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+      line-height: 1.8;
+
+      :deep(h1),
+      :deep(h2),
+      :deep(h3),
+      :deep(h4),
+      :deep(h5),
+      :deep(h6) {
+        margin: 16px 0 8px;
+        font-weight: 600;
+      }
+
+      :deep(p) {
+        margin: 8px 0;
+      }
+
+      :deep(ul),
+      :deep(ol) {
+        margin: 8px 0;
+        padding-left: 24px;
+      }
+
+      :deep(li) {
+        margin: 4px 0;
+      }
+
+      :deep(blockquote) {
+        margin: 8px 0;
+        padding: 8px 16px;
+        border-left: 4px solid #409eff;
+        background-color: #ecf5ff;
+      }
+
+      :deep(code) {
+        padding: 2px 4px;
+        background-color: #f4f4f5;
+        border-radius: 2px;
+        font-family: 'Courier New', monospace;
+      }
+
+      :deep(pre) {
+        margin: 8px 0;
+        padding: 12px;
+        background-color: #282c34;
+        color: #abb2bf;
+        border-radius: 4px;
+        overflow-x: auto;
+
+        code {
+          background-color: transparent;
+          color: inherit;
+        }
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .creation-history {
+    padding: 10px;
+
+    .history-container {
+      .filter-card {
+        :deep(.el-form) {
+          .el-form-item {
+            display: block;
+            margin-right: 0;
+            margin-bottom: 12px;
+
+            .el-select,
+            .el-date-picker,
+            .el-input {
+              width: 100% !important;
+            }
+          }
+        }
+      }
+
+      .list-card {
+        :deep(.el-table) {
+          font-size: 12px;
+
+          .el-button {
+            padding: 5px 8px;
+            font-size: 12px;
+          }
+        }
+
+        .pagination-container {
+          :deep(.el-pagination) {
+            justify-content: center;
+
+            .el-pagination__sizes,
+            .el-pagination__jump {
+              display: none;
+            }
+          }
+        }
+      }
+    }
+
+    .detail-content {
+      .content-display {
+        padding: 12px;
+        font-size: 14px;
+      }
+    }
+  }
+}
+</style>

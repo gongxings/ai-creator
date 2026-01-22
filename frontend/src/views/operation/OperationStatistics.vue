@@ -175,7 +175,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Money, User, Stamp, Document, CaretTop, CaretBottom, Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
-import { getStatistics } from '@/api/operation'
+import { getOperationStatistics } from '@/api/operation'
 
 const dateRange = ref<[Date, Date]>([
   new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -211,7 +211,7 @@ const loadStatistics = async () => {
       end_date: endDate.toISOString().split('T')[0]
     }
     
-    const data = await getStatistics(params)
+    const data = await getOperationStatistics(params)
     
     statistics.value = {
       totalRevenue: data.overview.total_revenue || 0,

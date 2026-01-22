@@ -20,11 +20,12 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
-    meta: { requiresAuth: true },
     children: [
       {
         path: '',
-        redirect: '/writing',
+        name: 'Home',
+        component: () => import('@/views/Home.vue'),
+        meta: { requiresAuth: false },
       },
       {
         path: 'writing',
@@ -85,21 +86,25 @@ const routes: RouteRecordRaw[] = [
         path: 'operation/activities',
         name: 'ActivityManagement',
         component: () => import('@/views/operation/ActivityManagement.vue'),
+        meta: { requiresAdmin: true },
       },
       {
         path: 'operation/coupons',
         name: 'CouponManagement',
         component: () => import('@/views/operation/CouponManagement.vue'),
+        meta: { requiresAdmin: true },
       },
       {
         path: 'operation/referral',
         name: 'ReferralManagement',
         component: () => import('@/views/operation/ReferralManagement.vue'),
+        meta: { requiresAdmin: true },
       },
       {
         path: 'operation/statistics',
         name: 'OperationStatistics',
         component: () => import('@/views/operation/OperationStatistics.vue'),
+        meta: { requiresAdmin: true },
       },
     ],
   },
@@ -114,14 +119,18 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const requiresAdmin = to.matched.some((record) => record.meta.requiresAdmin)
 
-  if (requiresAuth && !userStore.isLoggedIn()) {
+  if (requiresAuth && !userStore.isLoggedIn) {
     // 需要登录但未登录，跳转到登录页
     next({
       path: '/login',
       query: { redirect: to.fullPath },
     })
-  } else if (!requiresAuth && userStore.isLoggedIn() && (to.path === '/login' || to.path === '/register')) {
+  } else if (requiresAdmin && !userStore.isAdmin) {
+    // 需要管理员权限但不是管理员，跳转到首页
+    next('/')
+  } else if (!requiresAuth && userStore.isLoggedIn && (to.path === '/login' || to.path === '/register')) {
     // 已登录但访问登录/注册页，跳转到首页
     next('/')
   } else {

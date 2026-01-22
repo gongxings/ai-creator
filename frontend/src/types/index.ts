@@ -27,6 +27,7 @@ export interface User {
   phone?: string
   avatar?: string
   is_active: boolean
+  role: string  // 'admin' 或 'user'
   credits: number
   is_member: boolean
   member_expired_at?: string | null

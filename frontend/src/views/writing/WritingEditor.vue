@@ -111,9 +111,9 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft, Upload, RefreshRight, MagicStick, Download } from '@element-plus/icons-vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
-import { writingApi } from '@/api/writing'
-import { publishApi } from '@/api/publish'
-import { modelsApi } from '@/api/models'
+import { generateContent, regenerateContent, optimizeContent } from '@/api/writing'
+import { publishContent } from '@/api/publish'
+import { getAIModels } from '@/api/models'
 import type { Creation, AIModel } from '@/types'
 
 const router = useRouter()
@@ -163,7 +163,7 @@ const handleGenerate = async () => {
   }
   generating.value = true
   try {
-    const res = await writingApi.generate(toolType.value, {
+    const res = await generateContent(toolType.value, {
       ...formData,
       model_id: selectedModel.value
     })
@@ -183,7 +183,7 @@ const handleRegenerate = async () => {
   if (!currentCreation.value) return
   generating.value = true
   try {
-    const res = await writingApi.regenerate(currentCreation.value.id)
+    const res = await regenerateContent(currentCreation.value.id)
     currentCreation.value = res.data
     if (quillEditor) {
       quillEditor.root.innerHTML = res.data.content
@@ -203,7 +203,7 @@ const handleOptimize = async () => {
   }
   optimizing.value = true
   try {
-    const res = await writingApi.optimize(currentCreation.value.id, {
+    const res = await optimizeContent(currentCreation.value.id, {
       optimize_types: optimizeTypes.value
     })
     currentCreation.value = res.data
@@ -226,7 +226,7 @@ const handlePublish = async () => {
   }
   publishing.value = true
   try {
-    await publishApi.publish({
+    await publishContent({
       creation_id: currentCreation.value.id,
       platforms: selectedPlatforms.value
     })
@@ -252,7 +252,7 @@ const handleExport = () => {
 
 const loadModels = async () => {
   try {
-    const res = await modelsApi.getModels()
+    const res = await getAIModels()
     aiModels.value = res.data
     if (aiModels.value.length > 0) {
       selectedModel.value = aiModels.value[0].id

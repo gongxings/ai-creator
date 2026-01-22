@@ -1,116 +1,71 @@
 <template>
   <el-container class="main-layout">
-    <el-aside :width="collapsed ? '64px' : '240px'" class="sidebar">
-      <div class="logo">
-        <img v-if="!collapsed" src="/logo.svg" alt="Logo" />
-        <span v-if="!collapsed">AI创作者</span>
-        <el-icon v-else><Promotion /></el-icon>
+    <!-- 顶部导航 -->
+    <el-header class="header">
+      <div class="header-left">
+        <div class="logo" @click="router.push('/')">
+          <img src="/logo.svg" alt="Logo" />
+          <span>AI创作者</span>
+        </div>
+        <el-menu
+          :default-active="activeMenu"
+          mode="horizontal"
+          :ellipsis="false"
+          router
+          class="nav-menu"
+        >
+          <el-menu-item index="/">
+            <el-icon><HomeFilled /></el-icon>
+            <span>首页</span>
+          </el-menu-item>
+          <el-menu-item index="/writing">
+            <el-icon><Edit /></el-icon>
+            <span>AI写作</span>
+          </el-menu-item>
+          <el-menu-item index="/image">
+            <el-icon><Picture /></el-icon>
+            <span>图片生成</span>
+          </el-menu-item>
+          <el-menu-item index="/video">
+            <el-icon><VideoCamera /></el-icon>
+            <span>视频生成</span>
+          </el-menu-item>
+          <el-menu-item index="/ppt">
+            <el-icon><Document /></el-icon>
+            <span>PPT生成</span>
+          </el-menu-item>
+          <el-sub-menu v-if="userStore.isAdmin" index="/operation">
+            <template #title>
+              <el-icon><DataAnalysis /></el-icon>
+              <span>运营管理</span>
+            </template>
+            <el-menu-item index="/history">
+              <el-icon><Clock /></el-icon>
+              <span>历史记录</span>
+            </el-menu-item>
+            <el-menu-item index="/publish">
+              <el-icon><Upload /></el-icon>
+              <span>发布管理</span>
+            </el-menu-item>
+            <el-sub-menu index="/credit">
+              <template #title>
+                <el-icon><Wallet /></el-icon>
+                <span>积分会员</span>
+              </template>
+              <el-menu-item index="/credit/recharge">积分充值</el-menu-item>
+              <el-menu-item index="/credit/membership">会员购买</el-menu-item>
+              <el-menu-item index="/credit/transactions">交易记录</el-menu-item>
+            </el-sub-menu>
+            <el-menu-item index="/operation/activities">活动管理</el-menu-item>
+            <el-menu-item index="/operation/coupons">优惠券</el-menu-item>
+            <el-menu-item index="/operation/referral">推广管理</el-menu-item>
+            <el-menu-item index="/operation/statistics">数据统计</el-menu-item>
+          </el-sub-menu>
+        </el-menu>
       </div>
 
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="collapsed"
-        :unique-opened="true"
-        router
-      >
-        <el-menu-item index="/writing">
-          <el-icon><Edit /></el-icon>
-          <template #title>AI写作</template>
-        </el-menu-item>
-
-        <el-menu-item index="/image">
-          <el-icon><Picture /></el-icon>
-          <template #title>图片生成</template>
-        </el-menu-item>
-
-        <el-menu-item index="/video">
-          <el-icon><VideoCamera /></el-icon>
-          <template #title>视频生成</template>
-        </el-menu-item>
-
-        <el-menu-item index="/ppt">
-          <el-icon><Document /></el-icon>
-          <template #title>PPT生成</template>
-        </el-menu-item>
-
-        <el-menu-item index="/history">
-          <el-icon><Clock /></el-icon>
-          <template #title>历史记录</template>
-        </el-menu-item>
-
-        <el-menu-item index="/publish">
-          <el-icon><Upload /></el-icon>
-          <template #title>发布管理</template>
-        </el-menu-item>
-
-        <el-sub-menu index="/credit">
-          <template #title>
-            <el-icon><Wallet /></el-icon>
-            <span>积分会员</span>
-          </template>
-          <el-menu-item index="/credit/recharge">
-            <el-icon><CreditCard /></el-icon>
-            <template #title>积分充值</template>
-          </el-menu-item>
-          <el-menu-item index="/credit/membership">
-            <el-icon><Medal /></el-icon>
-            <template #title>会员购买</template>
-          </el-menu-item>
-          <el-menu-item index="/credit/transactions">
-            <el-icon><List /></el-icon>
-            <template #title>交易记录</template>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <el-sub-menu index="/operation">
-          <template #title>
-            <el-icon><DataAnalysis /></el-icon>
-            <span>运营管理</span>
-          </template>
-          <el-menu-item index="/operation/activities">
-            <el-icon><Present /></el-icon>
-            <template #title>活动管理</template>
-          </el-menu-item>
-          <el-menu-item index="/operation/coupons">
-            <el-icon><Ticket /></el-icon>
-            <template #title>优惠券</template>
-          </el-menu-item>
-          <el-menu-item index="/operation/referral">
-            <el-icon><Share /></el-icon>
-            <template #title>推广管理</template>
-          </el-menu-item>
-          <el-menu-item index="/operation/statistics">
-            <el-icon><TrendCharts /></el-icon>
-            <template #title>数据统计</template>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <el-menu-item index="/settings">
-          <el-icon><Setting /></el-icon>
-          <template #title>设置</template>
-        </el-menu-item>
-      </el-menu>
-    </el-aside>
-
-    <el-container>
-      <el-header class="header">
-        <div class="header-left">
-          <el-icon class="collapse-icon" @click="toggleCollapse">
-            <Fold v-if="!collapsed" />
-            <Expand v-else />
-          </el-icon>
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item
-              v-for="item in breadcrumbs"
-              :key="item.path"
-              :to="item.path"
-            >
-              {{ item.title }}
-            </el-breadcrumb-item>
-          </el-breadcrumb>
-        </div>
-
-        <div class="header-right">
+      <div class="header-right">
+        <template v-if="userStore.isLoggedIn">
           <!-- 积分和会员状态 -->
           <div class="credit-info">
             <el-tag v-if="userStore.user?.is_member" type="success" effect="dark">
@@ -133,10 +88,6 @@
             </div>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="profile">
-                  <el-icon><User /></el-icon>
-                  个人资料
-                </el-dropdown-item>
                 <el-dropdown-item command="settings">
                   <el-icon><Setting /></el-icon>
                   设置
@@ -148,25 +99,31 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-        </div>
-      </el-header>
+        </template>
+        <template v-else>
+          <el-button @click="router.push('/login')">登录</el-button>
+          <el-button type="primary" @click="router.push('/register')">注册</el-button>
+        </template>
+      </div>
+    </el-header>
 
-      <el-main class="main-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
-      </el-main>
-    </el-container>
+    <!-- 主内容区 -->
+    <el-main class="main-content">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </el-main>
   </el-container>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
+  HomeFilled,
   Edit,
   Picture,
   VideoCamera,
@@ -174,21 +131,13 @@ import {
   Clock,
   Upload,
   Setting,
-  Fold,
-  Expand,
   User,
   ArrowDown,
   SwitchButton,
-  Promotion,
   Wallet,
   CreditCard,
   Medal,
-  List,
   DataAnalysis,
-  Present,
-  Ticket,
-  Share,
-  TrendCharts,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 
@@ -196,37 +145,17 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const collapsed = ref(false)
-
 const activeMenu = computed(() => {
   const path = route.path
+  if (path === '/') return '/'
   if (path.startsWith('/writing')) return '/writing'
+  if (path.startsWith('/credit')) return '/credit'
+  if (path.startsWith('/operation') || path === '/history' || path === '/publish') return '/operation'
   return path
 })
 
-const breadcrumbs = computed(() => {
-  const items = []
-  const matched = route.matched.filter((item) => item.meta && item.meta.title)
-
-  matched.forEach((item) => {
-    items.push({
-      path: item.path,
-      title: item.meta.title as string,
-    })
-  })
-
-  return items
-})
-
-const toggleCollapse = () => {
-  collapsed.value = !collapsed.value
-}
-
 const handleCommand = async (command: string) => {
   switch (command) {
-    case 'profile':
-      router.push('/settings')
-      break
     case 'settings':
       router.push('/settings')
       break
@@ -239,74 +168,20 @@ const handleCommand = async (command: string) => {
         })
         await userStore.logout()
         ElMessage.success('已退出登录')
-        router.push('/login')
+        router.push('/')
       } catch (error) {
         // 用户取消
       }
       break
   }
 }
-
-// 监听路由变化，自动收起移动端侧边栏
-watch(
-  () => route.path,
-  () => {
-    if (window.innerWidth < 768) {
-      collapsed.value = true
-    }
-  }
-)
 </script>
 
 <style scoped lang="scss">
 .main-layout {
   height: 100vh;
-}
-
-.sidebar {
-  background: #001529;
-  transition: width 0.3s;
-
-  .logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 64px;
-    padding: 0 16px;
-    color: #fff;
-    font-size: 18px;
-    font-weight: 600;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
-    img {
-      width: 32px;
-      height: 32px;
-      margin-right: 12px;
-    }
-
-    .el-icon {
-      font-size: 32px;
-    }
-  }
-
-  :deep(.el-menu) {
-    border-right: none;
-    background: #001529;
-
-    .el-menu-item {
-      color: rgba(255, 255, 255, 0.65);
-
-      &:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.08);
-      }
-
-      &.is-active {
-        color: #fff;
-        background: #1890ff;
-      }
-    }
-  }
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -315,20 +190,54 @@ watch(
   justify-content: space-between;
   padding: 0 24px;
   background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #e4e7ed;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  height: 60px;
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 24px;
+    flex: 1;
 
-    .collapse-icon {
-      font-size: 20px;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
       cursor: pointer;
-      transition: color 0.3s;
+      font-size: 20px;
+      font-weight: 600;
+      color: #1890ff;
+      white-space: nowrap;
+
+      img {
+        width: 36px;
+        height: 36px;
+      }
 
       &:hover {
-        color: #1890ff;
+        opacity: 0.8;
+      }
+    }
+
+    .nav-menu {
+      flex: 1;
+      border: none;
+      background: transparent;
+
+      :deep(.el-menu-item),
+      :deep(.el-sub-menu__title) {
+        border-bottom: 2px solid transparent;
+        
+        &:hover {
+          background-color: rgba(24, 144, 255, 0.1);
+          border-bottom-color: #1890ff;
+        }
+
+        &.is-active {
+          color: #1890ff;
+          border-bottom-color: #1890ff;
+        }
       }
     }
   }
@@ -378,6 +287,7 @@ watch(
 }
 
 .main-content {
+  flex: 1;
   background: #f0f2f5;
   padding: 24px;
   overflow-y: auto;
@@ -393,21 +303,46 @@ watch(
   opacity: 0;
 }
 
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 1000;
+@media (max-width: 1200px) {
+  .header {
+    .header-left {
+      .nav-menu {
+        :deep(.el-menu-item),
+        :deep(.el-sub-menu__title) {
+          padding: 0 12px;
+          
+          span {
+            display: none;
+          }
+        }
+      }
+    }
   }
+}
 
+@media (max-width: 768px) {
   .header {
     padding: 0 16px;
 
     .header-left {
-      .el-breadcrumb {
+      gap: 12px;
+
+      .logo {
+        span {
+          display: none;
+        }
+      }
+    }
+
+    .header-right {
+      .credit-info {
         display: none;
+      }
+
+      .user-info {
+        .username {
+          display: none;
+        }
       }
     }
   }

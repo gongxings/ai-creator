@@ -11,6 +11,9 @@ export const useUserStore = defineStore('user', () => {
 
   // 兼容性计算属性
   const user = computed(() => userInfo.value)
+  const isLoggedIn = computed(() => !!token.value)
+  const isAdmin = computed(() => userInfo.value?.role === 'admin')
+  // const isLoggedIn = computed(() => true)
 
   // 登录
   const login = async (username: string, password: string) => {
@@ -91,6 +94,8 @@ export const useUserStore = defineStore('user', () => {
     refreshToken,
     userInfo,
     user,
+    isLoggedIn,
+    isAdmin,
     login,
     register,
     getUserInfo,
