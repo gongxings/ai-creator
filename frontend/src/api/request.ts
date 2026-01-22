@@ -2,8 +2,16 @@
  * Axios请求封装
  */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import router from '@/router'
+
+// 不需要登录验证的接口白名单
+const whiteList = [
+  '/api/v1/auth/login',
+  '/api/v1/auth/register',
+  '/api/v1/auth/refresh',
+]
 
 // 创建axios实例
 const service: AxiosInstance = axios.create({
@@ -14,11 +22,49 @@ const service: AxiosInstance = axios.create({
   },
 })
 
+// 是否正在显示登录提示
+let isShowingLoginPrompt = false
+
 // 请求拦截器
 service.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const userStore = useUserStore()
     const token = userStore.token
+    
+    // 检查是否在白名单中
+    const isWhiteListed = whiteList.some(path => config.url?.includes(path))
+    
+    // 如果不在白名单中且未登录，提示用户
+    if (!isWhiteListed && !token && !isShowingLoginPrompt) {
+      isShowingLoginPrompt = true
+      
+      try {
+        await ElMessageBox.confirm(
+          '您还未登录，是否跳转到登录页面？',
+          '未登录提示',
+          {
+            confirmButtonText: '去登录',
+            cancelButtonText: '取消',
+            type: 'warning',
+          }
+        )
+        
+        // 用户确认跳转到登录页
+        router.push({
+          path: '/login',
+          query: {
+            redirect: router.currentRoute.value.fullPath
+          }
+        })
+        
+        isShowingLoginPrompt = false
+        return Promise.reject(new Error('用户未登录'))
+      } catch {
+        // 用户取消
+        isShowingLoginPrompt = false
+        return Promise.reject(new Error('用户取消登录'))
+      }
+    }
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -45,7 +91,28 @@ service.interceptors.response.use(
       if (res.code === 401) {
         const userStore = useUserStore()
         userStore.logout()
-        window.location.href = '/login'
+        
+        if (!isShowingLoginPrompt) {
+          isShowingLoginPrompt = true
+          ElMessageBox.confirm(
+            '登录已过期，请重新登录',
+            '登录过期',
+            {
+              confirmButtonText: '重新登录',
+              cancelButtonText: '取消',
+              type: 'warning',
+            }
+          ).then(() => {
+            router.push({
+              path: '/login',
+              query: {
+                redirect: router.currentRoute.value.fullPath
+              }
+            })
+          }).finally(() => {
+            isShowingLoginPrompt = false
+          })
+        }
       }
       
       return Promise.reject(new Error(res.message || '请求失败'))
@@ -69,7 +136,28 @@ service.interceptors.response.use(
           message = '未授权，请重新登录'
           const userStore = useUserStore()
           userStore.logout()
-          window.location.href = '/login'
+          
+          if (!isShowingLoginPrompt) {
+            isShowingLoginPrompt = true
+            ElMessageBox.confirm(
+              '登录已过期，请重新登录',
+              '登录过期',
+              {
+                confirmButtonText: '重新登录',
+                cancelButtonText: '取消',
+                type: 'warning',
+              }
+            ).then(() => {
+              router.push({
+                path: '/login',
+                query: {
+                  redirect: router.currentRoute.value.fullPath
+                }
+              })
+            }).finally(() => {
+              isShowingLoginPrompt = false
+            })
+          }
           break
         case 403:
           message = '拒绝访问'
