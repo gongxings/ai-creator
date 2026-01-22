@@ -26,6 +26,8 @@ aiohttp==3.9.1
 # AI服务SDK
 openai==1.3.7
 anthropic==0.7.7
+dashscope==1.14.1
+zhipuai==2.0.1
 
 # 工具库
 python-dotenv==1.0.0

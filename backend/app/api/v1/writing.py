@@ -19,6 +19,7 @@ from app.schemas.writing import (
     CreationListResponse,
 )
 from app.services.writing_service import WritingService
+from app.services.credit_service import CreditService
 
 router = APIRouter()
 
@@ -141,11 +142,20 @@ async def generate_content(
     """
     生成AI写作内容
     """
-    # 检查用户配额
-    if current_user.daily_quota_used >= current_user.daily_quota:
+    # 检查并扣减积分（会员不扣积分）
+    credit_service = CreditService(db)
+    credits_required = 10  # 每次生成需要10积分
+    
+    try:
+        await credit_service.check_and_consume_credits(
+            user_id=current_user.id,
+            credits=credits_required,
+            description=f"AI写作 - {request.tool_type}"
+        )
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="今日配额已用完",
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=str(e),
         )
     
     # 创建写作服务实例
@@ -160,13 +170,18 @@ async def generate_content(
             ai_model_id=request.ai_model_id,
         )
         
-        # 更新用户配额
-        current_user.daily_quota_used += 1
-        db.commit()
-        
         return result
         
     except Exception as e:
+        # 生成失败，退还积分
+        if not current_user.is_member:
+            await credit_service.add_credits(
+                user_id=current_user.id,
+                credits=credits_required,
+                transaction_type="REFUND",
+                description=f"AI写作失败退款 - {request.tool_type}"
+            )
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"生成内容失败: {str(e)}",
@@ -339,11 +354,20 @@ async def regenerate_content(
             detail="创作不存在",
         )
     
-    # 检查用户配额
-    if current_user.daily_quota_used >= current_user.daily_quota:
+    # 检查并扣减积分（会员不扣积分）
+    credit_service = CreditService(db)
+    credits_required = 10  # 每次生成需要10积分
+    
+    try:
+        await credit_service.check_and_consume_credits(
+            user_id=current_user.id,
+            credits=credits_required,
+            description=f"AI写作重新生成 - {creation.tool_type}"
+        )
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="今日配额已用完",
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=str(e),
         )
     
     writing_service = WritingService(db)
@@ -357,13 +381,18 @@ async def regenerate_content(
             ai_model_id=creation.ai_model_id,
         )
         
-        # 更新用户配额
-        current_user.daily_quota_used += 1
-        db.commit()
-        
         return result
         
     except Exception as e:
+        # 生成失败，退还积分
+        if not current_user.is_member:
+            await credit_service.add_credits(
+                user_id=current_user.id,
+                credits=credits_required,
+                transaction_type="REFUND",
+                description=f"AI写作重新生成失败退款 - {creation.tool_type}"
+            )
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"重新生成失败: {str(e)}",

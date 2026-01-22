@@ -66,6 +66,41 @@ const routes: RouteRecordRaw[] = [
         name: 'UserSettings',
         component: () => import('@/views/settings/UserSettings.vue'),
       },
+      {
+        path: 'credit/recharge',
+        name: 'CreditRecharge',
+        component: () => import('@/views/credit/CreditRecharge.vue'),
+      },
+      {
+        path: 'credit/membership',
+        name: 'MembershipPurchase',
+        component: () => import('@/views/credit/MembershipPurchase.vue'),
+      },
+      {
+        path: 'credit/transactions',
+        name: 'TransactionHistory',
+        component: () => import('@/views/credit/TransactionHistory.vue'),
+      },
+      {
+        path: 'operation/activities',
+        name: 'ActivityManagement',
+        component: () => import('@/views/operation/ActivityManagement.vue'),
+      },
+      {
+        path: 'operation/coupons',
+        name: 'CouponManagement',
+        component: () => import('@/views/operation/CouponManagement.vue'),
+      },
+      {
+        path: 'operation/referral',
+        name: 'ReferralManagement',
+        component: () => import('@/views/operation/ReferralManagement.vue'),
+      },
+      {
+        path: 'operation/statistics',
+        name: 'OperationStatistics',
+        component: () => import('@/views/operation/OperationStatistics.vue'),
+      },
     ],
   },
 ]

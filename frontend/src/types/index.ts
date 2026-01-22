@@ -27,6 +27,9 @@ export interface User {
   phone?: string
   avatar?: string
   is_active: boolean
+  credits: number
+  is_member: boolean
+  member_expired_at?: string | null
   created_at: string
 }
 

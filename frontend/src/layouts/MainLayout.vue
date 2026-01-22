@@ -43,6 +43,48 @@
           <template #title>发布管理</template>
         </el-menu-item>
 
+        <el-sub-menu index="/credit">
+          <template #title>
+            <el-icon><Wallet /></el-icon>
+            <span>积分会员</span>
+          </template>
+          <el-menu-item index="/credit/recharge">
+            <el-icon><CreditCard /></el-icon>
+            <template #title>积分充值</template>
+          </el-menu-item>
+          <el-menu-item index="/credit/membership">
+            <el-icon><Medal /></el-icon>
+            <template #title>会员购买</template>
+          </el-menu-item>
+          <el-menu-item index="/credit/transactions">
+            <el-icon><List /></el-icon>
+            <template #title>交易记录</template>
+          </el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="/operation">
+          <template #title>
+            <el-icon><DataAnalysis /></el-icon>
+            <span>运营管理</span>
+          </template>
+          <el-menu-item index="/operation/activities">
+            <el-icon><Present /></el-icon>
+            <template #title>活动管理</template>
+          </el-menu-item>
+          <el-menu-item index="/operation/coupons">
+            <el-icon><Ticket /></el-icon>
+            <template #title>优惠券</template>
+          </el-menu-item>
+          <el-menu-item index="/operation/referral">
+            <el-icon><Share /></el-icon>
+            <template #title>推广管理</template>
+          </el-menu-item>
+          <el-menu-item index="/operation/statistics">
+            <el-icon><TrendCharts /></el-icon>
+            <template #title>数据统计</template>
+          </el-menu-item>
+        </el-sub-menu>
+
         <el-menu-item index="/settings">
           <el-icon><Setting /></el-icon>
           <template #title>设置</template>
@@ -69,6 +111,18 @@
         </div>
 
         <div class="header-right">
+          <!-- 积分和会员状态 -->
+          <div class="credit-info">
+            <el-tag v-if="userStore.user?.is_member" type="success" effect="dark">
+              <el-icon><Medal /></el-icon>
+              <span>会员</span>
+            </el-tag>
+            <el-tag type="warning" effect="plain">
+              <el-icon><CreditCard /></el-icon>
+              <span>{{ userStore.user?.credits || 0 }} 积分</span>
+            </el-tag>
+          </div>
+
           <el-dropdown @command="handleCommand">
             <div class="user-info">
               <el-avatar :size="32" :src="userStore.user?.avatar">
@@ -126,6 +180,15 @@ import {
   ArrowDown,
   SwitchButton,
   Promotion,
+  Wallet,
+  CreditCard,
+  Medal,
+  List,
+  DataAnalysis,
+  Present,
+  Ticket,
+  Share,
+  TrendCharts,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 
@@ -271,6 +334,28 @@ watch(
   }
 
   .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .credit-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .el-tag {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        cursor: pointer;
+
+        &:hover {
+          opacity: 0.8;
+        }
+      }
+    }
+
     .user-info {
       display: flex;
       align-items: center;

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation
 
 # 配置日志
 logging.basicConfig(
@@ -188,6 +188,18 @@ app.include_router(
     models_api.router,
     prefix=f"{settings.API_V1_PREFIX}/models",
     tags=["AI模型管理"]
+)
+
+app.include_router(
+    credit.router,
+    prefix=f"{settings.API_V1_PREFIX}/credit",
+    tags=["积分会员"]
+)
+
+app.include_router(
+    operation.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["运营管理"]
 )
 
 

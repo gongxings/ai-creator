@@ -2,85 +2,177 @@
 
 一个功能强大的AI创作平台，提供AI写作、图片生成、视频生成、PPT生成等创作工具，并支持一键发布到多个平台。
 
-## 功能特性
+## ✨ 核心特性
 
-### 核心功能
-- **AI写作工具**：14个专业写作工具（公众号文章、小红书笔记、公文、论文、营销文案、新闻稿、短视频脚本、故事、商业计划书、工作报告、简历、教案、改写、翻译）
-- **图片生成**：文本生成图片、图片变体、图片编辑等
-- **视频生成**：文本转视频、图片转视频、AI配音等
-- **PPT生成**：主题生成PPT、大纲生成PPT、文档转PPT等
-- **自动发布**：一键发布到微信公众号、小红书、抖音、快手、今日头条、百家号、知乎、简书等平台
+### 🎯 场景化AI工具
+- **14个专业写作工具**：公众号文章、小红书笔记、公文、论文、营销文案等
+- **图片生成**：文本生成图片、图片变体、AI编辑、超分辨率
+- **视频生成**：文本转视频、图片转视频、AI配音、自动字幕
+- **PPT生成**：主题生成、大纲生成、文档转换、在线编辑
 
-### 设计理念
-- 场景化工具、一键生成、最少输入、智能优化、所见即所得
+### 💎 积分会员系统
+- **会员服务**：9.9元/月，不限制使用次数
+- **积分充值**：非会员1元购买10积分，每次生成消耗10积分
+- **智能扣费**：会员优先，生成失败自动退款
 
-## 技术栈
+### 🎁 运营功能
+- **活动管理**：积分赠送、会员折扣、首购优惠
+- **优惠券系统**：折扣券、抵扣券、积分加赠
+- **推广返利**：10%充值返利、100积分会员返利
+- **数据统计**：用户增长、收入分析、转化率追踪
 
-**后端**：Python 3.10+ / FastAPI / SQLAlchemy / MySQL 8.0+ / Redis / Celery / JWT
+### 🚀 一键发布
+支持发布到：微信公众号、小红书、抖音、快手、今日头条等平台
 
-**前端**：Vue 3 + TypeScript / Vite / Element Plus / Pinia / Axios / Quill
+### 🤖 多模型支持
+- OpenAI (GPT-3.5/GPT-4)
+- Anthropic (Claude)
+- 阿里通义千问 (Qwen)
+- 百度文心一言
+- 智谱AI (GLM)
 
-## 快速开始
+## 📚 文档导航
+
+- [功能说明](docs/FEATURES.md) - 详细的功能介绍
+- [快速开始](docs/QUICK_START.md) - 5分钟快速上手
+- [实现总结](docs/IMPLEMENTATION_SUMMARY.md) - 技术实现详解
+- [API文档](docs/API_REFERENCE.md) - 完整的API接口文档
+- [数据库设计](docs/DATABASE.md) - 数据库表结构
+- [部署指南](docs/DEPLOYMENT.md) - 生产环境部署
+
+## 🚀 快速开始
 
 ### 环境要求
+
 - Python 3.10+
 - Node.js 18+
 - MySQL 8.0+
-- Redis
+- Redis 6.0+
 
-### 后端安装
+### 安装步骤
 
+1. **克隆项目**
 ```bash
-# 1. 进入后端目录
+git clone https://github.com/yourusername/ai-creator.git
+cd ai-creator
+```
+
+2. **后端设置**
+```bash
 cd backend
-
-# 2. 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 3. 安装依赖
 pip install -r requirements.txt
-
-# 4. 配置环境变量
 cp .env.example .env
-# 编辑.env文件，配置数据库、Redis、AI API密钥等
-
-# 5. 初始化数据库
+# 编辑.env文件，配置数据库和API密钥
 python scripts/init_db.py
-
-# 6. 启动服务
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 前端安装
-
+3. **前端设置**
 ```bash
-# 1. 进入前端目录
 cd frontend
-
-# 2. 安装依赖
 npm install
-
-# 3. 启动开发服务器
-npm run dev
 ```
 
-访问 http://localhost:3000
+4. **启动服务**
 
-## Docker部署
-
+Windows:
 ```bash
-# 构建并启动所有服务
-docker-compose up -d
-
-# 查看日志
-docker-compose logs -f
-
-# 停止服务
-docker-compose down
+start.bat
 ```
 
-## 项目结构
+Linux/Mac:
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+5. **访问应用**
+- 前端：http://localhost:5173
+- 后端API：http://localhost:8000
+- API文档：http://localhost:8000/docs
+
+## 💡 使用示例
+
+### 1. 生成公众号文章
+
+```python
+import requests
+
+# 登录
+response = requests.post('http://localhost:8000/api/v1/auth/login', json={
+    'username': 'testuser',
+    'password': 'password123'
+})
+token = response.json()['data']['access_token']
+
+# 生成文章
+response = requests.post(
+    'http://localhost:8000/api/v1/writing/wechat_article/generate',
+    headers={'Authorization': f'Bearer {token}'},
+    json={
+        'title': '如何提高工作效率',
+        'keywords': ['时间管理', '效率工具'],
+        'requirements': '字数2000字，包含实用技巧',
+        'model_id': 1
+    }
+)
+print(response.json())
+```
+
+### 2. 充值积分
+
+```python
+# 创建充值订单
+response = requests.post(
+    'http://localhost:8000/api/v1/credit/recharge',
+    headers={'Authorization': f'Bearer {token}'},
+    json={
+        'amount': 10.00,
+        'payment_method': 'alipay'
+    }
+)
+print(response.json())
+```
+
+### 3. 购买会员
+
+```python
+# 创建会员订单
+response = requests.post(
+    'http://localhost:8000/api/v1/credit/membership',
+    headers={'Authorization': f'Bearer {token}'},
+    json={
+        'membership_type': 'monthly',
+        'payment_method': 'wechat'
+    }
+)
+print(response.json())
+```
+
+## 🏗️ 技术架构
+
+### 后端技术栈
+- **框架**：FastAPI (Python 3.10+)
+- **数据库**：MySQL 8.0+ (SQLAlchemy ORM)
+- **缓存**：Redis
+- **任务队列**：Celery
+- **认证**：JWT
+- **AI集成**：OpenAI、Anthropic、阿里云、百度、智谱
+
+### 前端技术栈
+- **框架**：Vue 3 + TypeScript
+- **构建工具**：Vite
+- **UI框架**：Element Plus
+- **状态管理**：Pinia
+- **HTTP客户端**：Axios
+- **富文本编辑器**：Quill/TipTap
+
+### 部署方案
+- **容器化**：Docker + Docker Compose
+- **反向代理**：Nginx
+- **进程管理**：Supervisor
+- **SSL证书**：Let's Encrypt
+
+## 📊 项目结构
 
 ```
 ai-creator/
@@ -91,38 +183,17 @@ ai-creator/
 │   │   ├── models/         # 数据库模型
 │   │   ├── schemas/        # Pydantic模型
 │   │   ├── services/       # 业务逻辑
-│   │   └── main.py         # 应用入口
-│   ├── requirements.txt
-│   └── .env.example
+│   │   └── utils/          # 工具函数
+│   ├── scripts/            # 脚本文件
+│   └── requirements.txt    # Python依赖
 ├── frontend/               # 前端代码
 │   ├── src/
 │   │   ├── api/           # API接口
-│   │   ├── components/    # 组件
-│   │   ├── views/         # 页面
-│   │   ├── router/        # 路由
-│   │   ├── store/         # 状态管理
-│   │   └── main.ts
-│   ├── package.json
-│   └── vite.config.ts
-├── scripts/               # 脚本文件
-├── docker-compose.yml
-└── README.md
-```
-
-## API文档
-
-启动后端服务后，访问：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-## 开发指南
-
-详细的开发规范和指南请参考 `.clinerules` 文件。
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题或建议，请提交Issue。
+│   │   ├── components/    # 公共组件
+│   │   ├── views/         # 页面组件
+│   │   ├── router/        # 路由配置
+│   │   └── store/         # 状态管理
+│   └── package.json       # Node依赖
+├── docs/                  # 文档
+│   ├── FEATURES.md        # 功能说明
+│   ├── QUICK_START.md     # 快速开始

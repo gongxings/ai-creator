@@ -52,6 +52,11 @@ class User(Base):
     used_quota = Column(Integer, nullable=False, default=0, comment="已使用配额")
     total_creations = Column(Integer, nullable=False, default=0, comment="总创作数")
     
+    # 积分和会员相关
+    credits = Column(Integer, nullable=False, default=0, comment="积分余额")
+    is_member = Column(Integer, nullable=False, default=0, comment="是否会员: 0-否, 1-是")
+    member_expired_at = Column(DateTime, comment="会员到期时间")
+    
     last_login_at = Column(DateTime, comment="最后登录时间")
     last_login_ip = Column(String(50), comment="最后登录IP")
     
@@ -70,11 +75,24 @@ class User(Base):
     )
     deleted_at = Column(DateTime, comment="删除时间（软删除）")
     
+    # 推广相关
+    referral_code = Column(String(50), unique=True, index=True, comment="推荐码")
+    referred_by = Column(BigInteger, comment="推荐人ID")
+    
     # 关系
     creations = relationship("Creation", back_populates="user")
     ai_models = relationship("AIModel", back_populates="user")
     publish_records = relationship("PublishRecord", back_populates="user")
     platform_accounts = relationship("PlatformAccount", back_populates="user")
+    credit_transactions = relationship("CreditTransaction", back_populates="user")
+    membership_orders = relationship("MembershipOrder", back_populates="user")
+    recharge_orders = relationship("RechargeOrder", back_populates="user")
+    
+    # 运营相关关系
+    activity_participations = relationship("ActivityParticipation", back_populates="user")
+    user_coupons = relationship("UserCoupon", back_populates="user")
+    referrals_made = relationship("ReferralRecord", foreign_keys="ReferralRecord.referrer_id", back_populates="referrer")
+    referrals_received = relationship("ReferralRecord", foreign_keys="ReferralRecord.referee_id", back_populates="referee")
     
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, role={self.role})>"

@@ -11,6 +11,7 @@ from .openai_service import OpenAIService
 from .anthropic_service import AnthropicService
 from .zhipu_service import ZhipuService
 from .baidu_service import BaiduService
+from .qwen_service import QwenService
 
 
 class AIServiceFactory:
@@ -22,6 +23,7 @@ class AIServiceFactory:
         "anthropic": AnthropicService,
         "zhipu": ZhipuService,
         "baidu": BaiduService,
+        "qwen": QwenService,
     }
     
     @classmethod
@@ -64,6 +66,9 @@ class AIServiceFactory:
         elif provider.lower() == "anthropic":
             # Anthropic
             return service_class(api_key, model_name or "claude-3-sonnet-20240229")
+        elif provider.lower() == "qwen":
+            # 阿里通义千问
+            return service_class(api_key, model_name or "qwen-turbo", base_url or "https://dashscope.aliyuncs.com/api/v1")
         else:
             # OpenAI及兼容接口
             return service_class(api_key, model_name or "gpt-4", base_url)

@@ -1,12 +1,16 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { User, TokenResponse } from '@/types'
 import * as authApi from '@/api/auth'
+import * as creditApi from '@/api/credit'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>('')
   const refreshToken = ref<string>('')
   const userInfo = ref<User | null>(null)
+
+  // 兼容性计算属性
+  const user = computed(() => userInfo.value)
 
   // 登录
   const login = async (username: string, password: string) => {
@@ -34,6 +38,21 @@ export const useUserStore = defineStore('user', () => {
     const res = await authApi.getUserInfo()
     userInfo.value = res.data as User
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+  }
+
+  // 更新用户积分和会员信息
+  const updateCreditInfo = async () => {
+    try {
+      const res = await creditApi.getCreditBalance()
+      if (userInfo.value && res.data) {
+        userInfo.value.credits = res.data.credits
+        userInfo.value.is_member = res.data.is_member
+        userInfo.value.member_expired_at = res.data.member_expired_at
+        localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+      }
+    } catch (error) {
+      console.error('更新积分信息失败:', error)
+    }
   }
 
   // 登出
@@ -71,9 +90,11 @@ export const useUserStore = defineStore('user', () => {
     token,
     refreshToken,
     userInfo,
+    user,
     login,
     register,
     getUserInfo,
+    updateCreditInfo,
     logout,
     restoreUser
   }
