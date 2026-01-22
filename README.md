@@ -90,64 +90,6 @@ chmod +x start.sh
 - 后端API：http://localhost:8000
 - API文档：http://localhost:8000/docs
 
-## 💡 使用示例
-
-### 1. 生成公众号文章
-
-```python
-import requests
-
-# 登录
-response = requests.post('http://localhost:8000/api/v1/auth/login', json={
-    'username': 'testuser',
-    'password': 'password123'
-})
-token = response.json()['data']['access_token']
-
-# 生成文章
-response = requests.post(
-    'http://localhost:8000/api/v1/writing/wechat_article/generate',
-    headers={'Authorization': f'Bearer {token}'},
-    json={
-        'title': '如何提高工作效率',
-        'keywords': ['时间管理', '效率工具'],
-        'requirements': '字数2000字，包含实用技巧',
-        'model_id': 1
-    }
-)
-print(response.json())
-```
-
-### 2. 充值积分
-
-```python
-# 创建充值订单
-response = requests.post(
-    'http://localhost:8000/api/v1/credit/recharge',
-    headers={'Authorization': f'Bearer {token}'},
-    json={
-        'amount': 10.00,
-        'payment_method': 'alipay'
-    }
-)
-print(response.json())
-```
-
-### 3. 购买会员
-
-```python
-# 创建会员订单
-response = requests.post(
-    'http://localhost:8000/api/v1/credit/membership',
-    headers={'Authorization': f'Bearer {token}'},
-    json={
-        'membership_type': 'monthly',
-        'payment_method': 'wechat'
-    }
-)
-print(response.json())
-```
-
 ## 🏗️ 技术架构
 
 ### 后端技术栈
@@ -176,24 +118,336 @@ print(response.json())
 
 ```
 ai-creator/
-├── backend/                 # 后端代码
+├── backend/                      # 后端代码
 │   ├── app/
-│   │   ├── api/v1/         # API路由
-│   │   ├── core/           # 核心配置
-│   │   ├── models/         # 数据库模型
-│   │   ├── schemas/        # Pydantic模型
-│   │   ├── services/       # 业务逻辑
-│   │   └── utils/          # 工具函数
-│   ├── scripts/            # 脚本文件
-│   └── requirements.txt    # Python依赖
-├── frontend/               # 前端代码
+│   │   ├── api/v1/              # API路由
+│   │   │   ├── auth.py          # 认证相关API
+│   │   │   ├── writing.py       # 写作工具API
+│   │   │   ├── image.py         # 图片生成API
+│   │   │   ├── video.py         # 视频生成API
+│   │   │   ├── ppt.py           # PPT生成API
+│   │   │   ├── creations.py     # 创作记录API
+│   │   │   ├── publish.py       # 发布管理API
+│   │   │   ├── credit.py        # 积分会员API
+│   │   │   ├── operation.py     # 运营管理API
+│   │   │   └── models.py        # AI模型管理API
+│   │   ├── core/                # 核心配置
+│   │   │   ├── config.py        # 配置管理
+│   │   │   ├── database.py      # 数据库连接
+│   │   │   ├── security.py      # 安全认证
+│   │   │   └── exceptions.py    # 异常处理
+│   │   ├── models/              # 数据库模型
+│   │   │   ├── user.py          # 用户模型
+│   │   │   ├── creation.py      # 创作记录模型
+│   │   │   ├── credit.py        # 积分会员模型
+│   │   │   ├── operation.py     # 运营活动模型
+│   │   │   ├── publish.py       # 发布记录模型
+│   │   │   └── ai_model.py      # AI模型配置
+│   │   ├── schemas/             # Pydantic模型
+│   │   │   ├── user.py          # 用户Schema
+│   │   │   ├── creation.py      # 创作Schema
+│   │   │   ├── credit.py        # 积分Schema
+│   │   │   ├── operation.py     # 运营Schema
+│   │   │   ├── publish.py       # 发布Schema
+│   │   │   ├── platform.py      # 平台Schema
+│   │   │   ├── ai_model.py      # AI模型Schema
+│   │   │   └── common.py        # 通用Schema
+│   │   ├── services/            # 业务逻辑
+│   │   │   ├── ai/              # AI服务集成
+│   │   │   │   ├── base.py      # 基础服务类
+│   │   │   │   ├── factory.py   # 服务工厂
+│   │   │   │   ├── openai_service.py      # OpenAI服务
+│   │   │   │   ├── anthropic_service.py   # Anthropic服务
+│   │   │   │   ├── qwen_service.py        # 通义千问服务
+│   │   │   │   ├── baidu_service.py       # 文心一言服务
+│   │   │   │   └── zhipu_service.py       # 智谱AI服务
+│   │   │   ├── writing/         # 写作服务
+│   │   │   │   ├── service.py   # 写作服务主类
+│   │   │   │   ├── prompts.py   # 提示词模板
+│   │   │   │   └── writing_service.py
+│   │   │   ├── publish/         # 发布服务
+│   │   │   │   ├── service.py   # 发布服务主类
+│   │   │   │   ├── publish_service.py
+│   │   │   │   └── platforms/   # 平台集成
+│   │   │   │       ├── base.py          # 平台基类
+│   │   │   │       ├── wechat.py        # 微信公众号
+│   │   │   │       ├── xiaohongshu.py   # 小红书
+│   │   │   │       ├── douyin.py        # 抖音
+│   │   │   │       ├── kuaishou.py      # 快手
+│   │   │   │       └── toutiao.py       # 今日头条
+│   │   │   ├── credit_service.py        # 积分会员服务
+│   │   │   └── operation_service.py     # 运营服务
+│   │   └── utils/               # 工具函数
+│   │       ├── deps.py          # 依赖注入
+│   │       ├── cache.py         # 缓存工具
+│   │       └── helpers.py       # 辅助函数
+│   ├── scripts/                 # 脚本文件
+│   │   └── init_db.py          # 数据库初始化
+│   ├── Dockerfile              # Docker配置
+│   ├── requirements.txt        # Python依赖
+│   └── .env.example           # 环境变量示例
+├── frontend/                    # 前端代码
 │   ├── src/
-│   │   ├── api/           # API接口
-│   │   ├── components/    # 公共组件
-│   │   ├── views/         # 页面组件
-│   │   ├── router/        # 路由配置
-│   │   └── store/         # 状态管理
-│   └── package.json       # Node依赖
-├── docs/                  # 文档
-│   ├── FEATURES.md        # 功能说明
-│   ├── QUICK_START.md     # 快速开始
+│   │   ├── api/                # API接口
+│   │   │   ├── request.ts      # 请求封装
+│   │   │   ├── auth.ts         # 认证接口
+│   │   │   ├── writing.ts      # 写作接口
+│   │   │   ├── image.ts        # 图片接口
+│   │   │   ├── video.ts        # 视频接口
+│   │   │   ├── ppt.ts          # PPT接口
+│   │   │   ├── creations.ts    # 创作记录接口
+│   │   │   ├── publish.ts      # 发布接口
+│   │   │   ├── credit.ts       # 积分接口
+│   │   │   ├── operation.ts    # 运营接口
+│   │   │   └── models.ts       # 模型接口
+│   │   ├── components/         # 公共组件
+│   │   │   └── home/           # 首页组件
+│   │   │       ├── LoginGuide.vue         # 登录引导
+│   │   │       ├── MembershipBenefits.vue # 会员权益
+│   │   │       ├── StatsSection.vue       # 统计展示
+│   │   │       ├── ToolsSection.vue       # 工具展示
+│   │   │       └── UserStatusCards.vue    # 用户状态卡片
+│   │   ├── views/              # 页面组件
+│   │   │   ├── Home.vue        # 首页
+│   │   │   ├── auth/           # 认证页面
+│   │   │   │   ├── Login.vue   # 登录
+│   │   │   │   └── Register.vue # 注册
+│   │   │   ├── writing/        # 写作工具页面
+│   │   │   │   ├── WritingTools.vue  # 工具列表
+│   │   │   │   └── WritingEditor.vue # 编辑器
+│   │   │   ├── image/          # 图片生成页面
+│   │   │   │   └── ImageGeneration.vue
+│   │   │   ├── video/          # 视频生成页面
+│   │   │   │   └── VideoGeneration.vue
+│   │   │   ├── ppt/            # PPT生成页面
+│   │   │   │   └── PPTGeneration.vue
+│   │   │   ├── history/        # 历史记录页面
+│   │   │   │   └── CreationHistory.vue
+│   │   │   ├── publish/        # 发布管理页面
+│   │   │   │   └── PublishManagement.vue
+│   │   │   ├── credit/         # 积分会员页面
+│   │   │   │   ├── CreditRecharge.vue      # 积分充值
+│   │   │   │   ├── MembershipPurchase.vue  # 会员购买
+│   │   │   │   └── TransactionHistory.vue  # 交易记录
+│   │   │   ├── operation/      # 运营管理页面
+│   │   │   │   ├── ActivityManagement.vue  # 活动管理
+│   │   │   │   ├── CouponManagement.vue    # 优惠券管理
+│   │   │   │   ├── ReferralManagement.vue  # 推广管理
+│   │   │   │   └── OperationStatistics.vue # 运营统计
+│   │   │   └── settings/       # 设置页面
+│   │   │       └── UserSettings.vue
+│   │   ├── layouts/            # 布局组件
+│   │   │   └── MainLayout.vue  # 主布局
+│   │   ├── router/             # 路由配置
+│   │   │   └── index.ts        # 路由定义
+│   │   ├── store/              # 状态管理
+│   │   │   └── user.ts         # 用户状态
+│   │   ├── types/              # 类型定义
+│   │   │   └── index.ts        # 通用类型
+│   │   ├── utils/              # 工具函数
+│   │   │   └── request.ts      # 请求工具
+│   │   ├── App.vue             # 根组件
+│   │   └── main.ts             # 入口文件
+│   ├── public/                 # 静态资源
+│   │   └── logo.svg           # Logo
+│   ├── Dockerfile             # Docker配置
+│   ├── nginx.conf             # Nginx配置
+│   ├── package.json           # Node依赖
+│   ├── tsconfig.json          # TypeScript配置
+│   ├── vite.config.ts         # Vite配置
+│   └── index.html             # HTML模板
+├── docs/                       # 文档
+│   ├── FEATURES.md            # 功能说明
+│   ├── QUICK_START.md         # 快速开始
+│   ├── IMPLEMENTATION_SUMMARY.md  # 实现总结
+│   ├── API_REFERENCE.md       # API文档
+│   ├── DATABASE.md            # 数据库设计
+│   ├── DEPLOYMENT.md          # 部署指南
+│   ├── CREDIT_MEMBERSHIP.md   # 积分会员文档
+│   └── COOKIE_BASED_PUBLISH.md # Cookie发布文档
+├── scripts/                    # 脚本文件
+│   ├── init_db.py             # 数据库初始化
+│   └── create_frontend.sh     # 前端创建脚本
+├── docker-compose.yml         # Docker Compose配置
+├── start.bat                  # Windows启动脚本
+├── start.sh                   # Linux/Mac启动脚本
+├── .env.example              # 环境变量示例
+├── .gitignore                # Git忽略文件
+├── LICENSE                   # 开源协议
+└── README.md                 # 项目说明
+```
+
+## 🔧 配置说明
+
+### 环境变量配置
+
+创建 `.env` 文件并配置以下变量：
+
+```bash
+# 数据库配置
+DATABASE_URL=mysql+pymysql://user:password@localhost:3306/ai_creator
+
+# Redis配置
+REDIS_URL=redis://localhost:6379/0
+
+# JWT配置
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=120
+
+# AI模型API密钥
+OPENAI_API_KEY=your-openai-api-key
+ANTHROPIC_API_KEY=your-anthropic-api-key
+QWEN_API_KEY=your-qwen-api-key
+BAIDU_API_KEY=your-baidu-api-key
+ZHIPU_API_KEY=your-zhipu-api-key
+
+# 支付配置
+ALIPAY_APP_ID=your-alipay-app-id
+ALIPAY_PRIVATE_KEY=your-alipay-private-key
+WECHAT_APP_ID=your-wechat-app-id
+WECHAT_MCH_ID=your-wechat-mch-id
+```
+
+## 🐳 Docker部署
+
+### 使用Docker Compose部署
+
+```bash
+# 构建并启动所有服务
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+```
+
+### Docker Compose配置说明
+
+项目包含完整的 `docker-compose.yml` 配置，包括：
+- **backend**: FastAPI后端服务
+- **frontend**: Vue前端服务
+- **mysql**: MySQL数据库
+- **redis**: Redis缓存
+- **nginx**: 反向代理服务器
+
+## 📦 生产环境部署
+
+### 1. 服务器要求
+
+- **操作系统**: Ubuntu 20.04+ / CentOS 7+
+- **CPU**: 2核心以上
+- **内存**: 4GB以上
+- **硬盘**: 20GB以上
+- **网络**: 公网IP，开放80/443端口
+
+### 2. 部署步骤
+
+```bash
+# 1. 安装Docker和Docker Compose
+curl -fsSL https://get.docker.com | sh
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# 2. 克隆项目
+git clone https://github.com/yourusername/ai-creator.git
+cd ai-creator
+
+# 3. 配置环境变量
+cp .env.example .env
+# 编辑.env文件，填入实际配置
+
+# 4. 启动服务
+docker-compose up -d
+
+# 5. 初始化数据库
+docker-compose exec backend python scripts/init_db.py
+
+# 6. 配置SSL证书（可选）
+# 使用Let's Encrypt自动获取SSL证书
+```
+
+### 3. Nginx配置
+
+生产环境建议使用Nginx作为反向代理：
+
+```bash
+# 安装Nginx
+sudo apt install nginx
+
+# 配置站点
+sudo nano /etc/nginx/sites-available/ai-creator
+
+# 启用站点
+sudo ln -s /etc/nginx/sites-available/ai-creator /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## 🔒 安全建议
+
+1. **修改默认密码**: 部署后立即修改数据库和管理员密码
+2. **启用HTTPS**: 使用SSL证书加密传输
+3. **配置防火墙**: 只开放必要的端口
+4. **定期备份**: 设置自动备份数据库和用户数据
+5. **更新依赖**: 定期更新系统和依赖包
+6. **监控日志**: 配置日志监控和告警
+
+## 📈 性能优化
+
+1. **数据库优化**
+   - 添加适当的索引
+   - 使用连接池
+   - 定期清理过期数据
+
+2. **缓存策略**
+   - Redis缓存热点数据
+   - API响应缓存
+   - 静态资源CDN
+
+3. **异步处理**
+   - 使用Celery处理耗时任务
+   - 消息队列解耦服务
+
+4. **负载均衡**
+   - 多实例部署
+   - Nginx负载均衡
+   - 数据库读写分离
+
+## 🤝 贡献指南
+
+欢迎贡献代码！请遵循以下步骤：
+
+1. Fork本项目
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启Pull Request
+
+## 📄 开源协议
+
+本项目采用 MIT 协议开源，详见 [LICENSE](LICENSE) 文件。
+
+## 📞 联系方式
+
+- **项目主页**: https://github.com/yourusername/ai-creator
+- **问题反馈**: https://github.com/yourusername/ai-creator/issues
+- **邮箱**: your-email@example.com
+
+## 🙏 致谢
+
+感谢以下开源项目：
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [Vue.js](https://vuejs.org/)
+- [Element Plus](https://element-plus.org/)
+- [SQLAlchemy](https://www.sqlalchemy.org/)
+- [OpenAI](https://openai.com/)
+
+---
+
+⭐ 如果这个项目对你有帮助，请给个Star支持一下！
