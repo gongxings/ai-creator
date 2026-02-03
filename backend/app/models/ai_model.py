@@ -1,7 +1,7 @@
 """
 AI模型配置数据模型
 """
-from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, DateTime, Enum, BigInteger
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -32,7 +32,7 @@ class AIModel(Base):
     __tablename__ = "ai_models"
     
     id = Column(Integer, primary_key=True, index=True, comment="模型ID")
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, comment="用户ID")
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, comment="用户ID")
     name = Column(String(100), nullable=False, comment="模型名称")
     provider = Column(String(50), nullable=False, comment="提供商(openai/anthropic/zhipu/baidu/ali/tencent)")
     model_name = Column(String(100), nullable=False, comment="模型标识")
@@ -46,6 +46,7 @@ class AIModel(Base):
     
     # 关系
     user = relationship("User", back_populates="ai_models")
+    creations = relationship("Creation", back_populates="model")
     
     def __repr__(self):
         return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"

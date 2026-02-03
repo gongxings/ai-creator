@@ -6,6 +6,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 import enum
+import secrets
+import string
+
+def generate_referral_code():
+    """生成8位随机推荐码"""
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(8))
 
 
 class UserRole(str, enum.Enum):
@@ -76,7 +83,7 @@ class User(Base):
     deleted_at = Column(DateTime, comment="删除时间（软删除）")
     
     # 推广相关
-    referral_code = Column(String(50), unique=True, index=True, comment="推荐码")
+    referral_code = Column(String(50), unique=True, index=True, default=generate_referral_code, comment="推荐码")
     referred_by = Column(BigInteger, comment="推荐人ID")
     
     # 关系

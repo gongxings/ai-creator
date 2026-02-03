@@ -102,10 +102,7 @@ const handleLogin = async () => {
 
     loading.value = true
     try {
-      await userStore.login({
-        username: loginForm.username,
-        password: loginForm.password,
-      })
+      await userStore.login(loginForm.username, loginForm.password)
 
       ElMessage.success('登录成功')
 

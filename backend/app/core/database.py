@@ -14,7 +14,12 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
-    echo=settings.DEBUG
+    echo=settings.DEBUG,
+    connect_args={
+        "charset": "utf8mb4",
+        "autocommit": True,
+        "init_command": "SET SESSION sql_mode='ALLOW_INVALID_DATES'"
+    }
 )
 
 # 创建会话工厂

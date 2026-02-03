@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # 数据库配置
     DATABASE_URL: str = Field(
-        default="mysql+aiomysql://root:password@localhost:3306/ai_creator",
+        default="mysql+pymysql://root:root@localhost:3306/ai_creator",
         description="数据库连接URL"
     )
     
@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     DEFAULT_AI_PROVIDER: str = "openai"
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
+    OPENAI_API_BASE: str = "https://api.openai.com/v1"
     ANTHROPIC_API_KEY: Optional[str] = None
     ZHIPU_API_KEY: Optional[str] = None
     BAIDU_API_KEY: Optional[str] = None
@@ -83,6 +84,12 @@ class Settings(BaseSettings):
     # 平台发布配置
     WECHAT_APP_ID: Optional[str] = None
     WECHAT_APP_SECRET: Optional[str] = None
+    
+    # OAuth加密配置
+    OAUTH_ENCRYPTION_KEY: str = Field(
+        default="your-oauth-encryption-key-change-in-production",
+        description="OAuth凭据加密密钥"
+    )
     
     class Config:
         env_file = ".env"

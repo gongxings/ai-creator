@@ -29,16 +29,10 @@ TEST_DATABASE_URL = "sqlite:///./test.db"
 @pytest.fixture(scope="session")
 def engine():
     """创建测试数据库引擎"""
-    engine = create_engine(
-        TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False}
-    )
+    engine = create_engine(TEST_DATABASE_URL)
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
-    # 删除测试数据库文件
-    if os.path.exists("./test.db"):
-        os.remove("./test.db")
 
 
 @pytest.fixture(scope="function")
