@@ -13,6 +13,9 @@ from app.models.operation import (
     Activity, ActivityParticipation, Coupon, UserCoupon, ReferralRecord, OperationStatistics,
     ActivityType, ActivityStatus, CouponType, CouponStatus, ReferralStatus
 )
+from app.models.oauth_account import OAuthAccount
+from app.models.oauth_usage_log import OAuthUsageLog
+from app.models.platform_config import PlatformConfig
 
 __all__ = [
     # User models
@@ -59,4 +62,9 @@ __all__ = [
     "CouponType",
     "CouponStatus",
     "ReferralStatus",
+    
+    # OAuth models
+    "OAuthAccount",
+    "OAuthUsageLog",
+    "PlatformConfig",
 ]

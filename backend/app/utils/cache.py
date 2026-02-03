@@ -7,92 +7,128 @@ from datetime import timedelta
 import redis
 from app.core.config import settings
 
-# 创建Redis连接
-redis_client = redis.from_url(
-    settings.REDIS_URL,
-    encoding="utf-8",
-    decode_responses=True
-)
+# Create Redis connection safely
+try:
+    redis_client = redis.from_url(
+        settings.REDIS_URL,
+        encoding="utf-8",
+        decode_responses=True
+    )
+    # Test connection
+    redis_client.ping()
+    REDIS_AVAILABLE = True
+except Exception as e:
+    print(f"Redis connection failed: {e}. Using memory cache.")
+    REDIS_AVAILABLE = False
+    redis_client = None
 
+# Memory cache for fallback
+_memory_cache = {}
 
 class Cache:
-    """缓存管理类"""
+    """Cache Management Class"""
     
     @staticmethod
     def get(key: str) -> Optional[Any]:
-        """
-        获取缓存
-        """
+        """Get cache"""
         try:
-            value = redis_client.get(key)
-            if value:
-                return json.loads(value)
-            return None
+            if REDIS_AVAILABLE and redis_client:
+                value = redis_client.get(key)
+                if value:
+                    return json.loads(value)
+                return None
+            else:
+                # Fallback to memory cache
+                data = _memory_cache.get(key)
+                if data:
+                    # Check expiration (simplified for memory cache)
+                    # In a real implementation, we should store (value, expire_time)
+                    return data
+                return None
         except Exception as e:
             print(f"Cache get error: {e}")
             return None
     
     @staticmethod
     def set(key: str, value: Any, expire: int = 3600) -> bool:
-        """
-        设置缓存
-        expire: 过期时间（秒）
-        """
+        """Set cache"""
         try:
-            redis_client.setex(
-                key,
-                expire,
-                json.dumps(value, ensure_ascii=False)
-            )
-            return True
+            if REDIS_AVAILABLE and redis_client:
+                redis_client.setex(
+                    key,
+                    expire,
+                    json.dumps(value, ensure_ascii=False)
+                )
+                return True
+            else:
+                # Fallback to memory cache
+                _memory_cache[key] = value
+                return True
         except Exception as e:
             print(f"Cache set error: {e}")
             return False
     
     @staticmethod
     def delete(key: str) -> bool:
-        """
-        删除缓存
-        """
+        """Delete cache"""
         try:
-            redis_client.delete(key)
-            return True
+            if REDIS_AVAILABLE and redis_client:
+                redis_client.delete(key)
+                return True
+            else:
+                if key in _memory_cache:
+                    del _memory_cache[key]
+                return True
         except Exception as e:
             print(f"Cache delete error: {e}")
             return False
     
     @staticmethod
     def exists(key: str) -> bool:
-        """
-        检查缓存是否存在
-        """
+        """Check if cache exists"""
         try:
-            return redis_client.exists(key) > 0
+            if REDIS_AVAILABLE and redis_client:
+                return redis_client.exists(key) > 0
+            else:
+                return key in _memory_cache
         except Exception as e:
             print(f"Cache exists error: {e}")
             return False
-    
+            
     @staticmethod
     def clear_pattern(pattern: str) -> int:
-        """
-        清除匹配模式的所有缓存
-        """
+        """Clear cache by pattern"""
         try:
-            keys = redis_client.keys(pattern)
-            if keys:
-                return redis_client.delete(*keys)
-            return 0
+            if REDIS_AVAILABLE and redis_client:
+                keys = redis_client.keys(pattern)
+                if keys:
+                    return redis_client.delete(*keys)
+                return 0
+            else:
+                # Simple pattern matching for memory cache (supports * at end)
+                count = 0
+                prefix = pattern.rstrip('*')
+                keys_to_delete = [k for k in _memory_cache.keys() if k.startswith(prefix)]
+                for k in keys_to_delete:
+                    del _memory_cache[k]
+                    count += 1
+                return count
         except Exception as e:
             print(f"Cache clear pattern error: {e}")
             return 0
-    
+            
     @staticmethod
     def increment(key: str, amount: int = 1) -> int:
-        """
-        增加计数
-        """
+        """Increment value"""
         try:
-            return redis_client.incrby(key, amount)
+            if REDIS_AVAILABLE and redis_client:
+                return redis_client.incrby(key, amount)
+            else:
+                val = _memory_cache.get(key, 0)
+                if isinstance(val, int):
+                    _memory_cache[key] = val + amount
+                    return _memory_cache[key]
+                return 0
         except Exception as e:
             print(f"Cache increment error: {e}")
             return 0

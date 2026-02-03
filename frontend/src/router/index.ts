@@ -77,6 +77,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
       },
       {
+        path: 'oauth/accounts',
+        name: 'OAuthAccounts',
+        component: () => import('@/views/oauth/OAuthAccounts.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: 'credit/recharge',
         name: 'CreditRecharge',
         component: () => import('@/views/credit/CreditRecharge.vue'),

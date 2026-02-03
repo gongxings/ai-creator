@@ -11,7 +11,7 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth
 
 # 配置日志
 logging.basicConfig(
@@ -200,6 +200,12 @@ app.include_router(
     operation.router,
     prefix=f"{settings.API_V1_PREFIX}",
     tags=["运营管理"]
+)
+
+app.include_router(
+    oauth.router,
+    prefix=f"{settings.API_V1_PREFIX}/oauth",
+    tags=["OAuth代理"]
 )
 
 

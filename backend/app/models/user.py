@@ -94,5 +94,8 @@ class User(Base):
     referrals_made = relationship("ReferralRecord", foreign_keys="ReferralRecord.referrer_id", back_populates="referrer")
     referrals_received = relationship("ReferralRecord", foreign_keys="ReferralRecord.referee_id", back_populates="referee")
     
+    # OAuth相关关系
+    oauth_accounts = relationship("OAuthAccount", back_populates="user")
+    
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, role={self.role})>"

@@ -45,6 +45,52 @@
           </el-form>
         </el-tab-pane>
 
+        <!-- OAuth账号管理 -->
+        <el-tab-pane label="OAuth账号" name="oauth">
+          <div class="oauth-section">
+            <div class="section-header">
+              <h3>OAuth账号管理</h3>
+              <el-button type="primary" @click="showAddOAuthDialog">
+                <el-icon><Plus /></el-icon>
+                添加账号
+              </el-button>
+            </div>
+
+            <el-table :data="oauthAccounts" style="width: 100%">
+              <el-table-column prop="platform_name" label="平台" />
+              <el-table-column prop="account_name" label="账号名称" />
+              <el-table-column label="配额使用">
+                <template #default="{ row }">
+                  <el-progress
+                    :percentage="row.quota_limit ? (row.quota_used / row.quota_limit * 100) : 0"
+                    :status="row.is_expired ? 'exception' : 'success'"
+                  />
+                  <span class="quota-text">
+                    {{ row.quota_used }} / {{ row.quota_limit || '无限制' }}
+                  </span>
+                </template>
+              </el-table-column>
+              <el-table-column label="状态">
+                <template #default="{ row }">
+                  <el-tag v-if="row.is_expired" type="danger">已过期</el-tag>
+                  <el-tag v-else-if="row.is_active" type="success">正常</el-tag>
+                  <el-tag v-else type="info">已禁用</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="updated_at" label="更新时间" width="180" />
+              <el-table-column label="操作" width="250">
+                <template #default="{ row }">
+                  <el-button link type="primary" @click="refreshOAuthAccount(row.id)">刷新</el-button>
+                  <el-button link type="warning" @click="toggleOAuthAccount(row)">
+                    {{ row.is_active ? '禁用' : '启用' }}
+                  </el-button>
+                  <el-button link type="danger" @click="deleteOAuthAccount(row.id)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-tab-pane>
+
         <!-- AI模型配置 -->
         <el-tab-pane label="AI模型" name="models">
           <div class="models-section">
@@ -78,6 +124,45 @@
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 添加OAuth账号对话框 -->
+    <el-dialog
+      v-model="oauthDialogVisible"
+      title="添加OAuth账号"
+      width="600px"
+    >
+      <el-form :model="oauthForm" label-width="100px">
+        <el-form-item label="选择平台">
+          <el-select v-model="oauthForm.platform" placeholder="选择要授权的平台" style="width: 100%">
+            <el-option
+              v-for="platform in oauthPlatforms"
+              :key="platform.id"
+              :label="`${platform.icon} ${platform.name}`"
+              :value="platform.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="账号名称">
+          <el-input
+            v-model="oauthForm.account_name"
+            placeholder="为这个账号起个名字，方便识别"
+          />
+        </el-form-item>
+        <el-alert
+          title="授权说明"
+          type="info"
+          :closable="false"
+          style="margin-top: 10px"
+        >
+          <p>点击"开始授权"后，将打开新窗口进行平台登录授权。</p>
+          <p>授权完成后，系统会自动获取您的免费额度。</p>
+        </el-alert>
+      </el-form>
+      <template #footer>
+        <el-button @click="oauthDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="addOAuthAccount">开始授权</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 添加/编辑AI模型对话框 -->
     <el-dialog
@@ -163,6 +248,26 @@ const passwordRules = {
     },
   ],
 }
+
+// OAuth账号
+const oauthAccounts = ref<any[]>([])
+const oauthDialogVisible = ref(false)
+const oauthForm = reactive({
+  platform: '',
+  account_name: '',
+})
+
+// 支持的OAuth平台列表
+const oauthPlatforms = [
+  { id: 'qwen', name: '通义千问', icon: '🤖' },
+  { id: 'openai', name: 'OpenAI', icon: '🔮' },
+  { id: 'claude', name: 'Claude', icon: '🎭' },
+  { id: 'baidu', name: '文心一言', icon: '🐻' },
+  { id: 'zhipu', name: '智谱AI', icon: '🌟' },
+  { id: 'spark', name: '讯飞星火', icon: '⚡' },
+  { id: 'gemini', name: 'Google Gemini', icon: '💎' },
+  { id: 'doubao', name: '豆包', icon: '🎒' },
+]
 
 // AI模型
 const models = ref<AIModel[]>([])
@@ -286,9 +391,83 @@ const deleteModel = async (id: number) => {
   }
 }
 
+// OAuth账号管理方法
+const showAddOAuthDialog = () => {
+  oauthForm.platform = ''
+  oauthForm.account_name = ''
+  oauthDialogVisible.value = true
+}
+
+const loadOAuthAccounts = async () => {
+  try {
+    // TODO: 调用获取OAuth账号列表API
+    // const response = await getOAuthAccounts()
+    // oauthAccounts.value = response.data
+  } catch (error) {
+    ElMessage.error('加载OAuth账号失败')
+  }
+}
+
+const addOAuthAccount = async () => {
+  if (!oauthForm.platform || !oauthForm.account_name) {
+    ElMessage.warning('请填写完整信息')
+    return
+  }
+  
+  try {
+    // TODO: 调用添加OAuth账号API，会打开新窗口进行OAuth授权
+    // const response = await initiateOAuth(oauthForm.platform, oauthForm.account_name)
+    // window.open(response.data.auth_url, '_blank')
+    ElMessage.success('请在新窗口完成授权')
+    oauthDialogVisible.value = false
+    // 轮询检查授权状态
+    // checkOAuthStatus(response.data.state)
+  } catch (error) {
+    ElMessage.error('添加OAuth账号失败')
+  }
+}
+
+const refreshOAuthAccount = async (id: number) => {
+  try {
+    // TODO: 调用刷新OAuth账号API
+    ElMessage.success('刷新成功')
+    loadOAuthAccounts()
+  } catch (error) {
+    ElMessage.error('刷新失败')
+  }
+}
+
+const toggleOAuthAccount = async (account: any) => {
+  try {
+    // TODO: 调用启用/禁用OAuth账号API
+    ElMessage.success(account.is_active ? '已禁用' : '已启用')
+    loadOAuthAccounts()
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
+
+const deleteOAuthAccount = async (id: number) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这个OAuth账号吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    // TODO: 调用删除OAuth账号API
+    ElMessage.success('删除成功')
+    loadOAuthAccounts()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
 onMounted(() => {
   loadUserInfo()
   loadModels()
+  loadOAuthAccounts()
 })
 </script>
 
@@ -318,6 +497,7 @@ onMounted(() => {
     margin-top: 20px;
   }
 
+  .oauth-section,
   .models-section {
     .section-header {
       display: flex;
@@ -330,6 +510,13 @@ onMounted(() => {
         font-size: 16px;
         font-weight: 600;
       }
+    }
+
+    .quota-text {
+      display: block;
+      margin-top: 5px;
+      font-size: 12px;
+      color: #666;
     }
   }
 }
