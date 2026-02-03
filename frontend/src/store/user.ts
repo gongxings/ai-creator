@@ -17,8 +17,7 @@ export const useUserStore = defineStore('user', () => {
 
   // 登录
   const login = async (username: string, password: string) => {
-    const res = await authApi.login({ username, password })
-    const data = res.data as TokenResponse
+    const data = await authApi.login({ username, password }) as TokenResponse
     
     token.value = data.access_token
     refreshToken.value = data.refresh_token
@@ -38,17 +37,17 @@ export const useUserStore = defineStore('user', () => {
 
   // 获取用户信息
   const getUserInfo = async () => {
-    const res = await authApi.getUserInfo()
-    userInfo.value = res.data as User
+    const data = await authApi.getUserInfo() as User
+    userInfo.value = data
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
   }
 
   // 更新用户积分和会员信息
   const updateCreditInfo = async () => {
     try {
-      const res = await creditApi.getCreditBalance()
-      if (userInfo.value && res.data) {
-        userInfo.value.credits = res.data.credits
+      const data = await creditApi.getCreditBalance()
+      if (userInfo.value && data) {
+        userInfo.value.credits = data.credits
         userInfo.value.is_member = res.data.is_member
         userInfo.value.member_expired_at = res.data.member_expired_at
         localStorage.setItem('userInfo', JSON.stringify(userInfo.value))

@@ -30,24 +30,10 @@ service.interceptors.request.use(
 
 // 响应拦截器
 service.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
-    const res = response.data
-
-    // 如果返回的状态码不是200，则认为是错误
-    if (res.code !== 200) {
-      ElMessage.error(res.message || '请求失败')
-
-      // 401: 未授权，跳转到登录页
-      if (res.code === 401) {
-        const userStore = useUserStore()
-        userStore.logout()
-        router.push('/login')
-      }
-
-      return Promise.reject(new Error(res.message || '请求失败'))
-    }
-
-    return res
+  (response: AxiosResponse<any>) => {
+    // 对于登录等特殊接口，直接返回响应数据
+    // 因为它们返回的是标准的HTTP 200响应，不是包装过的ApiResponse格式
+    return response.data
   },
   (error) => {
     console.error('响应错误:', error)

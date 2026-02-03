@@ -17,7 +17,7 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
-from app.models.user import User
+from app.models.user import User, UserStatus
 from app.schemas.user import (
     TokenResponse,
     UserRegister,
@@ -71,21 +71,21 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
     """
     # 查找用户
     user = db.query(User).filter(User.username == user_in.username).first()
-    if not user or not verify_password(user_in.password, user.hashed_password):
+    if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误",
         )
     
-    if not user.is_active:
+    if user.status != UserStatus.ACTIVE:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="用户已被禁用",
         )
     
     # 生成访问令牌和刷新令牌
-    access_token = create_access_token(subject=user.id)
-    refresh_token = create_refresh_token(subject=user.id)
+    access_token = create_access_token(data={"sub": user.id})
+    refresh_token = create_refresh_token(data={"sub": user.id})
     
     return {
         "access_token": access_token,
@@ -122,15 +122,15 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)) -> Any:
     
     # 验证用户是否存在且活跃
     user = db.query(User).filter(User.id == user_id).first()
-    if not user or not user.is_active:
+    if not user or user.status != UserStatus.ACTIVE:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户不存在或已被禁用",
         )
     
     # 生成新的访问令牌和刷新令牌
-    new_access_token = create_access_token(subject=user.id)
-    new_refresh_token = create_refresh_token(subject=user.id)
+    new_access_token = create_access_token(data={"sub": user.id})
+    new_refresh_token = create_refresh_token(data={"sub": user.id})
     
     return {
         "access_token": new_access_token,
@@ -183,13 +183,13 @@ def change_password(
     """
     修改密码
     """
-    if not verify_password(password_change.old_password, current_user.hashed_password):
+    if not verify_password(password_change.old_password, current_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="原密码错误",
         )
     
-    current_user.hashed_password = get_password_hash(password_change.new_password)
+    current_user.password_hash = get_password_hash(password_change.new_password)
     db.commit()
     
     return {"message": "密码修改成功"}
