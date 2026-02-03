@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta
 
 from app.services.oauth.oauth_service import OAuthService
-from app.services.oauth.encryption import encrypt_data, decrypt_data
+from app.services.oauth.encryption import encrypt_credentials, decrypt_credentials
 from app.core.config import settings
 
 
@@ -87,7 +87,7 @@ class TestOAuthService:
         assert account.is_active is True
         
         # 验证Cookie加密
-        decrypted = decrypt_data(account.encrypted_cookies, settings.ENCRYPTION_KEY)
+        decrypted = decrypt_credentials(account.encrypted_cookies)
         assert decrypted == cookies
     
     @pytest.mark.asyncio
@@ -103,7 +103,7 @@ class TestOAuthService:
         )
         
         assert updated is not None
-        decrypted = decrypt_data(updated.encrypted_cookies, settings.ENCRYPTION_KEY)
+        decrypted = decrypt_credentials(updated.encrypted_cookies)
         assert decrypted == new_cookies
     
     @pytest.mark.asyncio
@@ -155,11 +155,11 @@ class TestEncryption:
         """测试加密解密"""
         data = {"key": "value", "number": 123}
         
-        encrypted = encrypt_data(data, settings.ENCRYPTION_KEY)
-        assert encrypted != data
+        encrypted = encrypt_credentials(data)
+        assert encrypted != str(data)
         assert isinstance(encrypted, str)
         
-        decrypted = decrypt_data(encrypted, settings.ENCRYPTION_KEY)
+        decrypted = decrypt_credentials(encrypted)
         assert decrypted == data
     
     def test_encrypt_decrypt_complex_data(self):
@@ -175,15 +175,15 @@ class TestEncryption:
             }
         }
         
-        encrypted = encrypt_data(data, settings.ENCRYPTION_KEY)
-        decrypted = decrypt_data(encrypted, settings.ENCRYPTION_KEY)
+        encrypted = encrypt_credentials(data)
+        decrypted = decrypt_credentials(encrypted)
         
         assert decrypted == data
     
     def test_decrypt_invalid_data(self):
         """测试解密无效数据"""
         with pytest.raises(Exception):
-            decrypt_data("invalid_encrypted_data", settings.ENCRYPTION_KEY)
+            decrypt_credentials("invalid_encrypted_data")
 
 
 @pytest.mark.asyncio

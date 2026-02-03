@@ -15,7 +15,7 @@ from app.schemas.creation import (
     CreationGenerate, CreationUpdate, CreationResponse
 )
 from app.schemas.publish import (
-    PublishRequest, PublishResponse
+    PublishCreate, PublishRecordResponse
 )
 from app.schemas.credit import (
     CreditRechargeRequest, MembershipPurchaseRequest
@@ -167,42 +167,57 @@ class TestCreationSchemas:
 class TestPublishSchemas:
     """测试发布相关Schema"""
     
-    def test_publish_request_single_platform(self):
+    def test_publish_create_single_platform(self):
         """测试单平台发布请求"""
         data = {
             "creation_id": 1,
-            "platforms": ["wechat"],
+            "platform_account_ids": [1],
             "title": "测试文章",
             "content": "内容"
         }
-        schema = PublishRequest(**data)
+        schema = PublishCreate(**data)
         assert schema.creation_id == 1
-        assert len(schema.platforms) == 1
-        assert "wechat" in schema.platforms
+        assert len(schema.platform_account_ids) == 1
+        assert 1 in schema.platform_account_ids
     
-    def test_publish_request_multiple_platforms(self):
+    def test_publish_create_multiple_platforms(self):
         """测试多平台发布请求"""
         data = {
             "creation_id": 1,
-            "platforms": ["wechat", "xiaohongshu", "toutiao"],
+            "platform_account_ids": [1, 2, 3],
             "title": "测试文章",
             "content": "内容"
         }
-        schema = PublishRequest(**data)
-        assert len(schema.platforms) == 3
+        schema = PublishCreate(**data)
+        assert len(schema.platform_account_ids) == 3
     
-    def test_publish_request_with_schedule(self):
+    def test_publish_create_with_schedule(self):
         """测试定时发布请求"""
-        schedule_time = datetime.now()
+        from datetime import timedelta
+        schedule_time = datetime.utcnow() + timedelta(hours=1)
         data = {
             "creation_id": 1,
-            "platforms": ["wechat"],
+            "platform_account_ids": [1],
             "title": "测试",
             "content": "内容",
             "scheduled_at": schedule_time
         }
-        schema = PublishRequest(**data)
+        schema = PublishCreate(**data)
         assert schema.scheduled_at == schedule_time
+    
+    def test_publish_create_invalid_schedule(self):
+        """测试无效的定时发布时间"""
+        from datetime import timedelta
+        past_time = datetime.utcnow() - timedelta(hours=1)
+        data = {
+            "creation_id": 1,
+            "platform_account_ids": [1],
+            "title": "测试",
+            "content": "内容",
+            "scheduled_at": past_time
+        }
+        with pytest.raises(ValidationError):
+            PublishCreate(**data)
 
 
 class TestCreditSchemas:
