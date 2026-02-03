@@ -8,7 +8,7 @@ from typing import List
 from app.core.database import get_db
 from app.utils.deps import get_current_user
 from app.models.user import User
-from app.schemas.common import Response, PageResponse
+from app.schemas.common import Response, PaginatedResponse
 from app.schemas.credit import (
     CreditTransactionResponse,
     RechargeOrderCreate, RechargeOrderResponse,
@@ -37,7 +37,7 @@ async def get_balance(
     return Response(data=balance)
 
 
-@router.get("/transactions", response_model=PageResponse[CreditTransactionResponse])
+@router.get("/transactions", response_model=Response[PaginatedResponse[CreditTransactionResponse]])
 async def get_transactions(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -48,12 +48,13 @@ async def get_transactions(
     transactions, total = CreditService.get_transactions(
         db, current_user.id, skip, limit
     )
-    return PageResponse(
-        data=[CreditTransactionResponse.from_orm(t) for t in transactions],
+    return Response(data=PaginatedResponse(
+        items=[CreditTransactionResponse.from_orm(t) for t in transactions],
         total=total,
         page=skip // limit + 1,
-        page_size=limit
-    )
+        page_size=limit,
+        total_pages=(total + limit - 1) // limit
+    ))
 
 
 @router.get("/statistics", response_model=Response[CreditStatisticsResponse])
@@ -79,7 +80,7 @@ async def create_recharge_order(
     return Response(data=RechargeOrderResponse.from_orm(order))
 
 
-@router.get("/recharge/orders", response_model=PageResponse[RechargeOrderResponse])
+@router.get("/recharge/orders", response_model=Response[PaginatedResponse[RechargeOrderResponse]])
 async def get_recharge_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -90,12 +91,13 @@ async def get_recharge_orders(
     orders, total = RechargeService.get_user_orders(
         db, current_user.id, skip, limit
     )
-    return PageResponse(
-        data=[RechargeOrderResponse.from_orm(o) for o in orders],
+    return Response(data=PaginatedResponse(
+        items=[RechargeOrderResponse.from_orm(o) for o in orders],
         total=total,
         page=skip // limit + 1,
-        page_size=limit
-    )
+        page_size=limit,
+        total_pages=(total + limit - 1) // limit
+    ))
 
 
 @router.post("/recharge/callback", response_model=Response)
@@ -126,7 +128,7 @@ async def create_membership_order(
     return Response(data=MembershipOrderResponse.from_orm(order))
 
 
-@router.get("/membership/orders", response_model=PageResponse[MembershipOrderResponse])
+@router.get("/membership/orders", response_model=Response[PaginatedResponse[MembershipOrderResponse]])
 async def get_membership_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -137,12 +139,13 @@ async def get_membership_orders(
     orders, total = MembershipService.get_user_orders(
         db, current_user.id, skip, limit
     )
-    return PageResponse(
-        data=[MembershipOrderResponse.from_orm(o) for o in orders],
+    return Response(data=PaginatedResponse(
+        items=[MembershipOrderResponse.from_orm(o) for o in orders],
         total=total,
         page=skip // limit + 1,
-        page_size=limit
-    )
+        page_size=limit,
+        total_pages=(total + limit - 1) // limit
+    ))
 
 
 @router.post("/membership/callback", response_model=Response)

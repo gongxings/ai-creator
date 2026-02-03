@@ -4,7 +4,7 @@
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
-from app.models.platform import PlatformType, PlatformStatus, PublishStatus
+from app.models.publish import PlatformType, PlatformStatus, PublishStatus
 
 
 class PlatformBind(BaseModel):

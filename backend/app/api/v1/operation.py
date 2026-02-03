@@ -11,12 +11,12 @@ from app.utils.deps import get_current_user
 from app.models.user import User
 from app.schemas.operation import (
     ActivityCreate, ActivityUpdate, ActivityResponse,
-    ActivityParticipate, ParticipationResponse,
+    ActivityParticipate, ActivityParticipationResponse,
     CouponCreate, CouponUpdate, CouponResponse,
     CouponReceive, CouponUse, UserCouponResponse, CouponCalculateResponse,
     ReferralCodeGenerate, ReferralCodeResponse,
     ReferralRecordResponse, ReferralStatisticsResponse,
-    StatisticsQuery, StatisticsResponse
+    StatisticsQuery, OperationStatisticsResponse, DashboardStatisticsResponse
 )
 from app.schemas.common import Response, PaginatedResponse
 from app.services.operation_service import OperationService
@@ -115,7 +115,7 @@ async def delete_activity(
     return Response(data={"message": "删除成功"})
 
 
-@router.post("/activities/{activity_id}/participate", response_model=Response[ParticipationResponse])
+@router.post("/activities/{activity_id}/participate", response_model=Response[ActivityParticipationResponse])
 async def participate_activity(
     activity_id: int,
     participate: ActivityParticipate,
@@ -128,7 +128,7 @@ async def participate_activity(
     return Response(data=result)
 
 
-@router.get("/activities/{activity_id}/participations", response_model=Response[PaginatedResponse[ParticipationResponse]])
+@router.get("/activities/{activity_id}/participations", response_model=Response[PaginatedResponse[ActivityParticipationResponse]])
 async def get_activity_participations(
     activity_id: int,
     skip: int = Query(0, ge=0),
@@ -360,7 +360,7 @@ async def get_referral_statistics(
 
 # ==================== 数据统计 ====================
 
-@router.get("/statistics", response_model=Response[StatisticsResponse])
+@router.get("/statistics", response_model=Response[OperationStatisticsResponse])
 async def get_statistics(
     query: StatisticsQuery = Depends(),
     db: Session = Depends(get_db),

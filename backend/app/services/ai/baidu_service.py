@@ -3,10 +3,10 @@
 """
 from typing import Dict, Any, Optional
 import httpx
-from .base import BaseAIService
+from .base import AIServiceBase
 
 
-class BaiduService(BaseAIService):
+class BaiduService(AIServiceBase):
     """百度文心一言服务"""
     
     def __init__(self, api_key: str, secret_key: str, model: str = "ernie-bot-4"):

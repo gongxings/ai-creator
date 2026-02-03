@@ -30,6 +30,19 @@ class PublishStatus(str, enum.Enum):
     SCHEDULED = "scheduled"  # 已定时
 
 
+class CookieStatus(str, enum.Enum):
+    """Cookie状态枚举"""
+    VALID = "valid"  # 有效
+    INVALID = "invalid"  # 无效
+    UNKNOWN = "unknown"  # 未知
+
+
+class PlatformStatus(str, enum.Enum):
+    """平台账号状态枚举"""
+    ACTIVE = "active"  # 激活
+    INACTIVE = "inactive"  # 未激活
+
+
 class PlatformAccount(Base):
     """平台账号表"""
     __tablename__ = "platform_accounts"
@@ -49,13 +62,13 @@ class PlatformAccount(Base):
     # Cookie认证（加密存储）
     cookies = Column(Text, comment="平台登录Cookie（加密）")
     cookies_updated_at = Column(DateTime, comment="Cookie更新时间")
-    cookies_valid = Column(SQLEnum(enum.Enum("valid", "invalid", "unknown", name="cookie_status")), 
-                          default="unknown", comment="Cookie有效性")
+    cookies_valid = Column(SQLEnum(CookieStatus), 
+                          default=CookieStatus.UNKNOWN, comment="Cookie有效性")
     
     # 账号配置
     config = Column(JSON, comment="平台特定配置")
-    is_active = Column(SQLEnum(enum.Enum("active", "inactive", name="account_status")), 
-                      default="active", nullable=False, comment="账号状态")
+    is_active = Column(SQLEnum(PlatformStatus), 
+                      default=PlatformStatus.ACTIVE, nullable=False, comment="账号状态")
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

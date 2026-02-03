@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models.ai_model import AIModel
-from app.core.security import decrypt_api_key
+from app.services.oauth.encryption import encryption_service
 from .base import AIServiceBase
 from .openai_service import OpenAIService
 from .anthropic_service import AnthropicService
@@ -101,7 +101,7 @@ class AIServiceFactory:
             raise ValueError("AI模型不存在或未启用")
         
         # 解密API密钥
-        api_key = decrypt_api_key(model.api_key)
+        api_key = encryption_service.decrypt(model.api_key)
         
         # 准备额外参数
         kwargs = {}

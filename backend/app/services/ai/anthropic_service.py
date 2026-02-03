@@ -3,10 +3,10 @@ Anthropic Claude AI服务
 """
 from typing import Dict, Any, Optional
 import anthropic
-from .base import BaseAIService
+from .base import AIServiceBase
 
 
-class AnthropicService(BaseAIService):
+class AnthropicService(AIServiceBase):
     """Anthropic Claude AI服务"""
     
     def __init__(self, api_key: str, model: str = "claude-3-sonnet-20240229"):

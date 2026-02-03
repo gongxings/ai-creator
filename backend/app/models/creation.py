@@ -89,7 +89,7 @@ class Creation(Base):
     
     is_favorite = Column(Boolean, nullable=False, default=False, comment="是否收藏")
     
-    metadata = Column(JSON, comment="元数据（JSON格式）")
+    extra_data = Column(JSON, comment="额外数据（JSON格式）")
     
     created_at = Column(
         DateTime,

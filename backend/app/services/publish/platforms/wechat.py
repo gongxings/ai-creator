@@ -189,4 +189,3 @@ class WeChatPublisher(BasePlatformPublisher):
         except Exception as e:
             self.logger.error(f"填写内容失败: {str(e)}")
             raise
-</content

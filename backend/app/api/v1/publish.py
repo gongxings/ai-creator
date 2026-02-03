@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.utils.deps import get_current_user
 from app.models.user import User
-from app.models.publish import PlatformAccount, PublishHistory
+from app.models.publish import PlatformAccount, PublishRecord
 from app.schemas.publish import (
     PlatformInfo,
     PlatformLoginInfo,
@@ -17,9 +17,9 @@ from app.schemas.publish import (
     PlatformAccountResponse,
     CookieUpdateRequest,
     CookieValidationResponse,
-    PublishRequest,
-    PublishResponse,
-    PublishHistoryResponse
+    PublishCreate,
+    PublishRecordResponse,
+    PublishStatusResponse
 )
 from app.services.publish.platforms import get_platform, PLATFORM_REGISTRY
 
@@ -248,9 +248,9 @@ async def validate_cookies(
         )
 
 
-@router.post("/publish", response_model=PublishResponse)
+@router.post("/publish", response_model=PublishStatusResponse)
 async def publish_content(
-    publish_data: PublishRequest,
+    publish_data: PublishCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -285,7 +285,7 @@ async def publish_content(
         )
         
         # 保存发布历史
-        history = PublishHistory(
+        history = PublishRecord(
             user_id=current_user.id,
             account_id=account.id,
             creation_id=publish_data.creation_id,
@@ -301,7 +301,7 @@ async def publish_content(
         db.commit()
         db.refresh(history)
         
-        return PublishResponse(
+        return PublishStatusResponse(
             id=history.id,
             platform=history.platform,
             status=history.status,
@@ -320,7 +320,7 @@ async def publish_content(
         )
 
 
-@router.get("/history", response_model=List[PublishHistoryResponse])
+@router.get("/history", response_model=List[PublishRecordResponse])
 async def get_publish_history(
     platform: str = None,
     status: str = None,
@@ -330,21 +330,21 @@ async def get_publish_history(
     db: Session = Depends(get_db)
 ):
     """获取发布历史"""
-    query = db.query(PublishHistory).filter(
-        PublishHistory.user_id == current_user.id
+    query = db.query(PublishRecord).filter(
+        PublishRecord.user_id == current_user.id
     )
     
     if platform:
-        query = query.filter(PublishHistory.platform == platform)
+        query = query.filter(PublishRecord.platform == platform)
     if status:
-        query = query.filter(PublishHistory.status == status)
+        query = query.filter(PublishRecord.status == status)
     
     histories = query.order_by(
-        PublishHistory.created_at.desc()
+        PublishRecord.created_at.desc()
     ).offset(skip).limit(limit).all()
     
     return [
-        PublishHistoryResponse(
+        PublishRecordResponse(
             id=h.id,
             platform=h.platform,
             account_name=h.account.account_name if h.account else None,
@@ -361,22 +361,22 @@ async def get_publish_history(
     ]
 
 
-@router.get("/history/{history_id}", response_model=PublishHistoryResponse)
+@router.get("/history/{history_id}", response_model=PublishRecordResponse)
 async def get_publish_history_detail(
     history_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """获取发布历史详情"""
-    history = db.query(PublishHistory).filter(
-        PublishHistory.id == history_id,
-        PublishHistory.user_id == current_user.id
+    history = db.query(PublishRecord).filter(
+        PublishRecord.id == history_id,
+        PublishRecord.user_id == current_user.id
     ).first()
     
     if not history:
         raise HTTPException(status_code=404, detail="发布历史不存在")
     
-    return PublishHistoryResponse(
+    return PublishRecordResponse(
         id=history.id,
         platform=history.platform,
         account_name=history.account.account_name if history.account else None,
@@ -398,9 +398,9 @@ async def delete_publish_history(
     db: Session = Depends(get_db)
 ):
     """删除发布历史"""
-    history = db.query(PublishHistory).filter(
-        PublishHistory.id == history_id,
-        PublishHistory.user_id == current_user.id
+    history = db.query(PublishRecord).filter(
+        PublishRecord.id == history_id,
+        PublishRecord.user_id == current_user.id
     ).first()
     
     if not history:

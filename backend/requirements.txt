@@ -3,8 +3,11 @@ uvicorn[standard]==0.34.0
 pydantic==2.10.5
 pydantic-settings==2.7.1
 pydantic-core==2.27.2
+email-validator==2.1.0
 sqlalchemy==2.0.36
 alembic==1.14.0
+aiomysql==0.2.0
+pymysql==1.1.1
 redis==5.2.1
 celery==5.4.0
 python-jose[cryptography]==3.3.0

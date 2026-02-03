@@ -9,12 +9,11 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
-from app.models.creation import Creation
-from app.models.creation_version import CreationVersion
-from app.schemas.writing import (
+from app.models.creation import Creation, CreationVersion
+from app.schemas.creation import (
     WritingToolInfo,
-    WritingGenerateRequest,
-    WritingGenerateResponse,
+    CreationGenerate as WritingGenerateRequest,
+    CreationResponse as WritingGenerateResponse,
     CreationResponse,
     CreationListResponse,
 )
@@ -264,7 +263,7 @@ def update_creation(
             creation_id=creation.id,
             version_number=creation.version + 1,
             content=creation.content,
-            metadata=creation.metadata,
+            extra_data=creation.extra_data,
         )
         db.add(version)
         creation.version += 1
@@ -377,7 +376,7 @@ async def regenerate_content(
         result = await writing_service.generate_content(
             user_id=current_user.id,
             tool_type=creation.tool_type,
-            input_data=creation.metadata.get("input_data", {}),
+            input_data=creation.extra_data.get("input_data", {}) if creation.extra_data else {},
             ai_model_id=creation.ai_model_id,
         )
         

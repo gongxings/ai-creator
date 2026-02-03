@@ -3,10 +3,10 @@
 """
 from typing import Dict, Any, Optional
 import httpx
-from .base import BaseAIService
+from .base import AIServiceBase
 
 
-class ZhipuService(BaseAIService):
+class ZhipuService(AIServiceBase):
     """智谱AI服务"""
     
     def __init__(self, api_key: str, model: str = "glm-4", base_url: str = "https://open.bigmodel.cn/api/paas/v4"):

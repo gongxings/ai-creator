@@ -5,7 +5,7 @@ import os
 import base64
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from typing import Optional
 from loguru import logger
 
@@ -41,7 +41,7 @@ class EncryptionService:
         except Exception:
             # 使用PBKDF2从密码派生密钥
             logger.info("Deriving encryption key from password")
-            kdf = PBKDF2(
+            kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
                 length=32,
                 salt=b'oauth_encryption_salt',  # 固定salt，确保密钥一致

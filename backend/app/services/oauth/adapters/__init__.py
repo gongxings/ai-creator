@@ -1,7 +1,8 @@
 """
 OAuth平台适配器
 """
-from .base import BasePlatformAdapter
+from typing import Dict, Any, Optional
+from .base import PlatformAdapter
 from .qwen import QwenAdapter
 from .openai import OpenAIAdapter
 from .baidu import BaiduAdapter
@@ -11,7 +12,51 @@ from .claude import ClaudeAdapter
 from .gemini import GeminiAdapter
 from .doubao import DoubaoAdapter
 
+# 为了向后兼容，保留旧名称
+BasePlatformAdapter = PlatformAdapter
+
+# 平台适配器映射
+ADAPTER_MAP = {
+    'qwen': QwenAdapter,
+    'openai': OpenAIAdapter,
+    'baidu': BaiduAdapter,
+    'zhipu': ZhipuAdapter,
+    'spark': SparkAdapter,
+    'claude': ClaudeAdapter,
+    'gemini': GeminiAdapter,
+    'doubao': DoubaoAdapter,
+}
+
+
+def get_adapter(platform_id: str, config: Dict[str, Any]) -> Optional[PlatformAdapter]:
+    """
+    获取平台适配器实例
+    
+    Args:
+        platform_id: 平台ID
+        config: 平台配置
+        
+    Returns:
+        适配器实例，如果平台不支持则返回None
+    """
+    adapter_class = ADAPTER_MAP.get(platform_id)
+    if adapter_class:
+        return adapter_class(platform_id, config)
+    return None
+
+
+def get_supported_platforms():
+    """
+    获取支持的平台列表
+    
+    Returns:
+        支持的平台ID列表
+    """
+    return list(ADAPTER_MAP.keys())
+
+
 __all__ = [
+    'PlatformAdapter',
     'BasePlatformAdapter',
     'QwenAdapter',
     'OpenAIAdapter',
@@ -21,4 +66,6 @@ __all__ = [
     'ClaudeAdapter',
     'GeminiAdapter',
     'DoubaoAdapter',
+    'get_adapter',
+    'get_supported_platforms',
 ]

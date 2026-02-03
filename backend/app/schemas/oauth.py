@@ -159,3 +159,45 @@ class AIGenerateWithOAuth(BaseModel):
     model: Optional[str] = Field(None, description="模型名称")
     temperature: Optional[float] = Field(0.7, description="温度参数")
     max_tokens: Optional[int] = Field(2000, description="最大tokens")
+
+
+# ============ Chat Completion相关 ============
+class ChatMessage(BaseModel):
+    """聊天消息"""
+    role: str = Field(..., description="角色：system/user/assistant")
+    content: str = Field(..., description="消息内容")
+
+
+class ChatCompletionRequest(BaseModel):
+    """聊天完成请求"""
+    account_id: int = Field(..., description="OAuth账号ID")
+    messages: List[ChatMessage] = Field(..., description="消息列表")
+    model: Optional[str] = Field(None, description="模型名称")
+    stream: bool = Field(False, description="是否流式输出")
+    temperature: Optional[float] = Field(0.7, description="温度参数")
+    max_tokens: Optional[int] = Field(2000, description="最大tokens")
+    top_p: Optional[float] = Field(1.0, description="Top P参数")
+
+
+class ChatCompletionChoice(BaseModel):
+    """聊天完成选项"""
+    index: int
+    message: ChatMessage
+    finish_reason: Optional[str] = None
+
+
+class ChatCompletionUsage(BaseModel):
+    """Token使用情况"""
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+
+
+class ChatCompletionResponse(BaseModel):
+    """聊天完成响应"""
+    id: str
+    object: str = "chat.completion"
+    created: int
+    model: str
+    choices: List[ChatCompletionChoice]
+    usage: ChatCompletionUsage

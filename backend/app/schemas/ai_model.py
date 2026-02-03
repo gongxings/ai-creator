@@ -54,3 +54,9 @@ class AIModelTestResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     message: str = Field(..., description="消息")
     response: Optional[str] = Field(None, description="AI响应内容")
+
+
+class AIModelListResponse(BaseModel):
+    """AI模型列表响应"""
+    items: list[AIModelResponse] = Field(..., description="模型列表")
+    total: int = Field(..., description="总数")

@@ -3,22 +3,24 @@
 """
 from .publish_service import PublishService
 from .platforms import (
-    BasePlatform,
-    WechatPlatform,
-    XiaohongshuPlatform,
-    DouyinPlatform,
-    KuaishouPlatform,
-    ToutiaoPlatform,
+    BasePlatformPublisher,
+    WeChatPublisher,
+    XiaohongshuPublisher,
+    DouyinPublisher,
+    KuaishouPublisher,
+    ToutiaoPublisher,
     get_platform,
+    PLATFORM_REGISTRY,
 )
 
 __all__ = [
     "PublishService",
-    "BasePlatform",
-    "WechatPlatform",
-    "XiaohongshuPlatform",
-    "DouyinPlatform",
-    "KuaishouPlatform",
-    "ToutiaoPlatform",
+    "BasePlatformPublisher",
+    "WeChatPublisher",
+    "XiaohongshuPublisher",
+    "DouyinPublisher",
+    "KuaishouPublisher",
+    "ToutiaoPublisher",
     "get_platform",
+    "PLATFORM_REGISTRY",
 ]
