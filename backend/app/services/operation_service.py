@@ -393,8 +393,8 @@ class OperationService:
         self.referral_service = ReferralService()
     
     # Activity methods
-    async def create_activity(self, activity_data: ActivityCreate) -> Activity:
-        return self.activity_service.create_activity(self.db, activity_data, 1)  # TODO: get creator_id from context
+    async def create_activity(self, activity_data: ActivityCreate, creator_id: int) -> Activity:
+        return self.activity_service.create_activity(self.db, activity_data, creator_id)
     
     async def update_activity(self, activity_id: int, activity_data: ActivityUpdate) -> Activity:
         return self.activity_service.update_activity(self.db, activity_id, activity_data)
@@ -493,25 +493,167 @@ class OperationService:
         }
     
     # Statistics methods
-    async def get_statistics(self, query: Any) -> Dict[str, Any]:
-        # TODO: Implement comprehensive statistics
+    async def get_statistics(self, start_date: Optional[datetime] = None, 
+                           end_date: Optional[datetime] = None) -> Dict[str, Any]:
+        """获取运营统计数据"""
+        from app.models.creation import Creation
+        from app.models.credit import RechargeOrder, MembershipOrder
+        
+        # 设置默认时间范围（最近30天）
+        if not end_date:
+            end_date = datetime.now()
+        if not start_date:
+            start_date = end_date - timedelta(days=30)
+        
+        # 用户统计
+        new_users = self.db.query(User).filter(
+            User.created_at >= start_date,
+            User.created_at <= end_date
+        ).count()
+        
+        active_users = self.db.query(func.count(func.distinct(Creation.user_id))).filter(
+            Creation.created_at >= start_date,
+            Creation.created_at <= end_date
+        ).scalar() or 0
+        
+        # 充值统计
+        recharge_stats = self.db.query(
+            func.count(RechargeOrder.id).label('count'),
+            func.sum(RechargeOrder.amount).label('amount')
+        ).filter(
+            RechargeOrder.created_at >= start_date,
+            RechargeOrder.created_at <= end_date,
+            RechargeOrder.status == 'paid'
+        ).first()
+        
+        # 会员统计
+        membership_stats = self.db.query(
+            func.count(MembershipOrder.id).label('count'),
+            func.sum(MembershipOrder.amount).label('amount')
+        ).filter(
+            MembershipOrder.created_at >= start_date,
+            MembershipOrder.created_at <= end_date,
+            MembershipOrder.status == 'paid'
+        ).first()
+        
+        # 积分消耗统计
+        credit_consume = self.db.query(func.sum(CreditTransaction.amount)).filter(
+            CreditTransaction.created_at >= start_date,
+            CreditTransaction.created_at <= end_date,
+            CreditTransaction.transaction_type == TransactionType.CONSUME
+        ).scalar() or 0
+        
+        # 创作统计
+        generation_count = self.db.query(Creation).filter(
+            Creation.created_at >= start_date,
+            Creation.created_at <= end_date
+        ).count()
+        
+        # 活动统计
+        activity_participants = self.db.query(ActivityParticipation).filter(
+            ActivityParticipation.participated_at >= start_date,
+            ActivityParticipation.participated_at <= end_date
+        ).count()
+        
+        # 优惠券统计
+        coupon_used = self.db.query(UserCoupon).filter(
+            UserCoupon.used_time >= start_date,
+            UserCoupon.used_time <= end_date,
+            UserCoupon.status == CouponStatus.USED
+        ).count()
+        
+        # 推荐统计
+        referral_count = self.db.query(ReferralRecord).filter(
+            ReferralRecord.created_at >= start_date,
+            ReferralRecord.created_at <= end_date
+        ).count()
+        
+        referral_rewards = self.db.query(func.sum(ReferralRecord.reward_amount)).filter(
+            ReferralRecord.completed_at >= start_date,
+            ReferralRecord.completed_at <= end_date,
+            ReferralRecord.status == ReferralStatus.COMPLETED
+        ).scalar() or Decimal('0')
+        
         return {
-            "total_activities": self.db.query(Activity).count(),
-            "total_coupons": self.db.query(Coupon).count(),
-            "total_referrals": self.db.query(ReferralRecord).count()
+            "new_users": new_users,
+            "active_users": active_users,
+            "recharge_amount": float(recharge_stats.amount or 0),
+            "recharge_count": recharge_stats.count or 0,
+            "membership_amount": float(membership_stats.amount or 0),
+            "membership_count": membership_stats.count or 0,
+            "credit_consume": abs(credit_consume),
+            "generation_count": generation_count,
+            "activity_participants": activity_participants,
+            "coupon_used": coupon_used,
+            "referral_count": referral_count,
+            "referral_rewards": float(referral_rewards)
         }
     
-    async def get_user_statistics(self, user_id: int, start_date: Optional[Any] = None, 
-                                 end_date: Optional[Any] = None) -> Dict[str, Any]:
-        # TODO: Implement user-specific statistics
+    async def get_user_statistics(self, user_id: int, start_date: Optional[datetime] = None, 
+                                 end_date: Optional[datetime] = None) -> Dict[str, Any]:
+        """获取用户运营统计数据"""
+        from app.models.creation import Creation
+        
+        # 设置默认时间范围（最近30天）
+        if not end_date:
+            end_date = datetime.now()
+        if not start_date:
+            start_date = end_date - timedelta(days=30)
+        
+        # 创作统计
+        total_creations = self.db.query(Creation).filter(
+            Creation.user_id == user_id,
+            Creation.created_at >= start_date,
+            Creation.created_at <= end_date
+        ).count()
+        
+        # 活动参与统计
+        activities_participated = self.db.query(ActivityParticipation).filter(
+            ActivityParticipation.user_id == user_id,
+            ActivityParticipation.participated_at >= start_date,
+            ActivityParticipation.participated_at <= end_date
+        ).count()
+        
+        activity_rewards = self.db.query(func.sum(ActivityParticipation.reward_amount)).filter(
+            ActivityParticipation.user_id == user_id,
+            ActivityParticipation.participated_at >= start_date,
+            ActivityParticipation.participated_at <= end_date
+        ).scalar() or 0
+        
+        # 优惠券统计
+        coupons_received = self.db.query(UserCoupon).filter(
+            UserCoupon.user_id == user_id,
+            UserCoupon.received_at >= start_date,
+            UserCoupon.received_at <= end_date
+        ).count()
+        
+        coupons_used = self.db.query(UserCoupon).filter(
+            UserCoupon.user_id == user_id,
+            UserCoupon.used_time >= start_date,
+            UserCoupon.used_time <= end_date,
+            UserCoupon.status == CouponStatus.USED
+        ).count()
+        
+        # 推荐统计
+        referrals_made = self.db.query(ReferralRecord).filter(
+            ReferralRecord.referrer_id == user_id,
+            ReferralRecord.created_at >= start_date,
+            ReferralRecord.created_at <= end_date
+        ).count()
+        
+        referral_rewards = self.db.query(func.sum(ReferralRecord.reward_amount)).filter(
+            ReferralRecord.referrer_id == user_id,
+            ReferralRecord.completed_at >= start_date,
+            ReferralRecord.completed_at <= end_date,
+            ReferralRecord.status == ReferralStatus.COMPLETED
+        ).scalar() or Decimal('0')
+        
         return {
-            "activities_participated": self.db.query(ActivityParticipation).filter(
-                ActivityParticipation.user_id == user_id
-            ).count(),
-            "coupons_received": self.db.query(UserCoupon).filter(
-                UserCoupon.user_id == user_id
-            ).count(),
-            "referrals_made": self.db.query(ReferralRecord).filter(
-                ReferralRecord.referrer_id == user_id
-            ).count()
+            "total_creations": total_creations,
+            "activities_participated": activities_participated,
+            "activity_rewards": float(activity_rewards),
+            "coupons_received": coupons_received,
+            "coupons_used": coupons_used,
+            "referrals_made": referrals_made,
+            "referral_rewards": float(referral_rewards)
         }

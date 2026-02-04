@@ -215,14 +215,80 @@ async def download_ppt(
     if creation.status != "completed":
         raise HTTPException(status_code=400, detail="PPT尚未生成完成")
     
-    # TODO: 实现PPT文件生成和下载
-    # 可以使用python-pptx库生成实际的PPTX文件
-    
-    return {
-        "code": 200,
-        "message": "success",
-        "data": {
-            "download_url": f"/api/v1/files/ppt/{ppt_id}.pptx",
-            "ppt_data": creation.content
+    # 生成PPT文件
+    try:
+        from pptx import Presentation
+        from pptx.util import Inches, Pt
+        import os
+        from datetime import datetime
+        
+        # 创建PPT对象
+        prs = Presentation()
+        prs.slide_width = Inches(10)
+        prs.slide_height = Inches(7.5)
+        
+        # 获取PPT数据
+        ppt_data = creation.content
+        slides_data = ppt_data.get("slides", [])
+        
+        # 生成每一页幻灯片
+        for slide_data in slides_data:
+            layout_type = slide_data.get("layout", "content")
+            
+            # 根据布局类型选择幻灯片布局
+            if layout_type == "title":
+                slide_layout = prs.slide_layouts[0]  # 标题页
+            elif layout_type == "two-column":
+                slide_layout = prs.slide_layouts[3]  # 两栏布局
+            else:
+                slide_layout = prs.slide_layouts[1]  # 标题和内容
+            
+            slide = prs.slides.add_slide(slide_layout)
+            
+            # 设置标题
+            title = slide.shapes.title
+            title.text = slide_data.get("title", "")
+            
+            # 设置内容
+            if layout_type != "title" and len(slide.shapes) > 1:
+                content_shape = slide.shapes[1]
+                if hasattr(content_shape, "text_frame"):
+                    text_frame = content_shape.text_frame
+                    text_frame.clear()
+                    
+                    content_items = slide_data.get("content", [])
+                    for item in content_items:
+                        p = text_frame.add_paragraph()
+                        p.text = item
+                        p.level = 0
+        
+        # 保存PPT文件
+        upload_dir = "app/uploads/ppt"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        filename = f"ppt_{ppt_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pptx"
+        filepath = os.path.join(upload_dir, filename)
+        prs.save(filepath)
+        
+        return {
+            "code": 200,
+            "message": "success",
+            "data": {
+                "download_url": f"/uploads/ppt/{filename}",
+                "filename": filename,
+                "ppt_data": creation.content
+            }
         }
-    }
+        
+    except ImportError:
+        # 如果没有安装python-pptx，返回JSON数据
+        return {
+            "code": 200,
+            "message": "PPT数据已生成，但需要安装python-pptx库才能导出文件",
+            "data": {
+                "ppt_data": creation.content,
+                "note": "请运行: pip install python-pptx"
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"生成PPT文件失败: {str(e)}")

@@ -41,11 +41,11 @@ import { UserFilled, Check } from '@element-plus/icons-vue'
 const router = useRouter()
 
 const goToLogin = () => {
-  router.push('/auth/login')
+  router.push('/login')
 }
 
 const goToRegister = () => {
-  router.push('/auth/register')
+  router.push('/register')
 }
 </script>
 

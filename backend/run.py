@@ -14,9 +14,9 @@ if __name__ == "__main__":
     import uvicorn
     from app.core.config import settings
     
-    print(f"🚀 启动 {settings.APP_NAME} v{settings.APP_VERSION}")
-    print(f"📝 API文档: http://{settings.HOST}:{settings.PORT}/docs")
-    print(f"📖 ReDoc: http://{settings.HOST}:{settings.PORT}/redoc")
+    print("[START] {} v{}".format(settings.APP_NAME, settings.APP_VERSION))
+    print("[DOCS] API: http://{}:{}/docs".format(settings.HOST, settings.PORT))
+    print("[DOCS] ReDoc: http://{}:{}/redoc".format(settings.HOST, settings.PORT))
     print()
     
     uvicorn.run(

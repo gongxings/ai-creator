@@ -1,9 +1,40 @@
 """
 应用配置
 """
+import os
+from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field
+
+
+# 确定.env文件的位置
+def get_env_file_path() -> str:
+    """
+    智能查找.env文件路径
+    支持从项目根目录或backend目录运行
+    """
+    # 当前文件所在目录
+    current_file = Path(__file__).resolve()
+    backend_dir = current_file.parent.parent.parent  # backend/app/core -> backend
+    
+    # 尝试backend/.env
+    env_file = backend_dir / ".env"
+    if env_file.exists():
+        return str(env_file)
+    
+    # 尝试当前工作目录的.env
+    cwd_env = Path.cwd() / ".env"
+    if cwd_env.exists():
+        return str(cwd_env)
+    
+    # 尝试backend目录下的.env（相对路径）
+    relative_env = Path("backend/.env")
+    if relative_env.exists():
+        return str(relative_env)
+    
+    # 默认返回backend/.env
+    return str(env_file)
 
 
 class Settings(BaseSettings):
@@ -21,7 +52,7 @@ class Settings(BaseSettings):
     
     # 数据库配置
     DATABASE_URL: str = Field(
-        default="mysql+pymysql://root:root@localhost:3306/ai_creator",
+        default="mysql+pymysql://root:123456@localhost:3306/ai_creator",
         description="数据库连接URL"
     )
     
@@ -41,12 +72,14 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7天
     
     # CORS配置
-    CORS_ORIGINS: list = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-    ]
+    CORS_ORIGINS: list = Field(
+        default=[
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+        ]
+    )
     
     # 文件上传配置
     UPLOAD_DIR: str = "uploads"
@@ -92,9 +125,15 @@ class Settings(BaseSettings):
     )
     
     class Config:
-        env_file = ".env"
+        env_file_encoding = "utf-8"
         case_sensitive = True
+        # 忽略.env文件中的额外字段
+        extra = "ignore"
 
+
+# 获取.env文件路径
+_env_file_path = get_env_file_path()
+print(f"[CONFIG] Loading environment from: {_env_file_path}")
 
 # 创建全局配置实例
-settings = Settings()
+settings = Settings(_env_file=_env_file_path)

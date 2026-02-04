@@ -1,7 +1,7 @@
 """
 Schemas模块初始化
 """
-from app.schemas.common import Response, PaginationParams, PaginatedResponse
+from app.schemas.common import PaginationParams, PaginatedResponse
 from app.schemas.user import (
     UserRegister,
     UserLogin,
@@ -38,7 +38,6 @@ from app.schemas.platform import (
 
 __all__ = [
     # Common
-    "Response",
     "PaginationParams",
     "PaginatedResponse",
     # User

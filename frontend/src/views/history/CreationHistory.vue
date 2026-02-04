@@ -267,8 +267,8 @@ const fetchCreations = async () => {
     }
 
     const response = await creationsApi.getCreations(params)
-    creationList.value = response.data.items
-    pagination.total = response.data.total
+    creationList.value = response.items
+    pagination.total = response.total
   } catch (error: any) {
     ElMessage.error(error.message || '获取创作列表失败')
   } finally {

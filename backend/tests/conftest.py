@@ -29,10 +29,20 @@ TEST_DATABASE_URL = "sqlite:///./test.db"
 @pytest.fixture(scope="session")
 def engine():
     """创建测试数据库引擎"""
+    # 删除旧的测试数据库文件
+    if os.path.exists("test.db"):
+        os.remove("test.db")
+    
     engine = create_engine(TEST_DATABASE_URL)
+    # 创建所有表
     Base.metadata.create_all(bind=engine)
     yield engine
+    # 清理
     Base.metadata.drop_all(bind=engine)
+    engine.dispose()
+    # 删除测试数据库文件
+    if os.path.exists("test.db"):
+        os.remove("test.db")
 
 
 @pytest.fixture(scope="function")
@@ -117,13 +127,13 @@ def test_oauth_account(db_session, test_user, test_platform):
     from app.services.oauth.encryption import encrypt_data
     
     cookies = {"session_id": "test_session_123"}
-    encrypted_cookies = encrypt_data(cookies, settings.ENCRYPTION_KEY)
+    encrypted_credentials = encrypt_data(cookies, settings.ENCRYPTION_KEY)
     
     account = OAuthAccount(
         user_id=test_user.id,
-        platform_id=test_platform.platform_id,
+        platform=test_platform.platform_id,
         account_name="测试账号",
-        encrypted_cookies=encrypted_cookies,
+        credentials=encrypted_credentials,
         is_active=True,
     )
     db_session.add(account)

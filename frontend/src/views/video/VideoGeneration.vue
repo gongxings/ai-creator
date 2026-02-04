@@ -282,10 +282,10 @@ const generateVideo = async () => {
     }
 
     currentTask.value = {
-      id: response.data.task_id,
+      id: response.task_id,
       status: 'processing',
       progress: 0,
-      estimated_time: response.data.estimated_time || 60,
+      estimated_time: response.estimated_time || 60,
     }
 
     ElMessage.success('视频生成任务已提交')
@@ -308,8 +308,7 @@ const startPolling = () => {
     if (!currentTask.value) return
 
     try {
-      const response = await request.get(`/api/v1/video/${currentTask.value.id}/status`)
-      const data = response.data
+      const data = await request.get(`/api/v1/video/${currentTask.value.id}/status`)
 
       currentTask.value = {
         ...currentTask.value,
@@ -380,7 +379,7 @@ const loadHistory = async () => {
         page_size: 10,
       },
     })
-    historyList.value = response.data.items
+    historyList.value = response.items
   } catch (error) {
     console.error('加载历史记录失败', error)
   }

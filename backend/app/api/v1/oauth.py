@@ -10,6 +10,7 @@ from app.utils.deps import get_current_user
 from app.models.user import User
 from app.schemas.oauth import (
     OAuthAccountCreate,
+    OAuthAccountAuthorize,
     OAuthAccountResponse,
     OAuthAccountUpdate,
     OAuthUsageLogResponse,
@@ -22,7 +23,7 @@ from app.services.oauth.litellm_proxy import litellm_proxy
 from app.models.platform_config import PlatformConfig
 from app.services.oauth.adapters import get_supported_platforms
 
-router = APIRouter(prefix="/oauth", tags=["OAuth"])
+router = APIRouter(tags=["OAuth"])
 
 
 @router.get("/platforms", response_model=List[PlatformConfigResponse])
@@ -42,7 +43,7 @@ async def get_platforms(
 
 @router.post("/accounts/authorize", response_model=OAuthAccountResponse)
 async def authorize_account(
-    data: OAuthAccountCreate,
+    data: OAuthAccountAuthorize,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

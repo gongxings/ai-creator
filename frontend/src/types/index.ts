@@ -148,3 +148,93 @@ export interface PublishParams {
   publish_config?: Record<string, any>
   scheduled_time?: string
 }
+
+// 可用模型相关（整合OAuth和API Key模型）
+export interface AvailableModel {
+  model_id: string  // oauth_{account_id}_{model_name} 或 ai_model_{model_id}
+  model_name: string  // 实际模型名称
+  display_name: string  // 显示名称
+  provider: string  // 提供商
+  source_type: 'oauth' | 'api_key'  // 来源类型
+  source_id: number  // 来源ID
+  is_free: boolean  // 是否免费
+  is_preferred: boolean  // 是否为用户偏好
+  status: 'active' | 'expired' | 'quota_exceeded'  // 状态
+  quota_info?: {
+    used: number
+    total: number
+    percentage: number
+  }
+}
+
+// 统一AI调用相关
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+
+export interface ChatRequest {
+  model_id: string
+  messages: ChatMessage[]
+  scene_type?: string
+  stream?: boolean
+  temperature?: number
+  max_tokens?: number
+  top_p?: number
+}
+
+export interface ChatResponse {
+  content: string
+  model: string
+  usage: {
+    prompt_tokens: number
+    completion_tokens: number
+    total_tokens: number
+  }
+}
+
+// API Key管理相关
+export interface APIKey {
+  id: number
+  key_name: string
+  masked_key: string  // sk-****...****1234
+  is_active: boolean
+  rate_limit: number
+  allowed_models?: string[]
+  total_requests: number
+  total_tokens: number
+  last_used_at?: string
+  expires_at?: string
+  created_at: string
+}
+
+export interface APIKeyForm {
+  key_name: string
+  expires_days?: number
+  rate_limit?: number
+  allowed_models?: string[]
+}
+
+export interface APIKeyDetail extends APIKey {
+  api_key?: string  // 仅在创建时返回完整Key
+}
+
+export interface APIKeyUsageLog {
+  id: number
+  model_id: string
+  model_name: string
+  endpoint: string
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  ip_address: string
+  created_at: string
+}
+
+export interface APIKeyStats {
+  total_requests: number
+  total_tokens: number
+  requests_by_model: Record<string, number>
+  tokens_by_model: Record<string, number>
+  recent_logs: APIKeyUsageLog[]
+}

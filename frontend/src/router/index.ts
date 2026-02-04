@@ -77,6 +77,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
       },
       {
+        path: 'settings/api-keys',
+        name: 'APIKeys',
+        component: () => import('@/views/settings/APIKeys.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: 'oauth/accounts',
         name: 'OAuthAccounts',
         component: () => import('@/views/oauth/OAuthAccounts.vue'),

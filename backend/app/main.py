@@ -18,7 +18,8 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai
+from app.api import openapi_proxy
 
 # 配置日志
 logging.basicConfig(
@@ -213,6 +214,24 @@ app.include_router(
     oauth.router,
     prefix=f"{settings.API_V1_PREFIX}/oauth",
     tags=["OAuth代理"]
+)
+
+app.include_router(
+    api_keys.router,
+    prefix=f"{settings.API_V1_PREFIX}/api-keys",
+    tags=["API Key管理"]
+)
+
+app.include_router(
+    ai.router,
+    prefix=f"{settings.API_V1_PREFIX}/ai",
+    tags=["统一AI调用"]
+)
+
+# OpenAPI代理路由（兼容OpenAI格式）
+app.include_router(
+    openapi_proxy.router,
+    tags=["OpenAPI代理"]
 )
 
 
