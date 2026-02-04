@@ -41,12 +41,14 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7天
     
     # CORS配置
-    CORS_ORIGINS: list = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-    ]
+    CORS_ORIGINS: list = Field(
+        default=[
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+        ]
+    )
     
     # 文件上传配置
     UPLOAD_DIR: str = "uploads"
@@ -92,9 +94,12 @@ class Settings(BaseSettings):
     )
     
     class Config:
-        env_file = ".env"
+        env_file = "backend/.env"
+        env_file_encoding = "utf-8"
         case_sensitive = True
+        # 忽略.env文件中的额外字段
+        extra = "ignore"
 
 
 # 创建全局配置实例
-settings = Settings()
+settings = Settings(_env_file="backend/.env", _env_file_encoding="utf-8")

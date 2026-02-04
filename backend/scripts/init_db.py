@@ -70,15 +70,15 @@ def init_db():
     
     # 创建所有表
     metadata.create_all(bind=engine)
-    print("✓ 所有表创建完成")
+    print("[SUCCESS] All tables created")
     
     # 重新启用外键约束检查
     with engine.connect() as conn:
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
         conn.commit()
     
-    print("\n✓ 数据库初始化完成！")
-    print("\n数据库表已成功创建，您可以手动插入测试数据或使用API接口创建用户。")
+    print("\n[SUCCESS] Database initialization completed!")
+    print("\nDatabase tables have been created successfully. You can now insert test data or use API to create users.")
 
 
 if __name__ == "__main__":
