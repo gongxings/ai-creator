@@ -82,7 +82,7 @@ export interface MembershipStatistics {
 
 // 获取用户积分余额
 export const getCreditBalance = () => {
-  return request.get<CreditBalance>('/api/v1/credit/balance')
+  return request.get<CreditBalance>('/v1/credit/balance')
 }
 
 // 获取积分交易记录
@@ -91,17 +91,17 @@ export const getCreditTransactions = (params?: {
   limit?: number
   type?: string
 }) => {
-  return request.get<CreditTransaction[]>('/api/v1/credit/transactions', { params })
+  return request.get<CreditTransaction[]>('/v1/credit/transactions', { params })
 }
 
 // 获取积分统计
 export const getCreditStatistics = () => {
-  return request.get<CreditStatistics>('/api/v1/credit/statistics')
+  return request.get<CreditStatistics>('/v1/credit/statistics')
 }
 
 // 获取积分价格列表
 export const getCreditPrices = () => {
-  return request.get<CreditPrice[]>('/api/v1/credit/prices')
+  return request.get<CreditPrice[]>('/v1/credit/prices')
 }
 
 // 创建充值订单
@@ -109,7 +109,7 @@ export const createRechargeOrder = (data: {
   price_id: number
   payment_method: string
 }) => {
-  return request.post<RechargeOrder>('/api/v1/credit/recharge', data)
+  return request.post<RechargeOrder>('/v1/credit/recharge', data)
 }
 
 // 获取充值订单列表
@@ -118,17 +118,17 @@ export const getRechargeOrders = (params?: {
   limit?: number
   status?: string
 }) => {
-  return request.get<RechargeOrder[]>('/api/v1/credit/recharge/orders', { params })
+  return request.get<RechargeOrder[]>('/v1/credit/recharge/orders', { params })
 }
 
 // 获取充值订单详情
 export const getRechargeOrder = (orderId: number) => {
-  return request.get<RechargeOrder>(`/api/v1/credit/recharge/orders/${orderId}`)
+  return request.get<RechargeOrder>(`/v1/credit/recharge/orders/${orderId}`)
 }
 
 // 获取会员价格列表
 export const getMembershipPrices = () => {
-  return request.get<MembershipPrice[]>('/api/v1/credit/membership/prices')
+  return request.get<MembershipPrice[]>('/v1/credit/membership/prices')
 }
 
 // 创建会员订单
@@ -136,7 +136,7 @@ export const createMembershipOrder = (data: {
   price_id: number
   payment_method: string
 }) => {
-  return request.post<MembershipOrder>('/api/v1/credit/membership', data)
+  return request.post<MembershipOrder>('/v1/credit/membership', data)
 }
 
 // 获取会员订单列表
@@ -145,17 +145,17 @@ export const getMembershipOrders = (params?: {
   limit?: number
   status?: string
 }) => {
-  return request.get<MembershipOrder[]>('/api/v1/credit/membership/orders', { params })
+  return request.get<MembershipOrder[]>('/v1/credit/membership/orders', { params })
 }
 
 // 获取会员订单详情
 export const getMembershipOrder = (orderId: number) => {
-  return request.get<MembershipOrder>(`/api/v1/credit/membership/orders/${orderId}`)
+  return request.get<MembershipOrder>(`/v1/credit/membership/orders/${orderId}`)
 }
 
 // 获取会员统计
 export const getMembershipStatistics = () => {
-  return request.get<MembershipStatistics>('/api/v1/credit/membership/statistics')
+  return request.get<MembershipStatistics>('/v1/credit/membership/statistics')
 }
 
 // 支付回调（模拟支付成功）
@@ -163,5 +163,5 @@ export const simulatePayment = (data: {
   order_type: 'recharge' | 'membership'
   order_no: string
 }) => {
-  return request.post('/api/v1/credit/payment/callback', data)
+  return request.post('/v1/credit/payment/callback', data)
 }

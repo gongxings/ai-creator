@@ -2,10 +2,7 @@
 OAuth凭证加密服务
 """
 import os
-import base64
 from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from typing import Optional
 from loguru import logger
 
@@ -23,7 +20,19 @@ class EncryptionService:
         获取加密密钥
         从环境变量获取，如果不存在则生成新的
         """
-        key_str = os.getenv("OAUTH_ENCRYPTION_KEY")
+        # 延迟导入避免循环依赖
+        from app.core.config import settings
+        
+        key_str = settings.OAUTH_ENCRYPTION_KEY
+        
+        # 检查是否使用默认值
+        if key_str == "your-oauth-encryption-key-change-in-production":
+            # 生成新密钥
+            logger.warning("OAUTH_ENCRYPTION_KEY using default value, generating new key")
+            key = Fernet.generate_key()
+            logger.info(f"Generated new encryption key: {key.decode()}")
+            logger.info("Please update OAUTH_ENCRYPTION_KEY in your .env file")
+            return key
         
         if not key_str:
             # 生成新密钥
@@ -33,21 +42,18 @@ class EncryptionService:
             logger.info("Please add this key to your .env file as OAUTH_ENCRYPTION_KEY")
             return key
         
-        # 如果密钥不是标准的Fernet格式，使用PBKDF2派生
+        # 直接使用环境变量中的密钥
         try:
-            # 尝试直接使用
+            # 验证密钥格式是否正确
             Fernet(key_str.encode())
+            logger.info("Using encryption key from configuration")
             return key_str.encode()
-        except Exception:
-            # 使用PBKDF2从密码派生密钥
-            logger.info("Deriving encryption key from password")
-            kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=b'oauth_encryption_salt',  # 固定salt，确保密钥一致
-                iterations=100000,
-            )
-            key = base64.urlsafe_b64encode(kdf.derive(key_str.encode()))
+        except Exception as e:
+            logger.error(f"Invalid encryption key format: {e}")
+            # 如果密钥格式不正确，生成新的密钥
+            logger.warning("Generating new key due to invalid format")
+            key = Fernet.generate_key()
+            logger.info(f"Generated fallback encryption key: {key.decode()}")
             return key
     
     def encrypt(self, data: str) -> str:

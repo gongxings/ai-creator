@@ -53,6 +53,9 @@ async def authorize_account(
     
     这个接口会启动浏览器授权流程
     """
+    print(f"收到OAuth授权请求: platform={data.platform}, account_name={data.account_name}")
+    print(f"当前用户ID: {current_user.id}")
+    
     try:
         account = await oauth_service.authorize_account(
             db=db,
@@ -64,6 +67,7 @@ async def authorize_account(
         return account
         
     except Exception as e:
+        print(f"OAuth授权失败: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 

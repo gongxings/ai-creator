@@ -137,9 +137,18 @@
             <el-option
               v-for="platform in oauthPlatforms"
               :key="platform.id"
-              :label="`${platform.icon} ${platform.name}`"
               :value="platform.id"
-            />
+            >
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <img 
+                  :src="platform.icon" 
+                  :alt="platform.name"
+                  style="width: 16px; height: 16px;"
+                  v-if="platform.icon && (platform.icon.startsWith('http') || platform.icon.startsWith('https'))"
+                />
+                <span>{{ platform.name }}</span>
+              </div>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="账号名称">
@@ -450,6 +459,11 @@ const addOAuthAccount = async () => {
     oauthDialogVisible.value = false
     
     // 调用授权API（这会在后端使用Playwright打开浏览器窗口）
+    console.log('发送OAuth授权请求:', {
+      platform: oauthForm.platform,
+      account_name: oauthForm.account_name
+    });
+    
     await authorizeAccount({
       platform: oauthForm.platform,
       account_name: oauthForm.account_name,
@@ -465,6 +479,7 @@ const addOAuthAccount = async () => {
     await loadOAuthAccounts()
     
   } catch (error: any) {
+    console.error('OAuth授权错误:', error);
     ElMessage.error(error.response?.data?.detail || '授权失败，请重试')
   }
 }

@@ -164,7 +164,7 @@ const generateImage = async () => {
 
   generating.value = true
   try {
-    const result = await request.post('/api/v1/image/generate', form)
+    const result = await request.post('/v1/image/generate', form)
     generatedImages.value = result.images
     ElMessage.success('图片生成成功')
     
@@ -199,7 +199,7 @@ const loadHistory = async (item?: HistoryItem) => {
   }
 
   try {
-    const result = await request.get('/api/v1/creations', {
+    const result = await request.get('/v1/creations', {
       params: {
         content_type: 'image',
         page: 1,

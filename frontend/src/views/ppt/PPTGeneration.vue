@@ -125,7 +125,7 @@ const generatePPT = async () => {
   generating.value = true
   try {
     const data = activeTab.value === 'theme' ? themeForm : outlineForm
-    const result = await request.post('/api/v1/ppt/generate', data)
+    const result = await request.post('/v1/ppt/generate', data)
     currentPPT.value = result
     ElMessage.success('PPT生成成功')
   } catch (error: any) {

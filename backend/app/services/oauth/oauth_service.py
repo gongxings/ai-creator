@@ -36,7 +36,7 @@ def get_adapter(platform: str, config: Dict[str, Any]):
     adapter_class = PLATFORM_ADAPTERS.get(platform)
     if not adapter_class:
         return None
-    return adapter_class()
+    return adapter_class(platform, config)
 
 
 class OAuthService:
@@ -403,14 +403,28 @@ class OAuthService:
         if not adapter:
             return False
         
-        # 解密凭证
-        credentials = decrypt_credentials(account.credentials)
-        
-        # 检查凭证有效性
-        is_valid = await playwright_service.check_credentials_validity(
-            adapter.get_platform_config(),
-            credentials
-        )
+        try:
+            # 解密凭证
+            credentials = decrypt_credentials(account.credentials)
+            
+            # 如果凭证为空或无效，标记为过期
+            if not credentials.get("cookies"):
+                account.is_expired = True
+                db.commit()
+                logger.warning(f"Account {account_id} has invalid credentials, marked as expired")
+                return False
+            
+            # 检查凭证有效性
+            is_valid = await playwright_service.check_credentials_validity(
+                adapter.get_platform_config(),
+                credentials
+            )
+        except Exception as e:
+            logger.error(f"Failed to check account validity: {e}")
+            # 解密失败或其他错误，标记为过期
+            account.is_expired = True
+            db.commit()
+            return False
         
         # 更新账号状态
         if not is_valid:

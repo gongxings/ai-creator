@@ -272,13 +272,13 @@ const generateVideo = async () => {
   try {
     let response
     if (activeTab.value === 'text') {
-      response = await request.post('/api/v1/video/text-to-video', textForm)
+      response = await request.post('/v1/video/text-to-video', textForm)
     } else {
       const formData = new FormData()
       formData.append('image', imageForm.image!)
       formData.append('motion_prompt', imageForm.motion_prompt)
       formData.append('duration', imageForm.duration.toString())
-      response = await request.post('/api/v1/video/image-to-video', formData)
+      response = await request.post('/v1/video/image-to-video', formData)
     }
 
     currentTask.value = {
@@ -308,7 +308,7 @@ const startPolling = () => {
     if (!currentTask.value) return
 
     try {
-      const data = await request.get(`/api/v1/video/${currentTask.value.id}/status`)
+      const data = await request.get(`/v1/video/${currentTask.value.id}/status`)
 
       currentTask.value = {
         ...currentTask.value,
@@ -372,7 +372,7 @@ const shareVideo = () => {
 // 加载历史记录
 const loadHistory = async () => {
   try {
-    const response = await request.get('/api/v1/creations', {
+    const response = await request.get('/v1/creations', {
       params: {
         content_type: 'video',
         page: 1,
