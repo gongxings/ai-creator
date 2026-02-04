@@ -11,13 +11,17 @@ export const useUserStore = defineStore('user', () => {
 
   // 兼容性计算属性
   const user = computed(() => userInfo.value)
-  const isLoggedIn = computed(() => !!token.value)
+  const isLoggedIn = computed(() => {
+    // 优先检查store中的token，如果没有则检查localStorage
+    return !!token.value || !!localStorage.getItem('token')
+  })
   const isAdmin = computed(() => userInfo.value?.role === 'admin')
-  // const isLoggedIn = computed(() => true)
 
   // 登录
   const login = async (username: string, password: string) => {
-    const data = await authApi.login({ username, password }) as any
+    const response = await authApi.login({ username, password }) as any
+    // 响应格式: { code: 200, message: "success", data: { access_token, refresh_token, user, ... } }
+    const data = response.data
     
     token.value = data.access_token
     refreshToken.value = data.refresh_token
@@ -40,19 +44,22 @@ export const useUserStore = defineStore('user', () => {
 
   // 获取用户信息
   const getUserInfo = async () => {
-    const data = await authApi.getUserInfo() as any
-    userInfo.value = data as User
+    const response = await authApi.getUserInfo() as any
+    // 响应格式: { code: 200, message: "success", data: { user info } }
+    userInfo.value = response.data as User
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
   }
 
   // 更新用户积分和会员信息
   const updateCreditInfo = async () => {
     try {
-      const res = await creditApi.getCreditBalance() as any
-      if (userInfo.value && res) {
-        userInfo.value.credits = res.credits
-        userInfo.value.is_member = res.is_member
-        userInfo.value.member_expired_at = res.member_expired_at
+      const response = await creditApi.getCreditBalance() as any
+      // 响应格式: { code: 200, message: "success", data: { credits, is_member, ... } }
+      const data = response.data
+      if (userInfo.value && data) {
+        userInfo.value.credits = data.credits
+        userInfo.value.is_member = data.is_member
+        userInfo.value.member_expired_at = data.member_expired_at
         localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
       }
     } catch (error) {
