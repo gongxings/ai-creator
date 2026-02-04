@@ -34,7 +34,8 @@ def init_platforms():
             {
                 "platform_id": "qwen",
                 "platform_name": "通义千问",
-                "description": "阿里云通义千问大模型网页版（免费）",
+                "platform_icon": "https://img.alicdn.com/imgextra/i1/O1CN01Z5paLz1O0zuCC7osS_!!6000000001644-55-tps-83-82.svg",
+                "priority": 1,
                 "oauth_config": {
                     "auth_url": "https://tongyi.aliyun.com/qianwen/",
                     "login_selectors": {
@@ -62,7 +63,8 @@ def init_platforms():
             {
                 "platform_id": "openai",
                 "platform_name": "ChatGPT",
-                "description": "OpenAI ChatGPT网页版（免费）",
+                "platform_icon": "https://cdn.oaistatic.com/_next/static/media/apple-touch-icon.59f2e898.png",
+                "priority": 2,
                 "oauth_config": {
                     "auth_url": "https://chat.openai.com/",
                     "login_selectors": {
@@ -93,7 +95,8 @@ def init_platforms():
             {
                 "platform_id": "claude",
                 "platform_name": "Claude",
-                "description": "Anthropic Claude网页版（免费）",
+                "platform_icon": "https://claude.ai/images/claude_app_icon.png",
+                "priority": 3,
                 "oauth_config": {
                     "auth_url": "https://claude.ai/",
                     "login_selectors": {
@@ -122,7 +125,8 @@ def init_platforms():
             {
                 "platform_id": "baidu",
                 "platform_name": "文心一言",
-                "description": "百度文心一言网页版（免费）",
+                "platform_icon": "https://nlp-eb.cdn.bcebos.com/logo/favicon.ico",
+                "priority": 4,
                 "oauth_config": {
                     "auth_url": "https://yiyan.baidu.com/",
                     "login_selectors": {
@@ -150,7 +154,8 @@ def init_platforms():
             {
                 "platform_id": "zhipu",
                 "platform_name": "智谱清言",
-                "description": "智谱清言网页版（免费）",
+                "platform_icon": "https://chatglm.cn/favicon.ico",
+                "priority": 5,
                 "oauth_config": {
                     "auth_url": "https://chatglm.cn/",
                     "login_selectors": {
@@ -180,7 +185,8 @@ def init_platforms():
             {
                 "platform_id": "spark",
                 "platform_name": "讯飞星火",
-                "description": "讯飞星火网页版（免费）",
+                "platform_icon": "https://xinghuo.xfyun.cn/favicon.ico",
+                "priority": 6,
                 "oauth_config": {
                     "auth_url": "https://xinghuo.xfyun.cn/",
                     "login_selectors": {
@@ -209,7 +215,8 @@ def init_platforms():
             {
                 "platform_id": "gemini",
                 "platform_name": "Google Gemini",
-                "description": "Google Gemini网页版（免费）",
+                "platform_icon": "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg",
+                "priority": 7,
                 "oauth_config": {
                     "auth_url": "https://gemini.google.com/",
                     "login_selectors": {
@@ -239,7 +246,8 @@ def init_platforms():
             {
                 "platform_id": "doubao",
                 "platform_name": "豆包",
-                "description": "字节跳动豆包网页版（免费）",
+                "platform_icon": "https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/web/logo-icon.png",
+                "priority": 8,
                 "oauth_config": {
                     "auth_url": "https://www.doubao.com/",
                     "login_selectors": {

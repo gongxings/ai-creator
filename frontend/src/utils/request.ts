@@ -47,7 +47,8 @@ service.interceptors.response.use(
       return Promise.reject(new Error(res.message || '请求失败'))
     }
 
-    return res
+    // 返回data字段，这样调用方可以直接使用数据
+    return res.data
   },
   (error) => {
     console.error('响应错误:', error)
@@ -93,23 +94,23 @@ service.interceptors.response.use(
 )
 
 // 封装请求方法
-export function request<T = any>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
+export function request<T = any>(config: AxiosRequestConfig): Promise<T> {
   return service.request(config)
 }
 
-export function get<T = any>(url: string, params?: any): Promise<ApiResponse<T>> {
+export function get<T = any>(url: string, params?: any): Promise<T> {
   return service.get(url, { params })
 }
 
-export function post<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
+export function post<T = any>(url: string, data?: any): Promise<T> {
   return service.post(url, data)
 }
 
-export function put<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
+export function put<T = any>(url: string, data?: any): Promise<T> {
   return service.put(url, data)
 }
 
-export function del<T = any>(url: string): Promise<ApiResponse<T>> {
+export function del<T = any>(url: string): Promise<T> {
   return service.delete(url)
 }
 

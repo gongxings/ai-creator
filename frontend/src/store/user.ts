@@ -17,8 +17,7 @@ export const useUserStore = defineStore('user', () => {
 
   // 登录
   const login = async (username: string, password: string) => {
-    const res = await authApi.login({ username, password })
-    const data = res.data as TokenResponse
+    const data = await authApi.login({ username, password }) as any
     
     token.value = data.access_token
     refreshToken.value = data.refresh_token
@@ -27,8 +26,19 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('token', data.access_token)
     localStorage.setItem('refreshToken', data.refresh_token)
     
-    // 获取用户信息
-    await getUserInfo()
+    // 如果登录响应中包含用户信息，直接使用
+    if (data.user) {
+      userInfo.value = data.user as User
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+    } else {
+      // 否则获取用户信息
+      try {
+        await getUserInfo()
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+        // 即使获取用户信息失败，也不影响登录流程
+      }
+    }
   }
 
   // 注册
@@ -38,8 +48,8 @@ export const useUserStore = defineStore('user', () => {
 
   // 获取用户信息
   const getUserInfo = async () => {
-    const res = await authApi.getUserInfo()
-    userInfo.value = res.data as User
+    const data = await authApi.getUserInfo() as any
+    userInfo.value = data as User
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
   }
 

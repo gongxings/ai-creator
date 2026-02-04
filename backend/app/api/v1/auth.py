@@ -25,11 +25,12 @@ from app.schemas.user import (
     UserResponse,
     PasswordChange,
 )
+from app.schemas.common import success_response
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register")
 def register(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
     """
     用户注册
@@ -61,10 +62,10 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
     db.commit()
     db.refresh(user)
     
-    return user
+    return success_response(data=UserResponse.model_validate(user).model_dump())
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 def login(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
     """
     用户登录
@@ -87,15 +88,16 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
     access_token = create_access_token(subject=user.id)
     refresh_token = create_refresh_token(subject=user.id)
     
-    return {
+    return success_response(data={
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    }
+        "user": UserResponse.model_validate(user).model_dump()
+    })
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh")
 def refresh_token(refresh_token: str, db: Session = Depends(get_db)) -> Any:
     """
     刷新访问令牌
@@ -132,25 +134,25 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)) -> Any:
     new_access_token = create_access_token(subject=user.id)
     new_refresh_token = create_refresh_token(subject=user.id)
     
-    return {
+    return success_response(data={
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,
         "token_type": "bearer",
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    }
+    })
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me")
 def get_current_user_info(
     current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     获取当前用户信息
     """
-    return current_user
+    return success_response(data=UserResponse.model_validate(current_user).model_dump())
 
 
-@router.put("/me", response_model=UserResponse)
+@router.put("/me")
 def update_current_user(
     user_update: dict,
     current_user: User = Depends(get_current_user),
@@ -171,7 +173,7 @@ def update_current_user(
     db.commit()
     db.refresh(current_user)
     
-    return current_user
+    return success_response(data=UserResponse.model_validate(current_user).model_dump())
 
 
 @router.post("/change-password")
@@ -192,4 +194,4 @@ def change_password(
     current_user.password_hash = get_password_hash(password_change.new_password)
     db.commit()
     
-    return {"message": "密码修改成功"}
+    return success_response(message="密码修改成功")

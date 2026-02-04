@@ -367,7 +367,7 @@ const saveModel = async () => {
       ElMessage.success('模型添加成功')
     }
     modelDialogVisible.value = false
-    loadModels()
+    await loadModels()
   } catch (error) {
     ElMessage.error('保存失败')
   }

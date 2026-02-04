@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.common import Response
+from app.schemas.common import success_response
 from app.utils.deps import get_current_user
 
 router = APIRouter()
@@ -45,7 +45,7 @@ class VideoTaskResponse(BaseModel):
     progress: Optional[int] = None
 
 
-@router.post("/generate", response_model=Response[VideoTaskResponse])
+@router.post("/generate")
 async def generate_video(
     request: VideoGenerateRequest,
     db: Session = Depends(get_db),
@@ -58,21 +58,20 @@ async def generate_video(
         # 2. 创建异步任务
         # 3. 返回任务ID
         
-        return Response(
-            code=200,
-            message="视频生成任务已创建",
+        return success_response(
             data=VideoTaskResponse(
                 task_id="video_task_123",
                 status="processing",
                 progress=0
-            )
+            ),
+            message="视频生成任务已创建"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"视频生成失败: {str(e)}")
 
 
-@router.post("/text-to-video", response_model=Response[VideoTaskResponse])
+@router.post("/text-to-video")
 async def text_to_video(
     request: TextToVideoRequest,
     db: Session = Depends(get_db),
@@ -82,21 +81,20 @@ async def text_to_video(
     try:
         # TODO: 实现文本转视频逻辑
         
-        return Response(
-            code=200,
-            message="文本转视频任务已创建",
+        return success_response(
             data=VideoTaskResponse(
                 task_id="video_task_124",
                 status="processing",
                 progress=0
-            )
+            ),
+            message="文本转视频任务已创建"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文本转视频失败: {str(e)}")
 
 
-@router.post("/image-to-video", response_model=Response[VideoTaskResponse])
+@router.post("/image-to-video")
 async def image_to_video(
     request: ImageToVideoRequest,
     db: Session = Depends(get_db),
@@ -106,21 +104,20 @@ async def image_to_video(
     try:
         # TODO: 实现图片转视频逻辑
         
-        return Response(
-            code=200,
-            message="图片转视频任务已创建",
+        return success_response(
             data=VideoTaskResponse(
                 task_id="video_task_125",
                 status="processing",
                 progress=0
-            )
+            ),
+            message="图片转视频任务已创建"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"图片转视频失败: {str(e)}")
 
 
-@router.get("/task/{task_id}", response_model=Response[VideoTaskResponse])
+@router.get("/task/{task_id}")
 async def get_video_task_status(
     task_id: str,
     db: Session = Depends(get_db),
@@ -130,22 +127,21 @@ async def get_video_task_status(
     try:
         # TODO: 查询任务状态
         
-        return Response(
-            code=200,
-            message="获取成功",
+        return success_response(
             data=VideoTaskResponse(
                 task_id=task_id,
                 status="completed",
                 video_url="https://example.com/video.mp4",
                 progress=100
-            )
+            ),
+            message="获取成功"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取任务状态失败: {str(e)}")
 
 
-@router.post("/voiceover", response_model=Response[dict])
+@router.post("/voiceover")
 async def generate_voiceover(
     request: dict,
     db: Session = Depends(get_db),
@@ -158,17 +154,16 @@ async def generate_voiceover(
         
         # TODO: 实现AI配音逻辑
         
-        return Response(
-            code=200,
-            message="配音生成成功",
-            data={"audio_url": "https://example.com/audio.mp3"}
+        return success_response(
+            data={"audio_url": "https://example.com/audio.mp3"},
+            message="配音生成成功"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"配音生成失败: {str(e)}")
 
 
-@router.post("/subtitles", response_model=Response[dict])
+@router.post("/subtitles")
 async def generate_subtitles(
     request: dict,
     db: Session = Depends(get_db),
@@ -180,15 +175,14 @@ async def generate_subtitles(
         
         # TODO: 实现字幕生成逻辑
         
-        return Response(
-            code=200,
-            message="字幕生成成功",
+        return success_response(
             data={
                 "subtitles": [
                     {"start": 0, "end": 2, "text": "示例字幕1"},
                     {"start": 2, "end": 4, "text": "示例字幕2"}
                 ]
-            }
+            },
+            message="字幕生成成功"
         )
         
     except Exception as e:

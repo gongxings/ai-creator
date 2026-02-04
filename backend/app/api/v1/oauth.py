@@ -22,7 +22,7 @@ from app.services.oauth.litellm_proxy import litellm_proxy
 from app.models.platform_config import PlatformConfig
 from app.services.oauth.adapters import get_supported_platforms
 
-router = APIRouter(prefix="/oauth", tags=["OAuth"])
+router = APIRouter(tags=["OAuth"])
 
 
 @router.get("/platforms", response_model=List[PlatformConfigResponse])

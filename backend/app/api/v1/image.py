@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.common import Response
+from app.schemas.common import success_response
 from app.utils.deps import get_current_user
 from pydantic import BaseModel
 
@@ -51,7 +51,7 @@ class ImageTaskResponse(BaseModel):
     progress: Optional[int] = None
 
 
-@router.post("/generate", response_model=Response[ImageTaskResponse])
+@router.post("/generate")
 async def generate_image(
     request: ImageGenerateRequest,
     db: Session = Depends(get_db),
@@ -64,21 +64,20 @@ async def generate_image(
         # 2. 创建异步任务
         # 3. 返回任务ID
         
-        return Response(
-            code=200,
-            message="图片生成任务已创建",
+        return success_response(
             data=ImageTaskResponse(
                 task_id="task_123",
                 status="processing",
                 progress=0
-            )
+            ),
+            message="图片生成任务已创建"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"图片生成失败: {str(e)}")
 
 
-@router.post("/variation", response_model=Response[ImageTaskResponse])
+@router.post("/variation")
 async def create_image_variation(
     request: ImageVariationRequest,
     db: Session = Depends(get_db),
@@ -88,21 +87,20 @@ async def create_image_variation(
     try:
         # TODO: 实现图片变体逻辑
         
-        return Response(
-            code=200,
-            message="图片变体任务已创建",
+        return success_response(
             data=ImageTaskResponse(
                 task_id="task_124",
                 status="processing",
                 progress=0
-            )
+            ),
+            message="图片变体任务已创建"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"图片变体失败: {str(e)}")
 
 
-@router.post("/edit", response_model=Response[ImageTaskResponse])
+@router.post("/edit")
 async def edit_image(
     request: ImageEditRequest,
     db: Session = Depends(get_db),
@@ -112,21 +110,20 @@ async def edit_image(
     try:
         # TODO: 实现图片编辑逻辑
         
-        return Response(
-            code=200,
-            message="图片编辑任务已创建",
+        return success_response(
             data=ImageTaskResponse(
                 task_id="task_125",
                 status="processing",
                 progress=0
-            )
+            ),
+            message="图片编辑任务已创建"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"图片编辑失败: {str(e)}")
 
 
-@router.post("/upscale", response_model=Response[ImageTaskResponse])
+@router.post("/upscale")
 async def upscale_image(
     request: ImageUpscaleRequest,
     db: Session = Depends(get_db),
@@ -136,21 +133,20 @@ async def upscale_image(
     try:
         # TODO: 实现图片放大逻辑
         
-        return Response(
-            code=200,
-            message="图片放大任务已创建",
+        return success_response(
             data=ImageTaskResponse(
                 task_id="task_126",
                 status="processing",
                 progress=0
-            )
+            ),
+            message="图片放大任务已创建"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"图片放大失败: {str(e)}")
 
 
-@router.get("/task/{task_id}", response_model=Response[ImageTaskResponse])
+@router.get("/task/{task_id}")
 async def get_image_task_status(
     task_id: str,
     db: Session = Depends(get_db),
@@ -160,22 +156,21 @@ async def get_image_task_status(
     try:
         # TODO: 查询任务状态
         
-        return Response(
-            code=200,
-            message="获取成功",
+        return success_response(
             data=ImageTaskResponse(
                 task_id=task_id,
                 status="completed",
                 images=["https://example.com/image1.png"],
                 progress=100
-            )
+            ),
+            message="获取成功"
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取任务状态失败: {str(e)}")
 
 
-@router.post("/optimize-prompt", response_model=Response[dict])
+@router.post("/optimize-prompt")
 async def optimize_prompt(
     request: dict,
     db: Session = Depends(get_db),
@@ -188,10 +183,9 @@ async def optimize_prompt(
         # TODO: 使用AI优化提示词
         optimized_prompt = f"高质量，精美细节，{prompt}，8k分辨率，专业摄影"
         
-        return Response(
-            code=200,
-            message="优化成功",
-            data={"optimized_prompt": optimized_prompt}
+        return success_response(
+            data={"optimized_prompt": optimized_prompt},
+            message="优化成功"
         )
         
     except Exception as e:
