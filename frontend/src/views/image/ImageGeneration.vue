@@ -164,8 +164,8 @@ const generateImage = async () => {
 
   generating.value = true
   try {
-    const response = await request.post('/api/v1/image/generate', form)
-    generatedImages.value = response.data.images
+    const result = await request.post('/api/v1/image/generate', form)
+    generatedImages.value = result.images
     ElMessage.success('图片生成成功')
     
     // 刷新历史记录
@@ -199,14 +199,14 @@ const loadHistory = async (item?: HistoryItem) => {
   }
 
   try {
-    const response = await request.get('/api/v1/creations', {
+    const result = await request.get('/api/v1/creations', {
       params: {
         content_type: 'image',
         page: 1,
         page_size: 10,
       },
     })
-    historyList.value = response.data.items
+    historyList.value = result.items
   } catch (error) {
     console.error('加载历史记录失败', error)
   }

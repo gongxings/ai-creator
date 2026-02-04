@@ -417,12 +417,11 @@ const disabledDate = (time: Date) => {
 // 加载平台列表
 const loadPlatforms = async () => {
   try {
-    const response = await getPlatforms()
-    const platformList = response.data
+    const platformList = await getPlatforms()
     
     // 获取已绑定的账号
-    const accountsResponse = await getPlatformAccounts()
-    const boundPlatformCodes = accountsResponse.data.map((acc: any) => acc.platform)
+    const accounts = await getPlatformAccounts()
+    const boundPlatformCodes = accounts.map((acc: any) => acc.platform)
     
     // 更新平台绑定状态
     platforms.value = platforms.value.map(p => ({
@@ -431,7 +430,7 @@ const loadPlatforms = async () => {
     }))
   } catch (error: any) {
     console.error('加载平台列表失败:', error)
-    ElMessage.error(error.response?.data?.detail || '加载平台列表失败')
+    ElMessage.error(error.message || '加载平台列表失败')
   }
 }
 
@@ -443,11 +442,11 @@ const loadPublishHistory = async () => {
       page: currentPage.value,
       page_size: pageSize.value,
     })
-    publishHistory.value = response.data.items
-    total.value = response.data.total
+    publishHistory.value = response.items
+    total.value = response.total
   } catch (error: any) {
     console.error('加载发布历史失败:', error)
-    ElMessage.error(error.response?.data?.detail || '加载发布历史失败')
+    ElMessage.error(error.message || '加载发布历史失败')
   } finally {
     loading.value = false
   }
@@ -457,10 +456,10 @@ const loadPublishHistory = async () => {
 const loadCreations = async () => {
   try {
     const response = await getCreations({ page: 1, page_size: 100 })
-    creations.value = response.data.items
+    creations.value = response.items
   } catch (error: any) {
     console.error('加载创作列表失败:', error)
-    ElMessage.error(error.response?.data?.detail || '加载创作列表失败')
+    ElMessage.error(error.message || '加载创作列表失败')
   }
 }
 
@@ -509,7 +508,7 @@ const handlePublish = async () => {
         loadPublishHistory()
       } catch (error: any) {
         console.error('发布失败:', error)
-        ElMessage.error(error.response?.data?.detail || '发布失败')
+        ElMessage.error(error.message || '发布失败')
       } finally {
         publishing.value = false
       }
@@ -551,7 +550,7 @@ const handleBind = async () => {
         loadPlatforms()
       } catch (error: any) {
         console.error('绑定失败:', error)
-        ElMessage.error(error.response?.data?.detail || '绑定失败')
+        ElMessage.error(error.message || '绑定失败')
       } finally {
         binding.value = false
       }
@@ -575,7 +574,7 @@ const unbindPlatform = async (platformId: number) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('解绑失败:', error)
-      ElMessage.error(error.response?.data?.detail || '解绑失败')
+      ElMessage.error(error.message || '解绑失败')
     }
   }
 }
@@ -602,7 +601,7 @@ const deleteRecord = async (id: number) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('删除失败:', error)
-      ElMessage.error(error.response?.data?.detail || '删除失败')
+      ElMessage.error(error.message || '删除失败')
     }
   }
 }

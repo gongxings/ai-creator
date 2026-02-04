@@ -8,14 +8,14 @@ import router from '@/router'
 
 // 不需要登录验证的接口白名单
 const whiteList = [
-  '/api/v1/auth/login',
-  '/api/v1/auth/register',
-  '/api/v1/auth/refresh',
+  '/v1/auth/login',
+  '/v1/auth/register',
+  '/v1/auth/refresh',
 ]
 
 // 创建axios实例
 const service: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
@@ -29,13 +29,29 @@ let isShowingLoginPrompt = false
 service.interceptors.request.use(
   async (config) => {
     const userStore = useUserStore()
-    const token = userStore.token
+    // 优先从store获取token，如果store中没有，则从localStorage获取
+    let token = userStore.token
+    if (!token) {
+      token = localStorage.getItem('token') || ''
+      // 如果localStorage中有token，同步到store
+      if (token) {
+        userStore.token = token
+      }
+    }
     
-    // 检查是否在白名单中
-    const isWhiteListed = whiteList.some(path => config.url?.includes(path))
+    // 检查是否在白名单中 - 更严格的匹配
+    const isWhiteListed = whiteList.some(path => {
+      const url = config.url || ''
+      // 匹配完整路径或路径的结尾部分
+      return url.includes(path) || url.endsWith(path)
+    })
     
     // 如果不在白名单中且未登录，提示用户
-    if (!isWhiteListed && !token && !isShowingLoginPrompt) {
+    // 但是如果当前已经在登录页面，就不要再提示了
+    const isOnLoginPage = router.currentRoute.value.path === '/login' || 
+                          router.currentRoute.value.path === '/register'
+    
+    if (!isWhiteListed && !token && !isShowingLoginPrompt && !isOnLoginPage) {
       isShowingLoginPrompt = true
       
       try {
@@ -186,4 +202,16 @@ service.interceptors.response.use(
   }
 )
 
-export default service
+// 导出请求方法
+export default {
+  get: <T = any>(url: string, config?: AxiosRequestConfig) => 
+    service.get<any, T>(url, config),
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+    service.post<any, T>(url, data, config),
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+    service.put<any, T>(url, data, config),
+  delete: <T = any>(url: string, config?: AxiosRequestConfig) => 
+    service.delete<any, T>(url, config),
+  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+    service.patch<any, T>(url, data, config),
+}

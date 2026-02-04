@@ -210,6 +210,7 @@ import { useUserStore } from '@/store/user'
 import { updateUserInfo, changePassword } from '@/api/auth'
 import { getAIModels, addAIModel, updateAIModel, deleteAIModel } from '@/api/models'
 import { 
+  getPlatforms,
   authorizeAccount, 
   getAccounts, 
   updateAccount, 
@@ -265,17 +266,8 @@ const oauthForm = reactive({
   account_name: '',
 })
 
-// 支持的OAuth平台列表
-const oauthPlatforms = [
-  { id: 'qwen', name: '通义千问', icon: '🤖' },
-  { id: 'openai', name: 'OpenAI', icon: '🔮' },
-  { id: 'claude', name: 'Claude', icon: '🎭' },
-  { id: 'baidu', name: '文心一言', icon: '🐻' },
-  { id: 'zhipu', name: '智谱AI', icon: '🌟' },
-  { id: 'spark', name: '讯飞星火', icon: '⚡' },
-  { id: 'gemini', name: 'Google Gemini', icon: '💎' },
-  { id: 'doubao', name: '豆包', icon: '🎒' },
-]
+// OAuth平台列表（从后端获取）
+const oauthPlatforms = ref<any[]>([])
 
 // AI模型
 const models = ref<AIModel[]>([])
@@ -344,8 +336,8 @@ const changePasswordHandler = async () => {
 // 加载AI模型列表
 const loadModels = async () => {
   try {
-    const response = await getAIModels()
-    models.value = response.data
+    const data = await getAIModels()
+    models.value = data
   } catch (error) {
     ElMessage.error('加载AI模型失败')
   }
@@ -417,10 +409,23 @@ const showAddOAuthDialog = () => {
   oauthDialogVisible.value = true
 }
 
+const loadOAuthPlatforms = async () => {
+  try {
+    const data = await getPlatforms()
+    oauthPlatforms.value = data.map((platform: any) => ({
+      id: platform.platform_id,
+      name: platform.platform_name,
+      icon: platform.platform_icon || '🤖',
+    }))
+  } catch (error) {
+    ElMessage.error('加载OAuth平台失败')
+  }
+}
+
 const loadOAuthAccounts = async () => {
   try {
-    const response = await getAccounts()
-    oauthAccounts.value = response.data
+    const data = await getAccounts()
+    oauthAccounts.value = data
   } catch (error) {
     ElMessage.error('加载OAuth账号失败')
   }
@@ -445,7 +450,7 @@ const addOAuthAccount = async () => {
     oauthDialogVisible.value = false
     
     // 调用授权API（这会在后端使用Playwright打开浏览器窗口）
-    const response = await authorizeAccount({
+    await authorizeAccount({
       platform: oauthForm.platform,
       account_name: oauthForm.account_name,
     })
@@ -516,6 +521,7 @@ const deleteOAuthAccount = async (id: number) => {
 onMounted(() => {
   loadUserInfo()
   loadModels()
+  loadOAuthPlatforms()
   loadOAuthAccounts()
 })
 </script>

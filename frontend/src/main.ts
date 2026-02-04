@@ -8,6 +8,7 @@ import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 import App from './App.vue'
 import router from './router'
+import { useUserStore } from './store/user'
 
 const app = createApp(App)
 
@@ -16,10 +17,15 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
 app.use(router)
 app.use(ElementPlus, {
   locale: zhCn,
 })
+
+// 恢复用户登录状态
+const userStore = useUserStore()
+userStore.restoreUser()
 
 app.mount('#app')

@@ -26,18 +26,10 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('token', data.access_token)
     localStorage.setItem('refreshToken', data.refresh_token)
     
-    // 如果登录响应中包含用户信息，直接使用
+    // 登录响应中已经包含用户信息，直接使用
     if (data.user) {
       userInfo.value = data.user as User
       localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
-    } else {
-      // 否则获取用户信息
-      try {
-        await getUserInfo()
-      } catch (error) {
-        console.error('获取用户信息失败:', error)
-        // 即使获取用户信息失败，也不影响登录流程
-      }
     }
   }
 
@@ -56,11 +48,11 @@ export const useUserStore = defineStore('user', () => {
   // 更新用户积分和会员信息
   const updateCreditInfo = async () => {
     try {
-      const res = await creditApi.getCreditBalance()
-      if (userInfo.value && res.data) {
-        userInfo.value.credits = res.data.credits
-        userInfo.value.is_member = res.data.is_member
-        userInfo.value.member_expired_at = res.data.member_expired_at
+      const res = await creditApi.getCreditBalance() as any
+      if (userInfo.value && res) {
+        userInfo.value.credits = res.credits
+        userInfo.value.is_member = res.is_member
+        userInfo.value.member_expired_at = res.member_expired_at
         localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
       }
     } catch (error) {

@@ -1,7 +1,7 @@
 /**
  * OAuth账号管理API
  */
-import request from '@/utils/request'
+import request from './request'
 
 export interface OAuthPlatform {
   id: number
@@ -62,10 +62,7 @@ export interface ChatCompletionRequest {
  * 获取支持的平台列表
  */
 export function getPlatforms() {
-  return request<OAuthPlatform[]>({
-    url: '/v1/oauth/platforms',
-    method: 'get',
-  })
+  return request.get<OAuthPlatform[]>('/v1/oauth/platforms')
 }
 
 /**
@@ -75,11 +72,7 @@ export function authorizeAccount(data: {
   platform: string
   account_name: string
 }) {
-  return request<OAuthAccount>({
-    url: '/v1/oauth/accounts/authorize',
-    method: 'post',
-    data,
-  })
+  return request.post<OAuthAccount>('/v1/oauth/accounts/authorize', data)
 }
 
 /**
@@ -89,21 +82,14 @@ export function getAccounts(params?: {
   platform?: string
   is_active?: boolean
 }) {
-  return request<OAuthAccount[]>({
-    url: '/v1/oauth/accounts',
-    method: 'get',
-    params,
-  })
+  return request.get<OAuthAccount[]>('/v1/oauth/accounts', { params })
 }
 
 /**
  * 获取OAuth账号详情
  */
 export function getAccount(accountId: number) {
-  return request<OAuthAccount>({
-    url: `/v1/oauth/accounts/${accountId}`,
-    method: 'get',
-  })
+  return request.get<OAuthAccount>(`/v1/oauth/accounts/${accountId}`)
 }
 
 /**
@@ -116,61 +102,40 @@ export function updateAccount(
     is_active?: boolean
   }
 ) {
-  return request<OAuthAccount>({
-    url: `/v1/oauth/accounts/${accountId}`,
-    method: 'put',
-    data,
-  })
+  return request.put<OAuthAccount>(`/v1/oauth/accounts/${accountId}`, data)
 }
 
 /**
  * 删除OAuth账号
  */
 export function deleteAccount(accountId: number) {
-  return request({
-    url: `/v1/oauth/accounts/${accountId}`,
-    method: 'delete',
-  })
+  return request.delete(`/v1/oauth/accounts/${accountId}`)
 }
 
 /**
  * 检查账号有效性
  */
 export function checkAccountValidity(accountId: number) {
-  return request<{ is_valid: boolean; message: string }>({
-    url: `/v1/oauth/accounts/${accountId}/check`,
-    method: 'post',
-  })
+  return request.post<{ is_valid: boolean; message: string }>(`/v1/oauth/accounts/${accountId}/check`)
 }
 
 /**
  * 获取账号使用日志
  */
 export function getUsageLogs(accountId: number, limit = 100) {
-  return request<OAuthUsageLog[]>({
-    url: `/v1/oauth/accounts/${accountId}/usage`,
-    method: 'get',
-    params: { limit },
-  })
+  return request.get<OAuthUsageLog[]>(`/v1/oauth/accounts/${accountId}/usage`, { params: { limit } })
 }
 
 /**
  * 获取账号可用模型
  */
 export function getAvailableModels(accountId: number) {
-  return request<{ models: string[] }>({
-    url: `/v1/oauth/accounts/${accountId}/models`,
-    method: 'get',
-  })
+  return request.get<{ models: string[] }>(`/v1/oauth/accounts/${accountId}/models`)
 }
 
 /**
  * 聊天完成
  */
 export function chatCompletion(data: ChatCompletionRequest) {
-  return request({
-    url: '/v1/oauth/chat/completions',
-    method: 'post',
-    data,
-  })
+  return request.post('/v1/oauth/chat/completions', data)
 }

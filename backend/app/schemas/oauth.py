@@ -53,8 +53,13 @@ class OAuthAccountBase(BaseModel):
 
 
 class OAuthAccountCreate(OAuthAccountBase):
-    """创建OAuth账号"""
+    """创建OAuth账号（直接提供凭证）"""
     credentials: str = Field(..., description="加密的凭证")
+
+
+class OAuthAccountAuthorize(OAuthAccountBase):
+    """授权OAuth账号（浏览器授权流程）"""
+    pass
 
 
 class OAuthAccountUpdate(BaseModel):

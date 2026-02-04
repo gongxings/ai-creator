@@ -167,9 +167,9 @@ const handleGenerate = async () => {
       ...formData,
       model_id: selectedModel.value
     })
-    currentCreation.value = res.data
+    currentCreation.value = res
     if (quillEditor) {
-      quillEditor.root.innerHTML = res.data.content
+      quillEditor.root.innerHTML = res.content
     }
     ElMessage.success('生成成功')
   } catch (error: any) {
@@ -184,9 +184,9 @@ const handleRegenerate = async () => {
   generating.value = true
   try {
     const res = await regenerateContent(currentCreation.value.id)
-    currentCreation.value = res.data
+    currentCreation.value = res
     if (quillEditor) {
-      quillEditor.root.innerHTML = res.data.content
+      quillEditor.root.innerHTML = res.content
     }
     ElMessage.success('重新生成成功')
   } catch (error: any) {
@@ -206,9 +206,9 @@ const handleOptimize = async () => {
     const res = await optimizeContent(currentCreation.value.id, {
       optimize_types: optimizeTypes.value
     })
-    currentCreation.value = res.data
+    currentCreation.value = res
     if (quillEditor) {
-      quillEditor.root.innerHTML = res.data.content
+      quillEditor.root.innerHTML = res.content
     }
     showOptimizeDialog.value = false
     ElMessage.success('优化成功')
@@ -253,7 +253,7 @@ const handleExport = () => {
 const loadModels = async () => {
   try {
     const res = await getAIModels()
-    aiModels.value = res.data
+    aiModels.value = res
     if (aiModels.value.length > 0) {
       selectedModel.value = aiModels.value[0].id
     }
