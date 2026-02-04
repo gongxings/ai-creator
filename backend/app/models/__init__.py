@@ -16,6 +16,7 @@ from app.models.operation import (
 from app.models.oauth_account import OAuthAccount
 from app.models.oauth_usage_log import OAuthUsageLog
 from app.models.platform_config import PlatformConfig
+from app.models.api_key import APIKey, APIKeyUsageLog
 
 __all__ = [
     # User models
@@ -67,4 +68,8 @@ __all__ = [
     "OAuthAccount",
     "OAuthUsageLog",
     "PlatformConfig",
+    
+    # API Key models
+    "APIKey",
+    "APIKeyUsageLog",
 ]

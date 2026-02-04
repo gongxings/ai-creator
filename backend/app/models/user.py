@@ -104,5 +104,8 @@ class User(Base):
     # OAuth相关关系
     oauth_accounts = relationship("OAuthAccount", back_populates="user")
     
+    # API Key相关关系
+    api_keys = relationship("APIKey", back_populates="user")
+    
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, role={self.role})>"
