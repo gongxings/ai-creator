@@ -20,3 +20,13 @@ export function getUserInfo() {
 export function refreshToken(refresh_token: string) {
   return post<TokenResponse>('/v1/auth/refresh', { refresh_token })
 }
+
+// 更新用户信息
+export function updateUserInfo(data: Partial<User>) {
+  return post<User>('/v1/auth/me', data)
+}
+
+// 修改密码
+export function changePassword(data: { old_password: string; new_password: string }) {
+  return post('/v1/auth/change-password', data)
+}

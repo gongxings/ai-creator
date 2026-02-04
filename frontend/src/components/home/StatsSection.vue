@@ -44,6 +44,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Document, Calendar, Upload, Link } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { getDashboardStatistics } from '@/api/operation'
+import { getCreations } from '@/api/creations'
+import { getPublishHistory } from '@/api/publish'
+import { getPlatformAccounts } from '@/api/publish'
 
 const stats = ref({
   totalCreations: 0,
@@ -53,12 +58,30 @@ const stats = ref({
 })
 
 const loadStats = async () => {
-  // TODO: 从API加载统计数据
-  stats.value = {
-    totalCreations: 128,
-    todayCreations: 5,
-    published: 86,
-    platforms: 4,
+  try {
+    // 加载创作统计
+    const creationsResponse = await getCreations({ page: 1, page_size: 1 })
+    stats.value.totalCreations = creationsResponse.data.total || 0
+    
+    // 加载今日创作数（从dashboard统计获取）
+    try {
+      const dashboardResponse = await getDashboardStatistics()
+      stats.value.todayCreations = dashboardResponse.data.today?.generation_count || 0
+    } catch (error) {
+      // 如果dashboard API不可用，使用默认值
+      stats.value.todayCreations = 0
+    }
+    
+    // 加载发布统计
+    const publishResponse = await getPublishHistory({ page: 1, page_size: 1 })
+    stats.value.published = publishResponse.data.total || 0
+    
+    // 加载绑定平台数
+    const platformsResponse = await getPlatformAccounts()
+    stats.value.platforms = platformsResponse.data.length || 0
+  } catch (error: any) {
+    console.error('加载统计数据失败:', error)
+    ElMessage.error('加载统计数据失败')
   }
 }
 

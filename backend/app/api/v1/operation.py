@@ -37,7 +37,7 @@ async def create_activity(
         raise HTTPException(status_code=403, detail="需要管理员权限")
     
     service = OperationService(db)
-    result = await service.create_activity(activity)
+    result = await service.create_activity(activity, current_user.id)
     return success_response(data=result)
 
 

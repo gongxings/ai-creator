@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.utils.deps import get_current_user
+from app.utils.deps import get_current_user, get_admin_user
 from app.models.user import User
 from app.schemas.common import success_response, PaginatedResponse
 from app.schemas.credit import (
@@ -194,11 +194,10 @@ async def get_membership_prices(db: Session = Depends(get_db)):
 @router.post("/admin/prices/credits")
 async def create_credit_price(
     price_data: CreditPriceCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """创建积分价格配置（管理员）"""
-    # TODO: 添加管理员权限检查
     price = PriceService.create_credit_price(db, price_data.dict())
     return success_response(data=CreditPriceResponse.from_orm(price))
 
@@ -207,11 +206,10 @@ async def create_credit_price(
 async def update_credit_price(
     price_id: int,
     price_data: CreditPriceCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """更新积分价格配置（管理员）"""
-    # TODO: 添加管理员权限检查
     price = PriceService.update_credit_price(db, price_id, price_data.dict(exclude_unset=True))
     return success_response(data=CreditPriceResponse.from_orm(price))
 
@@ -219,11 +217,10 @@ async def update_credit_price(
 @router.delete("/admin/prices/credits/{price_id}")
 async def delete_credit_price(
     price_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """删除积分价格配置（管理员）"""
-    # TODO: 添加管理员权限检查
     success = PriceService.delete_credit_price(db, price_id)
     return success_response(data={"success": success})
 
@@ -231,11 +228,10 @@ async def delete_credit_price(
 @router.post("/admin/prices/membership")
 async def create_membership_price(
     price_data: MembershipPriceCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """创建会员价格配置（管理员）"""
-    # TODO: 添加管理员权限检查
     price = PriceService.create_membership_price(db, price_data.dict())
     return success_response(data=MembershipPriceResponse.from_orm(price))
 
@@ -244,11 +240,10 @@ async def create_membership_price(
 async def update_membership_price(
     price_id: int,
     price_data: MembershipPriceCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """更新会员价格配置（管理员）"""
-    # TODO: 添加管理员权限检查
     price = PriceService.update_membership_price(db, price_id, price_data.dict(exclude_unset=True))
     return success_response(data=MembershipPriceResponse.from_orm(price))
 
@@ -256,10 +251,9 @@ async def update_membership_price(
 @router.delete("/admin/prices/membership/{price_id}")
 async def delete_membership_price(
     price_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """删除会员价格配置（管理员）"""
-    # TODO: 添加管理员权限检查
     success = PriceService.delete_membership_price(db, price_id)
     return success_response(data={"success": success})

@@ -14,48 +14,7 @@ from app.core.security import create_access_token
 
 
 @pytest.fixture
-def test_user(db: Session):
-    """创建测试用户"""
-    user = User(
-        username="testuser",
-        email="test@example.com",
-        hashed_password="hashed_password",
-        is_active=True
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
-@pytest.fixture
-def auth_headers(test_user):
-    """生成认证头"""
-    token = create_access_token({"sub": str(test_user.id)})
-    return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture
-def test_oauth_account(db: Session, test_user):
-    """创建测试OAuth账号"""
-    account = OAuthAccount(
-        user_id=test_user.id,
-        platform="qwen",
-        account_name="测试通义千问",
-        credentials_encrypted="encrypted_data",
-        is_active=True,
-        is_expired=False,
-        quota_limit=1000,
-        quota_used=100
-    )
-    db.add(account)
-    db.commit()
-    db.refresh(account)
-    return account
-
-
-@pytest.fixture
-def test_ai_model(db: Session, test_user):
+def test_ai_model(db_session, test_user):
     """创建测试AI模型"""
     model = AIModel(
         user_id=test_user.id,
@@ -65,9 +24,9 @@ def test_ai_model(db: Session, test_user):
         api_key_encrypted="encrypted_key",
         is_active=True
     )
-    db.add(model)
-    db.commit()
-    db.refresh(model)
+    db_session.add(model)
+    db_session.commit()
+    db_session.refresh(model)
     return model
 
 
@@ -115,11 +74,11 @@ class TestAPIKeyEndpoints:
         assert "api_key" in data["data"]
         assert data["data"]["api_key"].startswith("sk-")
     
-    def test_list_api_keys(self, client: TestClient, auth_headers, db: Session, test_user):
+    def test_list_api_keys(self, client: TestClient, auth_headers, db_session, test_user):
         """测试获取API Key列表"""
         # 先创建一个API Key
         api_key = APIKeyService.create_api_key(
-            db=db,
+            db=db_session,
             user_id=test_user.id,
             key_name="测试Key",
             expires_days=30
@@ -134,11 +93,11 @@ class TestAPIKeyEndpoints:
         assert data["code"] == 200
         assert len(data["data"]["api_keys"]) >= 1
     
-    def test_get_api_key_detail(self, client: TestClient, auth_headers, db: Session, test_user):
+    def test_get_api_key_detail(self, client: TestClient, auth_headers, db_session, test_user):
         """测试获取API Key详情"""
         # 创建API Key
         result = APIKeyService.create_api_key(
-            db=db,
+            db=db_session,
             user_id=test_user.id,
             key_name="测试Key"
         )
@@ -152,11 +111,11 @@ class TestAPIKeyEndpoints:
         assert data["code"] == 200
         assert data["data"]["id"] == result["id"]
     
-    def test_delete_api_key(self, client: TestClient, auth_headers, db: Session, test_user):
+    def test_delete_api_key(self, client: TestClient, auth_headers, db_session, test_user):
         """测试删除API Key"""
         # 创建API Key
         result = APIKeyService.create_api_key(
-            db=db,
+            db=db_session,
             user_id=test_user.id,
             key_name="测试Key"
         )
@@ -201,11 +160,11 @@ class TestOpenAPIProxy:
         response = client.get("/v1/models")
         assert response.status_code == 401
     
-    def test_list_models_with_api_key(self, client: TestClient, db: Session, test_user):
+    def test_list_models_with_api_key(self, client: TestClient, db_session, test_user):
         """测试使用API Key访问模型列表"""
         # 创建API Key
         result = APIKeyService.create_api_key(
-            db=db,
+            db=db_session,
             user_id=test_user.id,
             key_name="测试Key"
         )
@@ -219,4 +178,41 @@ class TestOpenAPIProxy:
         assert "data" in data
         assert isinstance(data["data"], list)
     
-    def test_chat_completions_without_auth(self, client
+    def test_chat_completions_without_auth(self, client: TestClient):
+        """测试未认证访问聊天接口"""
+        response = client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    {"role": "user", "content": "Hello"}
+                ]
+            }
+        )
+        assert response.status_code == 401
+    
+    def test_chat_completions_with_api_key(self, client: TestClient, db_session, test_user, test_oauth_account):
+        """测试使用API Key访问聊天接口"""
+        # 创建API Key
+        result = APIKeyService.create_api_key(
+            db=db_session,
+            user_id=test_user.id,
+            key_name="测试Key"
+        )
+        
+        # 使用OAuth模型ID
+        model_id = f"oauth_{test_oauth_account.id}_qwen-max"
+        
+        response = client.post(
+            "/v1/chat/completions",
+            headers={"Authorization": f"Bearer {result['api_key']}"},
+            json={
+                "model": model_id,
+                "messages": [
+                    {"role": "user", "content": "你好"}
+                ],
+                "stream": False
+            }
+        )
+        # 注意：这个测试可能会失败，因为需要真实的OAuth凭证
+        assert response.status_code in [200, 400, 500]

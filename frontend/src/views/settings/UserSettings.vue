@@ -40,7 +40,7 @@
               <el-input v-model="passwordForm.confirmPassword" type="password" show-password />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="changePassword">修改密码</el-button>
+              <el-button type="primary" @click="changePasswordHandler">修改密码</el-button>
             </el-form-item>
           </el-form>
         </el-tab-pane>
@@ -207,7 +207,15 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import { updateUserInfo, changePassword } from '@/api/auth'
 import { getAIModels, addAIModel, updateAIModel, deleteAIModel } from '@/api/models'
+import { 
+  authorizeAccount, 
+  getAccounts, 
+  updateAccount, 
+  deleteAccount, 
+  checkAccountValidity 
+} from '@/api/oauth'
 import type { AIModel } from '@/types'
 
 const userStore = useUserStore()
@@ -295,28 +303,39 @@ const loadUserInfo = () => {
 // 更新个人信息
 const updateProfile = async () => {
   try {
-    // TODO: 调用更新用户信息API
+    await updateUserInfo({
+      email: profileForm.email,
+      phone: profileForm.phone,
+    })
+    await userStore.fetchUserInfo()
     ElMessage.success('个人信息更新成功')
-  } catch (error) {
-    ElMessage.error('更新失败')
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || '更新失败')
   }
 }
 
 // 修改密码
-const changePassword = async () => {
+const changePasswordHandler = async () => {
   if (!passwordFormRef.value) return
   
   await passwordFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        // TODO: 调用修改密码API
+        await changePassword({
+          old_password: passwordForm.oldPassword,
+          new_password: passwordForm.newPassword,
+        })
         ElMessage.success('密码修改成功，请重新登录')
         // 清空表单
         passwordForm.oldPassword = ''
         passwordForm.newPassword = ''
         passwordForm.confirmPassword = ''
-      } catch (error) {
-        ElMessage.error('密码修改失败')
+        // 可选：自动登出用户
+        setTimeout(() => {
+          userStore.logout()
+        }, 2000)
+      } catch (error: any) {
+        ElMessage.error(error.response?.data?.detail || '密码修改失败')
       }
     }
   })
@@ -400,9 +419,8 @@ const showAddOAuthDialog = () => {
 
 const loadOAuthAccounts = async () => {
   try {
-    // TODO: 调用获取OAuth账号列表API
-    // const response = await getOAuthAccounts()
-    // oauthAccounts.value = response.data
+    const response = await getAccounts()
+    oauthAccounts.value = response.data
   } catch (error) {
     ElMessage.error('加载OAuth账号失败')
   }
@@ -415,35 +433,65 @@ const addOAuthAccount = async () => {
   }
   
   try {
-    // TODO: 调用添加OAuth账号API，会打开新窗口进行OAuth授权
-    // const response = await initiateOAuth(oauthForm.platform, oauthForm.account_name)
-    // window.open(response.data.auth_url, '_blank')
-    ElMessage.success('请在新窗口完成授权')
+    // 显示加载提示
+    const loadingMessage = ElMessage({
+      message: '正在启动授权流程，后端将打开浏览器窗口，请在浏览器中完成登录...',
+      type: 'info',
+      duration: 0, // 不自动关闭
+      showClose: true,
+    })
+    
+    // 关闭对话框
     oauthDialogVisible.value = false
-    // 轮询检查授权状态
-    // checkOAuthStatus(response.data.state)
-  } catch (error) {
-    ElMessage.error('添加OAuth账号失败')
+    
+    // 调用授权API（这会在后端使用Playwright打开浏览器窗口）
+    const response = await authorizeAccount({
+      platform: oauthForm.platform,
+      account_name: oauthForm.account_name,
+    })
+    
+    // 关闭加载提示
+    loadingMessage.close()
+    
+    // 显示成功消息
+    ElMessage.success('OAuth账号授权成功！')
+    
+    // 重新加载账号列表
+    await loadOAuthAccounts()
+    
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || '授权失败，请重试')
   }
 }
 
 const refreshOAuthAccount = async (id: number) => {
   try {
-    // TODO: 调用刷新OAuth账号API
+    const loadingMessage = ElMessage({
+      message: '正在刷新账号，请稍候...',
+      type: 'info',
+      duration: 0,
+      showClose: true,
+    })
+    
+    await checkAccountValidity(id)
+    loadingMessage.close()
+    
     ElMessage.success('刷新成功')
-    loadOAuthAccounts()
-  } catch (error) {
-    ElMessage.error('刷新失败')
+    await loadOAuthAccounts()
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || '刷新失败')
   }
 }
 
 const toggleOAuthAccount = async (account: any) => {
   try {
-    // TODO: 调用启用/禁用OAuth账号API
+    await updateAccount(account.id, {
+      is_active: !account.is_active
+    })
     ElMessage.success(account.is_active ? '已禁用' : '已启用')
-    loadOAuthAccounts()
-  } catch (error) {
-    ElMessage.error('操作失败')
+    await loadOAuthAccounts()
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || '操作失败')
   }
 }
 
@@ -454,12 +502,13 @@ const deleteOAuthAccount = async (id: number) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    // TODO: 调用删除OAuth账号API
+    
+    await deleteAccount(id)
     ElMessage.success('删除成功')
-    loadOAuthAccounts()
+    await loadOAuthAccounts()
   } catch (error: any) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      ElMessage.error(error.response?.data?.detail || '删除失败')
     }
   }
 }

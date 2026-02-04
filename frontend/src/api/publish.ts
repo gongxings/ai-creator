@@ -40,3 +40,8 @@ export function getPublishHistory(params: PaginationParams & { platform?: string
 export function getPublishStatus(id: number) {
   return get<PublishRecord>(`/v1/publish/${id}/status`)
 }
+
+// 删除发布记录
+export function deletePublishRecord(id: number) {
+  return del(`/v1/publish/history/${id}`)
+}

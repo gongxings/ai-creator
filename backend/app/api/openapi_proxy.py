@@ -38,7 +38,40 @@ async def verify_api_key_auth(
     if not db_key:
         raise HTTPException(status_code=401, detail="Invalid or expired API key")
     
-    # TODO: 实现速率限制检查（使用Redis）
+    # 实现速率限制检查（使用Redis）
+    if db_key.rate_limit and db_key.rate_limit > 0:
+        from app.utils.cache import redis_client
+        import time
+        
+        # 使用滑动窗口算法实现速率限制
+        rate_limit_key = f"api_key_rate_limit:{db_key.id}"
+        current_time = int(time.time())
+        window_start = current_time - 60  # 1分钟窗口
+        
+        try:
+            # 移除过期的请求记录
+            redis_client.zremrangebyscore(rate_limit_key, 0, window_start)
+            
+            # 获取当前窗口内的请求数
+            request_count = redis_client.zcard(rate_limit_key)
+            
+            # 检查是否超过限制
+            if request_count >= db_key.rate_limit:
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Rate limit exceeded. Limit: {db_key.rate_limit} requests per minute"
+                )
+            
+            # 记录当前请求
+            redis_client.zadd(rate_limit_key, {str(current_time): current_time})
+            
+            # 设置过期时间（2分钟）
+            redis_client.expire(rate_limit_key, 120)
+            
+        except Exception as e:
+            # Redis连接失败时，记录日志但不阻止请求
+            import logging
+            logging.warning(f"Rate limit check failed: {str(e)}")
     
     return db_key
 

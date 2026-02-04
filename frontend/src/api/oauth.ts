@@ -1,7 +1,7 @@
 /**
  * OAuth账号管理API
  */
-import request from './request'
+import request from '@/utils/request'
 
 export interface OAuthPlatform {
   id: number
@@ -63,7 +63,7 @@ export interface ChatCompletionRequest {
  */
 export function getPlatforms() {
   return request<OAuthPlatform[]>({
-    url: '/oauth/platforms',
+    url: '/v1/oauth/platforms',
     method: 'get',
   })
 }
@@ -76,7 +76,7 @@ export function authorizeAccount(data: {
   account_name: string
 }) {
   return request<OAuthAccount>({
-    url: '/oauth/accounts/authorize',
+    url: '/v1/oauth/accounts/authorize',
     method: 'post',
     data,
   })
@@ -90,7 +90,7 @@ export function getAccounts(params?: {
   is_active?: boolean
 }) {
   return request<OAuthAccount[]>({
-    url: '/oauth/accounts',
+    url: '/v1/oauth/accounts',
     method: 'get',
     params,
   })
@@ -101,7 +101,7 @@ export function getAccounts(params?: {
  */
 export function getAccount(accountId: number) {
   return request<OAuthAccount>({
-    url: `/oauth/accounts/${accountId}`,
+    url: `/v1/oauth/accounts/${accountId}`,
     method: 'get',
   })
 }
@@ -117,7 +117,7 @@ export function updateAccount(
   }
 ) {
   return request<OAuthAccount>({
-    url: `/oauth/accounts/${accountId}`,
+    url: `/v1/oauth/accounts/${accountId}`,
     method: 'put',
     data,
   })
@@ -128,7 +128,7 @@ export function updateAccount(
  */
 export function deleteAccount(accountId: number) {
   return request({
-    url: `/oauth/accounts/${accountId}`,
+    url: `/v1/oauth/accounts/${accountId}`,
     method: 'delete',
   })
 }
@@ -138,7 +138,7 @@ export function deleteAccount(accountId: number) {
  */
 export function checkAccountValidity(accountId: number) {
   return request<{ is_valid: boolean; message: string }>({
-    url: `/oauth/accounts/${accountId}/check`,
+    url: `/v1/oauth/accounts/${accountId}/check`,
     method: 'post',
   })
 }
@@ -148,7 +148,7 @@ export function checkAccountValidity(accountId: number) {
  */
 export function getUsageLogs(accountId: number, limit = 100) {
   return request<OAuthUsageLog[]>({
-    url: `/oauth/accounts/${accountId}/usage`,
+    url: `/v1/oauth/accounts/${accountId}/usage`,
     method: 'get',
     params: { limit },
   })
@@ -159,7 +159,7 @@ export function getUsageLogs(accountId: number, limit = 100) {
  */
 export function getAvailableModels(accountId: number) {
   return request<{ models: string[] }>({
-    url: `/oauth/accounts/${accountId}/models`,
+    url: `/v1/oauth/accounts/${accountId}/models`,
     method: 'get',
   })
 }
@@ -169,7 +169,7 @@ export function getAvailableModels(accountId: number) {
  */
 export function chatCompletion(data: ChatCompletionRequest) {
   return request({
-    url: '/oauth/chat/completions',
+    url: '/v1/oauth/chat/completions',
     method: 'post',
     data,
   })

@@ -292,6 +292,16 @@ import {
   Document
 } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import {
+  getPlatforms,
+  bindPlatformAccount,
+  getPlatformAccounts,
+  deletePlatformAccount,
+  publishContent,
+  getPublishHistory,
+  deletePublishRecord
+} from '@/api/publish'
+import { getCreations } from '@/api/creations'
 
 // 状态
 const loading = ref(false)
@@ -407,11 +417,21 @@ const disabledDate = (time: Date) => {
 // 加载平台列表
 const loadPlatforms = async () => {
   try {
-    // TODO: 调用API获取平台列表
-    // const response = await publishApi.getPlatforms()
-    // platforms.value = response.data
-  } catch (error) {
+    const response = await getPlatforms()
+    const platformList = response.data
+    
+    // 获取已绑定的账号
+    const accountsResponse = await getPlatformAccounts()
+    const boundPlatformCodes = accountsResponse.data.map((acc: any) => acc.platform)
+    
+    // 更新平台绑定状态
+    platforms.value = platforms.value.map(p => ({
+      ...p,
+      isBound: boundPlatformCodes.includes(p.code)
+    }))
+  } catch (error: any) {
     console.error('加载平台列表失败:', error)
+    ElMessage.error(error.response?.data?.detail || '加载平台列表失败')
   }
 }
 
@@ -419,20 +439,15 @@ const loadPlatforms = async () => {
 const loadPublishHistory = async () => {
   loading.value = true
   try {
-    // TODO: 调用API获取发布历史
-    // const response = await publishApi.getPublishHistory({
-    //   page: currentPage.value,
-    //   pageSize: pageSize.value,
-    //   keyword: searchKeyword.value
-    // })
-    // publishHistory.value = response.data.items
-    // total.value = response.data.total
-    
-    // 模拟数据
-    publishHistory.value = []
-    total.value = 0
-  } catch (error) {
-    ElMessage.error('加载发布历史失败')
+    const response = await getPublishHistory({
+      page: currentPage.value,
+      page_size: pageSize.value,
+    })
+    publishHistory.value = response.data.items
+    total.value = response.data.total
+  } catch (error: any) {
+    console.error('加载发布历史失败:', error)
+    ElMessage.error(error.response?.data?.detail || '加载发布历史失败')
   } finally {
     loading.value = false
   }
@@ -441,11 +456,11 @@ const loadPublishHistory = async () => {
 // 加载创作列表
 const loadCreations = async () => {
   try {
-    // TODO: 调用API获取创作列表
-    // const response = await writingApi.getCreations()
-    // creations.value = response.data
-  } catch (error) {
+    const response = await getCreations({ page: 1, page_size: 100 })
+    creations.value = response.data.items
+  } catch (error: any) {
     console.error('加载创作列表失败:', error)
+    ElMessage.error(error.response?.data?.detail || '加载创作列表失败')
   }
 }
 
@@ -482,14 +497,19 @@ const handlePublish = async () => {
     if (valid) {
       publishing.value = true
       try {
-        // TODO: 调用API发布内容
-        // await publishApi.publish(publishForm)
+        await publishContent({
+          creation_id: publishForm.creationId!,
+          platform_ids: publishForm.platformIds,
+          publish_type: publishForm.publishType,
+          scheduled_time: publishForm.scheduledTime || undefined,
+        })
         
         ElMessage.success('发布成功')
         showPublishDialog.value = false
         loadPublishHistory()
-      } catch (error) {
-        ElMessage.error('发布失败')
+      } catch (error: any) {
+        console.error('发布失败:', error)
+        ElMessage.error(error.response?.data?.detail || '发布失败')
       } finally {
         publishing.value = false
       }
@@ -511,14 +531,27 @@ const handleBind = async () => {
     if (valid) {
       binding.value = true
       try {
-        // TODO: 调用API绑定平台
-        // await publishApi.bindPlatform(bindForm)
+        let credentials: Record<string, any> = {}
+        try {
+          credentials = JSON.parse(bindForm.credentials)
+        } catch (e) {
+          ElMessage.error('认证信息格式错误，请输入有效的JSON')
+          binding.value = false
+          return
+        }
+        
+        await bindPlatformAccount({
+          platform: bindForm.platformCode,
+          account_name: bindForm.accountName,
+          credentials,
+        })
         
         ElMessage.success('绑定成功')
         showBindDialog.value = false
         loadPlatforms()
-      } catch (error) {
-        ElMessage.error('绑定失败')
+      } catch (error: any) {
+        console.error('绑定失败:', error)
+        ElMessage.error(error.response?.data?.detail || '绑定失败')
       } finally {
         binding.value = false
       }
@@ -535,14 +568,14 @@ const unbindPlatform = async (platformId: number) => {
       type: 'warning'
     })
     
-    // TODO: 调用API解绑平台
-    // await publishApi.unbindPlatform(platformId)
+    await deletePlatformAccount(platformId)
     
     ElMessage.success('解绑成功')
     loadPlatforms()
-  } catch (error) {
+  } catch (error: any) {
     if (error !== 'cancel') {
-      ElMessage.error('解绑失败')
+      console.error('解绑失败:', error)
+      ElMessage.error(error.response?.data?.detail || '解绑失败')
     }
   }
 }
@@ -562,14 +595,14 @@ const deleteRecord = async (id: number) => {
       type: 'warning'
     })
     
-    // TODO: 调用API删除记录
-    // await publishApi.deleteRecord(id)
+    await deletePublishRecord(id)
     
     ElMessage.success('删除成功')
     loadPublishHistory()
-  } catch (error) {
+  } catch (error: any) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      console.error('删除失败:', error)
+      ElMessage.error(error.response?.data?.detail || '删除失败')
     }
   }
 }
