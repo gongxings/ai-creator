@@ -211,6 +211,7 @@ interface ImageForm {
   image: File | null
   motion_prompt: string
   duration: number
+  image_data_url?: string
 }
 
 interface VideoTask {
@@ -250,8 +251,9 @@ const imageForm = reactive<ImageForm>({
 })
 
 // 处理图片上传
-const handleImageChange = (file: UploadFile) => {
+const handleImageChange = async (file: UploadFile) => {
   imageForm.image = file.raw as File
+  imageForm.image_data_url = await readFileAsDataUrl(file.raw as File)
 }
 
 // 生成视频
@@ -272,20 +274,26 @@ const generateVideo = async () => {
   try {
     let response
     if (activeTab.value === 'text') {
-      response = await request.post('/v1/video/text-to-video', textForm)
+      response = await request.post('/v1/video/text-to-video', {
+        text: textForm.prompt,
+        background_music: false,
+        subtitle: true,
+      })
     } else {
-      const formData = new FormData()
-      formData.append('image', imageForm.image!)
-      formData.append('motion_prompt', imageForm.motion_prompt)
-      formData.append('duration', imageForm.duration.toString())
-      response = await request.post('/v1/video/image-to-video', formData)
+      const images = imageForm.image_data_url ? [imageForm.image_data_url] : []
+      response = await request.post('/v1/video/image-to-video', {
+        images,
+        transition: 'fade',
+        duration_per_image: imageForm.duration,
+      })
     }
 
+    const task = response.data
     currentTask.value = {
-      id: response.task_id,
+      id: task.task_id,
       status: 'processing',
       progress: 0,
-      estimated_time: response.estimated_time || 60,
+      estimated_time: task.estimated_time || 60,
     }
 
     ElMessage.success('视频生成任务已提交')
@@ -308,7 +316,8 @@ const startPolling = () => {
     if (!currentTask.value) return
 
     try {
-      const data = await request.get(`/v1/video/${currentTask.value.id}/status`)
+      const result = await request.get(`/v1/video/task/${currentTask.value.id}`)
+      const data = result.data
 
       currentTask.value = {
         ...currentTask.value,
@@ -333,6 +342,13 @@ const startPolling = () => {
     }
   }, 3000)
 }
+
+const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(reader.result as string)
+  reader.onerror = () => reject(new Error('读取图片失败'))
+  reader.readAsDataURL(file)
+})
 
 const stopPolling = () => {
   if (pollTimer) {
@@ -365,8 +381,18 @@ const downloadVideo = () => {
 }
 
 // 分享视频
-const shareVideo = () => {
-  ElMessage.info('分享功能开发中')
+const shareVideo = async () => {
+  if (!currentTask.value?.video_url) {
+    ElMessage.warning('暂无可分享的视频链接')
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(currentTask.value.video_url)
+    ElMessage.success('视频链接已复制，可直接分享')
+  } catch (error) {
+    ElMessage.warning('复制失败，请手动复制链接')
+  }
 }
 
 // 加载历史记录
@@ -375,8 +401,8 @@ const loadHistory = async () => {
     const response = await request.get('/v1/creations', {
       params: {
         content_type: 'video',
-        page: 1,
-        page_size: 10,
+        skip: 0,
+        limit: 10,
       },
     })
     historyList.value = response.items
@@ -409,15 +435,23 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .video-generation {
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
 
   .header-card {
     margin-bottom: 20px;
     text-align: center;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     h2 {
       margin: 0 0 10px 0;
       font-size: 24px;
-      color: #303133;
+      color: #1f2937;
     }
 
     .subtitle {
@@ -444,11 +478,12 @@ onUnmounted(() => {
   }
 
   .video-player {
+    padding-top: 8px;
     .video-element {
       width: 100%;
       max-height: 500px;
       background-color: #000;
-      border-radius: 4px;
+      border-radius: 12px;
     }
 
     .video-actions {
@@ -465,17 +500,18 @@ onUnmounted(() => {
 
     .history-item {
       display: flex;
+      background: #fff;
       gap: 12px;
       padding: 12px;
       margin-bottom: 12px;
       border: 1px solid #ebeef5;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.3s;
 
       &:hover {
         border-color: #409eff;
-        background-color: #f5f7fa;
+        background-color: #f1f5f9;
       }
 
       .history-thumbnail {
@@ -522,7 +558,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .video-generation {
-    padding: 10px;
+    padding: 12px;
   }
 }
 </style>

@@ -19,6 +19,7 @@ from app.schemas.publish import (
     CookieValidationResponse,
     PublishCreate,
     PublishRecordResponse,
+    PublishRecordListResponse,
     PublishStatusResponse
 )
 from app.services.publish.platforms import get_platform, PLATFORM_REGISTRY
@@ -36,7 +37,7 @@ async def get_platforms():
             platform=name,
             name=publisher.get_platform_name(),
             login_url=publisher.get_login_url(),
-            supported_types=publisher.supported_types
+            supported_types=getattr(publisher, "supported_types", [])
         ))
     return platforms
 
@@ -266,6 +267,29 @@ async def publish_content(
         raise HTTPException(status_code=404, detail="平台账号不存在或未激活")
     
     try:
+        if publish_data.scheduled_at:
+            history = PublishRecord(
+                user_id=current_user.id,
+                platform_account_id=account.id,
+                creation_id=publish_data.creation_id,
+                platform=account.platform,
+                content_type=publish_data.content_type,
+                title=publish_data.title,
+                status="scheduled",
+                scheduled_at=publish_data.scheduled_at
+            )
+            db.add(history)
+            db.commit()
+            db.refresh(history)
+
+            return PublishStatusResponse(
+                id=history.id,
+                platform=history.platform,
+                status=history.status,
+                message="已加入定时发布队列",
+                published_at=history.published_at
+            )
+
         # 获取平台发布器
         publisher = get_platform(account.platform)
         
@@ -287,7 +311,7 @@ async def publish_content(
         # 保存发布历史
         history = PublishRecord(
             user_id=current_user.id,
-            account_id=account.id,
+            platform_account_id=account.id,
             creation_id=publish_data.creation_id,
             platform=account.platform,
             content_type=publish_data.content_type,
@@ -320,7 +344,33 @@ async def publish_content(
         )
 
 
-@router.get("/history", response_model=List[PublishRecordResponse])
+@router.get("/publish/{publish_id}/status", response_model=PublishStatusResponse)
+async def get_publish_status(
+    publish_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取发布状态"""
+    record = db.query(PublishRecord).filter(
+        PublishRecord.id == publish_id,
+        PublishRecord.user_id == current_user.id
+    ).first()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="发布记录不存在")
+
+    return PublishStatusResponse(
+        id=record.id,
+        platform=record.platform,
+        status=record.status,
+        platform_post_id=record.platform_post_id,
+        platform_url=record.platform_url,
+        message=record.error_message,
+        published_at=record.published_at
+    )
+
+
+@router.get("/history", response_model=PublishRecordListResponse)
 async def get_publish_history(
     platform: str = None,
     status: str = None,
@@ -339,26 +389,30 @@ async def get_publish_history(
     if status:
         query = query.filter(PublishRecord.status == status)
     
+    total = query.count()
     histories = query.order_by(
         PublishRecord.created_at.desc()
     ).offset(skip).limit(limit).all()
     
-    return [
-        PublishRecordResponse(
-            id=h.id,
-            platform=h.platform,
-            account_name=h.account.account_name if h.account else None,
-            content_type=h.content_type,
-            title=h.title,
-            status=h.status,
-            platform_post_id=h.platform_post_id,
-            platform_url=h.platform_url,
-            error_message=h.error_message,
-            published_at=h.published_at,
-            created_at=h.created_at
-        )
-        for h in histories
-    ]
+    return PublishRecordListResponse(
+        total=total,
+        items=[
+            PublishRecordResponse(
+                id=h.id,
+                platform=h.platform,
+                account_name=h.account.account_name if h.account else None,
+                content_type=h.content_type,
+                title=h.title,
+                status=h.status,
+                platform_post_id=h.platform_post_id,
+                platform_url=h.platform_url,
+                error_message=h.error_message,
+                published_at=h.published_at,
+                created_at=h.created_at
+            )
+            for h in histories
+        ]
+    )
 
 
 @router.get("/history/{history_id}", response_model=PublishRecordResponse)

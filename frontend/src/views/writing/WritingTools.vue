@@ -13,8 +13,8 @@
         shadow="hover"
         @click="goToEditor(tool.type)"
       >
-        <div class="tool-icon">
-          <el-icon :size="48" :color="tool.color">
+        <div class="tool-icon" :style="{ '--tool-color': tool.color }">
+          <el-icon :size="30">
             <component :is="tool.icon" />
           </el-icon>
         </div>
@@ -43,7 +43,6 @@ import {
   ChatDotRound,
   Promotion,
   Reading,
-  TrendCharts,
   Notebook,
   VideoCamera,
   Tickets,
@@ -179,57 +178,74 @@ const goToEditor = (toolType: string) => {
 
 <style scoped lang="scss">
 .writing-tools {
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 36%);
+
   .page-header {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+    padding: 24px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     h1 {
-      font-size: 28px;
+      font-size: 30px;
       font-weight: 600;
-      color: #333;
+      color: #111827;
       margin-bottom: 8px;
     }
 
     p {
       font-size: 14px;
-      color: #666;
+      color: #64748b;
+      margin: 0;
     }
   }
 
   .tools-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
 
     .tool-card {
       cursor: pointer;
       transition: all 0.3s;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
 
       &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        transform: translateY(-5px);
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.14);
+        border-color: #93c5fd;
       }
 
       :deep(.el-card__body) {
-        padding: 24px;
+        padding: 20px;
         text-align: center;
       }
 
       .tool-icon {
-        margin-bottom: 16px;
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        color: var(--tool-color);
+        background: color-mix(in srgb, var(--tool-color) 12%, #ffffff);
       }
 
       h3 {
-        font-size: 18px;
+        font-size: 17px;
         font-weight: 600;
-        color: #333;
+        color: #1f2937;
         margin-bottom: 8px;
       }
 
       p {
         font-size: 14px;
-        color: #666;
+        color: #64748b;
         line-height: 1.6;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
         min-height: 44px;
       }
 
@@ -246,6 +262,8 @@ const goToEditor = (toolType: string) => {
 @media (max-width: 768px) {
   .writing-tools {
     .page-header {
+      padding: 18px;
+
       h1 {
         font-size: 24px;
       }
@@ -253,7 +271,6 @@ const goToEditor = (toolType: string) => {
 
     .tools-grid {
       grid-template-columns: 1fr;
-      gap: 16px;
     }
   }
 }

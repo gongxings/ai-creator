@@ -92,18 +92,19 @@ class PublishContentBase(BaseModel):
     tags: Optional[List[str]] = None
 
 
-class PublishCreate(PublishContentBase):
+class PublishCreate(BaseModel):
     """创建发布任务"""
+    account_id: int
     creation_id: int
-    platform_account_ids: List[int] = Field(..., min_items=1)
+    content_type: str
     scheduled_at: Optional[datetime] = None
-    create_draft_only: bool = Field(default=True, description="是否仅创建草稿（不直接发布）")
-
-    @validator('scheduled_at')
-    def validate_scheduled_at(cls, v):
-        if v and v <= datetime.utcnow():
-            raise ValueError('定时发布时间必须在未来')
-        return v
+    title: Optional[str] = Field(None, max_length=200)
+    content: Optional[str] = None
+    cover_image: Optional[str] = Field(None, max_length=500)
+    images: Optional[List[str]] = None
+    video_url: Optional[str] = Field(None, max_length=500)
+    tags: Optional[List[str]] = None
+    location: Optional[str] = None
 
 
 class PublishUpdate(BaseModel):
@@ -119,19 +120,16 @@ class PublishUpdate(BaseModel):
 class PublishRecordResponse(PublishContentBase):
     """发布记录响应"""
     id: int
-    user_id: int
-    creation_id: int
-    platform_account_id: int
     platform: PlatformType
     status: PublishStatus
+    account_name: Optional[str] = None
+    content_type: Optional[str] = None
     platform_post_id: Optional[str] = None
     platform_url: Optional[str] = None
     scheduled_at: Optional[datetime] = None
     published_at: Optional[datetime] = None
     error_message: Optional[str] = None
-    retry_count: int
     created_at: datetime
-    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -148,7 +146,9 @@ class PublishStatusResponse(BaseModel):
     id: int
     platform: PlatformType
     status: PublishStatus
+    platform_post_id: Optional[str] = None
     platform_url: Optional[str] = None
+    message: Optional[str] = None
     error_message: Optional[str] = None
     published_at: Optional[datetime] = None
 
@@ -166,13 +166,8 @@ class PlatformInfo(BaseModel):
     """平台信息"""
     platform: PlatformType
     name: str
-    description: str
-    icon: str
-    supported_content_types: List[str]
-    max_title_length: Optional[int] = None
-    max_content_length: Optional[int] = None
-    supports_scheduling: bool = True
-    auth_type: str  # oauth, api_key, cookie等
+    login_url: str
+    supported_types: List[str]
 
 
 class PlatformListResponse(BaseModel):
@@ -189,15 +184,15 @@ class CookieUpdateRequest(BaseModel):
 
 class CookieValidationResponse(BaseModel):
     """Cookie验证响应"""
-    is_valid: bool
+    valid: bool
     message: str
     login_url: Optional[str] = None  # 如果Cookie无效，返回登录URL
+    cookies_updated_at: Optional[datetime] = None
 
 
 class PlatformLoginInfo(BaseModel):
     """平台登录信息"""
     platform: PlatformType
-    platform_name: str
+    name: str
     login_url: str
     instructions: str  # 登录说明
-    cookie_keys: List[str]  # 需要的Cookie键名

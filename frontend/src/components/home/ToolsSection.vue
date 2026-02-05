@@ -195,19 +195,20 @@ const goToPath = (path: string) => {
 
 <style scoped lang="scss">
 .tools-section {
+  padding: 8px 0 4px;
   h2 {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 600;
     text-align: center;
     margin-bottom: 8px;
-    color: #333;
+    color: #111827;
   }
 
   .subtitle {
     text-align: center;
     font-size: 16px;
-    color: #666;
-    margin-bottom: 40px;
+    color: #64748b;
+    margin-bottom: 36px;
   }
 
   .tool-category {
@@ -221,28 +222,29 @@ const goToPath = (path: string) => {
       font-size: 20px;
       font-weight: 600;
       margin-bottom: 24px;
-      color: #333;
+      color: #1f2937;
       display: flex;
       align-items: center;
       gap: 8px;
       padding-left: 8px;
-      border-left: 4px solid #409eff;
+      border-left: 4px solid #2563eb;
     }
 
     .tool-cards {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 20px;
 
       .tool-card {
         cursor: pointer;
         transition: all 0.3s;
-        border: 1px solid #eee;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
 
         &:hover {
           transform: translateY(-6px);
-          box-shadow: 0 12px 24px rgba(64, 158, 255, 0.15);
-          border-color: #409eff;
+          box-shadow: 0 16px 30px rgba(37, 99, 235, 0.16);
+          border-color: #2563eb;
 
           .tool-icon {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -254,7 +256,7 @@ const goToPath = (path: string) => {
           display: flex;
           align-items: center;
           gap: 16px;
-          padding: 24px;
+          padding: 20px;
         }
 
         .tool-icon {
@@ -264,9 +266,9 @@ const goToPath = (path: string) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f5f7fa;
+          background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
           border-radius: 12px;
-          color: #409eff;
+          color: #2563eb;
           transition: all 0.3s;
         }
 
@@ -282,7 +284,7 @@ const goToPath = (path: string) => {
 
           p {
             font-size: 14px;
-            color: #666;
+            color: #64748b;
             margin: 0;
             line-height: 1.5;
           }
@@ -294,6 +296,7 @@ const goToPath = (path: string) => {
 
 @media (max-width: 768px) {
   .tools-section {
+    padding: 8px 0 4px;
     .tool-category {
       .tool-cards {
         grid-template-columns: 1fr;

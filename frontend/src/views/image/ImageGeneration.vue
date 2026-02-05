@@ -123,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture, Download, Star } from '@element-plus/icons-vue'
 import request from '@/api/request'
@@ -154,6 +154,8 @@ const form = reactive<ImageForm>({
 const generating = ref(false)
 const generatedImages = ref<string[]>([])
 const historyList = ref<HistoryItem[]>([])
+const currentTask = ref<{ id: string; status: string; progress: number } | null>(null)
+let pollTimer: number | null = null
 
 // 生成图片
 const generateImage = async () => {
@@ -164,9 +166,23 @@ const generateImage = async () => {
 
   generating.value = true
   try {
-    const result = await request.post('/v1/image/generate', form)
-    generatedImages.value = result.images
-    ElMessage.success('图片生成成功')
+    const { width, height } = parseSize(form.size)
+    const result = await request.post('/v1/image/generate', {
+      prompt: form.prompt,
+      width,
+      height,
+      num_images: form.n,
+      style: form.style,
+    })
+    const task = result.data
+    currentTask.value = {
+      id: task.task_id,
+      status: task.status,
+      progress: task.progress || 0,
+    }
+    generatedImages.value = []
+    ElMessage.success('图片生成任务已提交')
+    startPolling()
     
     // 刷新历史记录
     loadHistory()
@@ -174,6 +190,54 @@ const generateImage = async () => {
     ElMessage.error(error.response?.data?.message || '图片生成失败')
   } finally {
     generating.value = false
+  }
+}
+
+const startPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
+
+  pollTimer = window.setInterval(async () => {
+    if (!currentTask.value) return
+
+    try {
+      const result = await request.get(`/v1/image/task/${currentTask.value.id}`)
+      const task = result.data
+
+      currentTask.value = {
+        id: task.task_id,
+        status: task.status,
+        progress: task.progress || 0,
+      }
+
+      if (task.status === 'completed') {
+        generatedImages.value = task.images || []
+        stopPolling()
+        ElMessage.success('图片生成完成')
+        loadHistory()
+      } else if (task.status === 'failed') {
+        stopPolling()
+        ElMessage.error('图片生成失败')
+      }
+    } catch (error) {
+      console.error('获取图片任务状态失败', error)
+    }
+  }, 3000)
+}
+
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+const parseSize = (size: string) => {
+  const [width, height] = size.split('x').map((value) => Number(value))
+  return {
+    width: Number.isFinite(width) ? width : 1024,
+    height: Number.isFinite(height) ? height : 1024,
   }
 }
 
@@ -202,8 +266,8 @@ const loadHistory = async (item?: HistoryItem) => {
     const result = await request.get('/v1/creations', {
       params: {
         content_type: 'image',
-        page: 1,
-        page_size: 10,
+        skip: 0,
+        limit: 10,
       },
     })
     historyList.value = result.items
@@ -227,20 +291,32 @@ const formatTime = (time: string) => {
 onMounted(() => {
   loadHistory()
 })
+
+onUnmounted(() => {
+  stopPolling()
+})
 </script>
 
 <style scoped lang="scss">
 .image-generation {
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
 
   .header-card {
     margin-bottom: 20px;
     text-align: center;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     h2 {
       margin: 0 0 10px 0;
       font-size: 24px;
-      color: #303133;
+      color: #1f2937;
     }
 
     .subtitle {
@@ -256,29 +332,37 @@ onMounted(() => {
     align-items: center;
   }
 
+  .history-card {
+    :deep(.el-card__header) {
+      font-weight: 600;
+      color: #1f2937;
+    }
+  }
+
   .history-list {
     max-height: 400px;
     overflow-y: auto;
 
     .history-item {
       display: flex;
+      background: #fff;
       gap: 12px;
       padding: 12px;
       margin-bottom: 12px;
       border: 1px solid #ebeef5;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.3s;
 
       &:hover {
         border-color: #409eff;
-        background-color: #f5f7fa;
+        background-color: #f1f5f9;
       }
 
       .history-thumbnail {
         width: 80px;
         height: 80px;
-        border-radius: 4px;
+        border-radius: 10px;
         flex-shrink: 0;
       }
 
@@ -311,13 +395,15 @@ onMounted(() => {
     gap: 20px;
 
     .image-item {
-      border: 1px solid #ebeef5;
-      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
       overflow: hidden;
+      background: #fff;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
 
       .el-image {
         width: 100%;
-        height: 300px;
+        height: 280px;
       }
 
       .image-actions {
@@ -325,7 +411,7 @@ onMounted(() => {
         display: flex;
         gap: 8px;
         justify-content: center;
-        background-color: #f5f7fa;
+        background-color: #f1f5f9;
       }
     }
   }
@@ -333,7 +419,7 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .image-generation {
-    padding: 10px;
+    padding: 12px;
 
     .image-grid {
       grid-template-columns: 1fr;

@@ -2,7 +2,7 @@
   <div class="stats-section">
     <el-row :gutter="20">
       <el-col :xs="12" :sm="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card stat-card-primary">
           <el-statistic title="总创作数" :value="stats.totalCreations">
             <template #prefix>
               <el-icon><Document /></el-icon>
@@ -11,7 +11,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card stat-card-success">
           <el-statistic title="今日创作" :value="stats.todayCreations">
             <template #prefix>
               <el-icon><Calendar /></el-icon>
@@ -20,7 +20,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card stat-card-warning">
           <el-statistic title="已发布" :value="stats.published">
             <template #prefix>
               <el-icon><Upload /></el-icon>
@@ -29,7 +29,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card stat-card-purple">
           <el-statistic title="绑定平台" :value="stats.platforms">
             <template #prefix>
               <el-icon><Link /></el-icon>
@@ -81,7 +81,7 @@ const loadStats = async () => {
     }
     
     // 加载发布统计
-    const publishResponse = await getPublishHistory({ page: 1, page_size: 1 })
+    const publishResponse = await getPublishHistory({ skip: 0, limit: 1 })
     stats.value.published = publishResponse.total || 0
     
     // 加载绑定平台数
@@ -100,19 +100,30 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .stats-section {
-  margin-bottom: 32px;
+  margin-bottom: 36px;
 
   .stat-card {
     text-align: center;
     transition: all 0.3s;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      display: block;
+      height: 3px;
+      background: #409eff;
+    }
+
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
     }
 
     :deep(.el-card__body) {
-      padding: 24px;
+      padding: 22px;
     }
 
     :deep(.el-statistic) {
@@ -129,11 +140,23 @@ onMounted(() => {
         color: #333;
 
         .el-icon {
-          color: #409eff;
+          color: #2563eb;
           margin-right: 8px;
         }
       }
     }
+  }
+
+  .stat-card-success::before {
+    background: linear-gradient(90deg, #22c55e, #86efac);
+  }
+
+  .stat-card-warning::before {
+    background: linear-gradient(90deg, #f59e0b, #fcd34d);
+  }
+
+  .stat-card-purple::before {
+    background: linear-gradient(90deg, #8b5cf6, #c4b5fd);
   }
 }
 

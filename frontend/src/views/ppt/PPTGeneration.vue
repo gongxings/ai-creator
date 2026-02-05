@@ -72,7 +72,7 @@
             </el-alert>
             <div v-else-if="currentPPT.status === 'completed'">
               <div class="ppt-info">
-                <p>PPT已生成完成，共 {{ currentPPT.pages }} 页</p>
+                <p>PPT已生成完成</p>
               </div>
               <div class="ppt-actions">
                 <el-button type="primary" @click="downloadPPT">
@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, Download, View } from '@element-plus/icons-vue'
 import request from '@/api/request'
@@ -112,6 +112,9 @@ const outlineForm = reactive({
   outline: '',
 })
 
+const currentTaskId = ref<string | null>(null)
+let pollTimer: number | null = null
+
 const generatePPT = async () => {
   if (activeTab.value === 'theme' && !themeForm.theme.trim()) {
     ElMessage.warning('请输入PPT主题')
@@ -124,10 +127,23 @@ const generatePPT = async () => {
 
   generating.value = true
   try {
-    const data = activeTab.value === 'theme' ? themeForm : outlineForm
-    const result = await request.post('/v1/ppt/generate', data)
-    currentPPT.value = result
-    ElMessage.success('PPT生成成功')
+    let result
+    if (activeTab.value === 'theme') {
+      result = await request.post('/v1/ppt/generate', {
+        topic: themeForm.theme,
+        slides_count: themeForm.pages,
+        style: themeForm.style,
+      })
+    } else {
+      result = await request.post('/v1/ppt/from-outline', {
+        outline: outlineForm.outline,
+      })
+    }
+    const task = result.data
+    currentTaskId.value = task.task_id
+    currentPPT.value = null
+    ElMessage.success('PPT生成任务已提交')
+    startPolling()
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message || 'PPT生成失败')
   } finally {
@@ -136,28 +152,75 @@ const generatePPT = async () => {
 }
 
 const downloadPPT = () => {
-  if (currentPPT.value?.download_url) {
-    window.open(currentPPT.value.download_url)
+  if (currentPPT.value?.ppt_url) {
+    window.open(currentPPT.value.ppt_url)
   }
 }
 
 const previewPPT = () => {
-  ElMessage.info('在线预览功能开发中')
+  if (currentPPT.value?.ppt_url) {
+    window.open(currentPPT.value.ppt_url, '_blank')
+    return
+  }
+  ElMessage.warning('暂无可预览的PPT文件')
 }
+
+const startPolling = () => {
+  if (!currentTaskId.value) return
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
+  pollTimer = window.setInterval(async () => {
+    if (!currentTaskId.value) return
+    try {
+      const result = await request.get(`/v1/ppt/task/${currentTaskId.value}`)
+      const task = result.data
+      if (task.status === 'completed') {
+        currentPPT.value = task
+        stopPolling()
+        ElMessage.success('PPT生成完成')
+      } else if (task.status === 'failed') {
+        stopPolling()
+        ElMessage.error('PPT生成失败')
+      }
+    } catch (error) {
+      console.error('获取PPT任务状态失败', error)
+    }
+  }, 3000)
+}
+
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+onUnmounted(() => {
+  stopPolling()
+})
 </script>
 
 <style scoped lang="scss">
 .ppt-generation {
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
 
   .header-card {
     margin-bottom: 20px;
     text-align: center;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     h2 {
       margin: 0 0 10px 0;
       font-size: 24px;
-      color: #303133;
+      color: #1f2937;
     }
 
     .subtitle {
@@ -173,8 +236,18 @@ const previewPPT = () => {
     align-items: center;
   }
 
+  :deep(.el-tabs__item.is-active) {
+    color: #2563eb;
+    font-weight: 600;
+  }
+
+  :deep(.el-tabs__active-bar) {
+    background-color: #2563eb;
+  }
+
   .ppt-preview {
     min-height: 300px;
+    padding-top: 12px;
 
     .ppt-info {
       text-align: center;
@@ -189,6 +262,12 @@ const previewPPT = () => {
       justify-content: center;
       margin-top: 20px;
     }
+  }
+}
+
+@media (max-width: 768px) {
+  .ppt-generation {
+    padding: 12px;
   }
 }
 </style>

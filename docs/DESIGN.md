@@ -43,6 +43,18 @@
 - **Stability AI**：Stable Diffusion（图片生成）
 - **其他**：预留接口支持自定义模型
 
+### 授权与发布流程（对齐当前代码实现）
+
+#### AI服务商平台授权（OAuth账号）
+- **入口**：前端“OAuth账号管理”页面调用 `/api/v1/oauth/accounts/authorize` 发起授权。
+- **后端流程**：`OAuthService.authorize_account` 使用 Playwright 执行平台登录授权，验证凭证后加密入库。
+- **后续使用**：写作/对话请求通过 `oauth/chat/completions` 代理调用已绑定账号，优先消耗平台免费额度。
+
+#### 发布平台账号授权（Cookie绑定）
+- **入口**：前端“发布管理”中创建平台账号并上传 Cookie JSON。
+- **后端流程**：`publish/platforms/accounts` 创建账号，`publish/platforms/accounts/{id}/cookies` 加密保存并校验 Cookie 有效性。
+- **发布逻辑**：`publish` 接口检查 Cookie 有效性后，通过 Playwright 在平台侧创建草稿，返回草稿链接。
+
 ---
 
 ## 📁 项目目录结构
