@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="user-settings">
     <el-card class="settings-card">
       <template #header>
@@ -157,6 +157,38 @@
             placeholder="为这个账号起个名字，方便识别"
           />
         </el-form-item>
+        <el-form-item label="Auth Mode">
+          <el-radio-group v-model="oauthForm.auth_mode">
+            <el-radio-button label="auto">Auto</el-radio-button>\n            <el-radio-button label="manual">Manual</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <template v-if="oauthForm.auth_mode === 'manual'">
+          <el-form-item label="Login URL">
+            <el-input :model-value="oauthLoginUrl" readonly>
+              <template #append>
+                <el-button @click="openOAuthLogin" :disabled="!oauthLoginUrl">Open</el-button>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item label="Cookies">
+            <el-input
+              v-model="oauthForm.cookie_text"
+              type="textarea"
+              :rows="6"
+              placeholder="Paste cookie JSON or key=value; key2=value2"
+            />
+          </el-form-item>
+          <el-form-item v-if="requiredCookieNames.length" label="Required">
+            <el-tag
+              v-for="name in requiredCookieNames"
+              :key="name"
+              size="small"
+              style="margin-right: 6px"
+            >
+              {{ name }}
+            </el-tag>
+          </el-form-item>
+        </template>
         <el-alert
           title="授权说明"
           type="info"
@@ -213,7 +245,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { updateUserInfo, changePassword } from '@/api/auth'
@@ -221,6 +253,7 @@ import { getAIModels, addAIModel, updateAIModel, deleteAIModel } from '@/api/mod
 import { 
   getPlatforms,
   authorizeAccount, 
+  createAccountManual,
   getAccounts, 
   updateAccount, 
   deleteAccount, 
@@ -273,10 +306,17 @@ const oauthDialogVisible = ref(false)
 const oauthForm = reactive({
   platform: '',
   account_name: '',
+  auth_mode: 'auto',
+  cookie_text: '',
 })
 
 // OAuth平台列表（从后端获取）
 const oauthPlatforms = ref<any[]>([])
+const selectedOAuthPlatform = computed(() =>
+  oauthPlatforms.value.find((platform) => platform.id === oauthForm.platform)
+)
+const oauthLoginUrl = computed(() => selectedOAuthPlatform.value?.oauth_meta?.oauth_url || '')
+const requiredCookieNames = computed(() => selectedOAuthPlatform.value?.oauth_meta?.cookie_names || [])
 
 // AI模型
 const models = ref<AIModel[]>([])
@@ -415,7 +455,59 @@ const deleteModel = async (id: number) => {
 const showAddOAuthDialog = () => {
   oauthForm.platform = ''
   oauthForm.account_name = ''
+  oauthForm.auth_mode = 'auto'
+  oauthForm.cookie_text = ''
   oauthDialogVisible.value = true
+}
+
+const openOAuthLogin = () => {
+  if (!oauthLoginUrl.value) {
+    ElMessage.warning('Login URL not available')
+    return
+  }
+  window.open(oauthLoginUrl.value, '_blank')
+}
+
+const parseCookies = (input: string): Record<string, string> => {
+  const text = input.trim()
+  if (!text) return {}
+
+  const cleaned = text.replace(/^cookie:\s*/i, '')
+
+  if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+    try {
+      const data = JSON.parse(cleaned)
+      const result: Record<string, string> = {}
+      if (Array.isArray(data)) {
+        data.forEach((item) => {
+          if (item && item.name && typeof item.value !== 'undefined') {
+            result[item.name] = String(item.value)
+          }
+        })
+        return result
+      }
+      if (data && typeof data === 'object') {
+        Object.entries(data).forEach(([key, value]) => {
+          if (typeof value !== 'undefined') {
+            result[key] = String(value)
+          }
+        })
+        return result
+      }
+    } catch (error) {
+      // fall through to parse as cookie string
+    }
+  }
+
+  const result: Record<string, string> = {}
+  cleaned.split(';').forEach((part) => {
+    const trimmed = part.trim()
+    if (!trimmed) return
+    const [key, ...rest] = trimmed.split('=')
+    if (!key) return
+    result[key] = rest.join('=')
+  })
+  return result
 }
 
 const loadOAuthPlatforms = async () => {
@@ -424,6 +516,7 @@ const loadOAuthPlatforms = async () => {
     oauthPlatforms.value = data.map((platform: any) => ({
       id: platform.platform_id,
       name: platform.platform_name,
+      oauth_meta: platform.oauth_meta || platform.oauth_config || null,
       icon: platform.platform_icon || '🤖',
     }))
   } catch (error) {
@@ -441,6 +534,64 @@ const loadOAuthAccounts = async () => {
 }
 
 const addOAuthAccount = async () => {
+  if (!oauthForm.platform || !oauthForm.account_name) {
+    ElMessage.warning('Please complete required fields')
+    return
+  }
+
+  try {
+    if (oauthForm.auth_mode === 'manual') {
+      const cookies = parseCookies(oauthForm.cookie_text)
+      if (!Object.keys(cookies).length) {
+        ElMessage.warning('Please paste valid cookies')
+        return
+      }
+
+      const loadingMessage = ElMessage({
+        message: 'Saving cookies...',
+        type: 'info',
+        duration: 0,
+        showClose: true,
+      })
+
+      oauthDialogVisible.value = false
+
+      await createAccountManual({
+        platform: oauthForm.platform,
+        account_name: oauthForm.account_name,
+        cookies,
+      })
+
+      loadingMessage.close()
+      ElMessage.success('OAuth account saved')
+      await loadOAuthAccounts()
+      return
+    }
+
+    const loadingMessage = ElMessage({
+      message: 'Starting authorization. Backend will open a browser window...',
+      type: 'info',
+      duration: 0,
+      showClose: true,
+    })
+
+    oauthDialogVisible.value = false
+
+    await authorizeAccount({
+      platform: oauthForm.platform,
+      account_name: oauthForm.account_name,
+    })
+
+    loadingMessage.close()
+    ElMessage.success('OAuth account authorized')
+    await loadOAuthAccounts()
+  } catch (error: any) {
+    console.error('OAuth error:', error)
+    ElMessage.error(error.response?.data?.detail || 'Authorization failed')
+  }
+}
+
+const addOAuthAccountLegacy = async () => {
   if (!oauthForm.platform || !oauthForm.account_name) {
     ElMessage.warning('请填写完整信息')
     return

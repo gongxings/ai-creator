@@ -18,6 +18,11 @@ export function createPlatformAccount(data: { platform: string; account_name: st
   return request.post<PlatformAccount>('/v1/publish/platforms/accounts', data)
 }
 
+// 自动授权并抓取Cookie
+export function authorizePlatformAccount(data: { platform: string; account_name: string }) {
+  return request.post<PlatformAccount>('/v1/publish/platforms/accounts/authorize', data)
+}
+
 // 获取平台账号列表
 export function getPlatformAccounts(platform?: string) {
   return request.get<PlatformAccount[]>('/v1/publish/platforms/accounts', { params: { platform } })

@@ -1,8 +1,8 @@
-"""
+﻿"""
 平台发布器基类
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List\nfrom urllib.parse import urlparse
 from datetime import datetime
 import json
 import logging
@@ -135,7 +135,11 @@ class BasePlatformPublisher(ABC):
             )
         
         # 验证Cookie有效性
-        is_valid = await self.validate_cookies(account)
+        try:
+            is_valid = await self.validate_cookies(account)
+        except TypeError:
+            cookie_list = self._build_cookie_list(self.get_login_url(), cookies)
+            is_valid = await self.validate_cookies(cookie_list)
         
         if not is_valid:
             # 更新Cookie状态
@@ -149,8 +153,18 @@ class BasePlatformPublisher(ABC):
         account.cookies_valid = "valid"
         return cookies
     
-    @abstractmethod
-    def get_platform_name(self) -> str:
+        def _build_cookie_list(self, login_url: str, cookies: Dict[str, str]) -> List[Dict[str, Any]]:
+        parsed = urlparse(login_url)
+        host = parsed.netloc
+        parts = host.split(".")
+        root = ".".join(parts[-2:]) if len(parts) >= 2 else host
+        domain = f".{root}"
+        return [
+            {"name": name, "value": value, "domain": domain, "path": "/"}
+            for name, value in cookies.items()
+        ]
+
+\1(self) -> str:
         """获取平台名称"""
         pass
     

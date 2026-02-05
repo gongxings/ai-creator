@@ -12,6 +12,7 @@ export interface OAuthPlatform {
   litellm_config: any
   quota_config: any
   is_enabled: boolean
+  oauth_meta?: any
 }
 
 export interface OAuthAccount {
@@ -73,6 +74,19 @@ export function authorizeAccount(data: {
   account_name: string
 }) {
   return request.post<OAuthAccount>('/v1/oauth/accounts/authorize', data)
+}
+
+/**
+ * 手动提交Cookie创建OAuth账号
+ */
+export function createAccountManual(data: {
+  platform: string
+  account_name?: string
+  cookies: Record<string, string>
+  tokens?: Record<string, string>
+  user_agent?: string
+}) {
+  return request.post<OAuthAccount>('/v1/oauth/accounts/manual', data)
 }
 
 /**

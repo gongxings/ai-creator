@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="publish-management">
     <el-card class="header-card">
       <div class="header-content">
@@ -18,7 +18,7 @@
       <template #header>
         <div class="card-header">
           <span>平台账号</span>
-          <el-button text @click="showBindDialog = true">
+          <el-button text @click="openBindDialog">
             <el-icon><Plus /></el-icon>
             绑定账号
           </el-button>
@@ -52,7 +52,7 @@
         </el-table-column>
         <el-table-column label="操作" width="240">
           <template #default="{ row }">
-            <el-button size="small" @click="openCookieDialog(row)">更新Cookie</el-button>
+            <el-button size="small" type="primary" @click="handleAutoAuthorize(row)">自动获取</el-button>\n            <el-button size="small" @click="openCookieDialog(row)">更新Cookie</el-button>
             <el-button size="small" @click="handleValidateCookies(row)">校验</el-button>
             <el-button size="small" type="danger" @click="unbindPlatform(row.id)">删除</el-button>
           </template>
@@ -199,7 +199,7 @@
     </el-dialog>
 
     <!-- 绑定平台对话框 -->
-    <el-dialog
+        <el-dialog
       v-model="showBindDialog"
       title="绑定平台账号"
       width="600px"
@@ -224,7 +224,20 @@
         <el-form-item label="账号名称" prop="accountName">
           <el-input v-model="bindForm.accountName" placeholder="输入账号名称" />
         </el-form-item>
-        <el-form-item label="Cookie" prop="cookies">
+        <el-form-item label="Auth Mode">
+          <el-radio-group v-model="bindForm.authMode">
+            <el-radio-button label="auto">Auto</el-radio-button>
+            <el-radio-button label="manual">Manual</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-alert
+          v-if="bindForm.authMode === 'auto'"
+          title="点击绑定后将自动打开浏览器登录并抓取Cookie"
+          type="info"
+          :closable="false"
+          show-icon
+        />
+        <el-form-item v-if="bindForm.authMode === 'manual'" label="Cookie" prop="cookies">
           <el-input
             v-model="bindForm.cookies"
             type="textarea"
@@ -233,7 +246,7 @@
           />
         </el-form-item>
         <el-alert
-          v-if="loginInfo"
+          v-if="loginInfo && bindForm.authMode === 'manual'"
           :title="loginInfo.instructions"
           type="info"
           :closable="false"
@@ -266,7 +279,7 @@
         <el-form-item label="平台账号">
           <span>{{ cookieForm.accountLabel }}</span>
         </el-form-item>
-        <el-form-item label="Cookie" prop="cookies">
+        <el-form-item v-if="bindForm.authMode === 'manual'" label="Cookie" prop="cookies">
           <el-input
             v-model="cookieForm.cookies"
             type="textarea"
@@ -329,6 +342,7 @@ import {
   getPlatforms,
   getPlatformLoginInfo,
   createPlatformAccount,
+  authorizePlatformAccount,
   updatePlatformCookies,
   validatePlatformCookies,
   getPlatformAccounts,
@@ -390,7 +404,8 @@ const publishForm = reactive({
 const bindForm = reactive({
   platformCode: '',
   accountName: '',
-  cookies: ''
+  cookies: '',
+  authMode: 'auto'
 })
 
 // Cookie表单
@@ -420,12 +435,23 @@ const publishRules: FormRules = {
 }
 
 const bindRules: FormRules = {
-  platformCode: [{ required: true, message: '请选择平台', trigger: 'change' }],
-  accountName: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
-  cookies: [{ required: true, message: '请输入Cookie', trigger: 'blur' }]
+  platformCode: [{ required: true, message: '璇烽€夋嫨骞冲彴', trigger: 'change' }],
+  accountName: [{ required: true, message: '璇疯緭鍏ヨ处鍙峰悕绉?, trigger: 'blur' }],
+  cookies: [
+    {
+      validator: (_rule, value, callback) => {
+        if (bindForm.authMode === 'manual' && !value) {
+          callback(new Error('璇疯緭鍏ookie'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur',
+    },
+  ],
 }
 
-const cookieRules: FormRules = {
+const cookieRules': FormRules = {
   cookies: [{ required: true, message: '请输入Cookie', trigger: 'blur' }]
 }
 
@@ -608,6 +634,14 @@ const handlePublish = async () => {
   })
 }
 
+const openBindDialog = () => {
+  bindForm.platformCode = ''
+  bindForm.accountName = ''
+  bindForm.cookies = ''
+  bindForm.authMode = 'auto'
+  loginInfo.value = null
+  showBindDialog.value = true
+}
 const handlePlatformChange = async (platformCode: string) => {
   if (!platformCode) {
     loginInfo.value = null
@@ -667,6 +701,22 @@ const handleBind = async () => {
   })
 }
 
+const handleAutoAuthorize = async (row: any) => {
+  try {
+    binding.value = true
+    await authorizePlatformAccount({
+      platform: row.platform,
+      account_name: row.account_name,
+    })
+    ElMessage.success('授权成功，已自动获取Cookie')
+    loadPlatformAccounts()
+  } catch (error: any) {
+    console.error('自动授权失败:', error)
+    ElMessage.error(error.response?.data?.detail || error.message || '自动授权失败')
+  } finally {
+    binding.value = false
+  }
+}
 const openCookieDialog = (row: any) => {
   cookieForm.accountId = row.id
   cookieForm.accountLabel = `${getPlatformName(row.platform)} - ${row.account_name}`

@@ -137,6 +137,79 @@ class OAuthService:
         logger.info(f"Created OAuth account {account.id}")
         return account
     
+    def create_or_update_account_with_credentials(
+        self,
+        db: Session,
+        user_id: int,
+        platform: str,
+        credentials: Dict[str, Any],
+        account_name: Optional[str] = None,
+    ) -> OAuthAccount:
+        """
+        Manual cookie/token credential upsert.
+        """
+        platform_config = db.query(PlatformConfig).filter(
+            PlatformConfig.platform_id == platform
+        ).first()
+
+        if not platform_config:
+            raise ValueError(f"Platform {platform} not found")
+
+        if not platform_config.is_enabled:
+            raise ValueError(f"Platform {platform} is disabled")
+
+        adapter = get_adapter(platform, {
+            "oauth_config": platform_config.oauth_config,
+            "litellm_config": platform_config.litellm_config,
+            "quota_config": platform_config.quota_config,
+        })
+
+        if not adapter:
+            raise ValueError(f"Adapter for platform {platform} not found")
+
+        if not adapter.validate_credentials(credentials):
+            raise ValueError("Invalid credentials")
+
+        encrypted_credentials = encrypt_credentials(credentials)
+
+        existing_account = db.query(OAuthAccount).filter(
+            and_(
+                OAuthAccount.user_id == user_id,
+                OAuthAccount.platform == platform
+            )
+        ).first()
+
+        if existing_account:
+            existing_account.credentials = encrypted_credentials
+            existing_account.account_name = account_name or existing_account.account_name
+            existing_account.is_active = True
+            existing_account.is_expired = False
+            existing_account.updated_at = datetime.now()
+            db.commit()
+            db.refresh(existing_account)
+            logger.info(f"Updated OAuth account {existing_account.id}")
+            return existing_account
+
+        quota_limit = adapter.get_quota_limit()
+
+        account = OAuthAccount(
+            user_id=user_id,
+            platform=platform,
+            account_name=account_name or f"{platform}_account",
+            credentials=encrypted_credentials,
+            is_active=True,
+            is_expired=False,
+            quota_used=0,
+            quota_limit=quota_limit,
+        )
+
+        db.add(account)
+        db.commit()
+        db.refresh(account)
+
+        logger.info(f"Created OAuth account {account.id}")
+        return account
+
     def get_user_accounts(
         self,
         db: Session,

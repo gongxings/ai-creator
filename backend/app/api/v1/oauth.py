@@ -10,6 +10,7 @@ from app.utils.deps import get_current_user
 from app.models.user import User
 from app.schemas.oauth import (
     OAuthAccountCreate,
+    OAuthAccountManualCreate,
     OAuthAccountAuthorize,
     OAuthAccountResponse,
     OAuthAccountUpdate,
@@ -21,7 +22,7 @@ from app.schemas.oauth import (
 from app.services.oauth.oauth_service import oauth_service
 from app.services.oauth.litellm_proxy import litellm_proxy
 from app.models.platform_config import PlatformConfig
-from app.services.oauth.adapters import get_supported_platforms
+from app.services.oauth.adapters import get_supported_platforms, get_adapter
 
 router = APIRouter(tags=["OAuth"])
 
@@ -37,8 +38,20 @@ async def get_platforms(
     platforms = db.query(PlatformConfig).filter(
         PlatformConfig.is_enabled == True
     ).all()
-    
-    return platforms
+    result = []
+    for platform in platforms:
+        adapter = get_adapter(platform.platform_id, {
+            "oauth_config": platform.oauth_config,
+            "litellm_config": platform.litellm_config,
+            "quota_config": platform.quota_config,
+        })
+        oauth_meta = adapter.get_platform_config() if adapter else None
+
+        data = PlatformConfigResponse.from_orm(platform).dict()
+        data["oauth_meta"] = oauth_meta
+        result.append(data)
+
+    return result
 
 
 @router.post("/accounts/authorize", response_model=OAuthAccountResponse)
@@ -68,6 +81,33 @@ async def authorize_account(
         
     except Exception as e:
         print(f"OAuth授权失败: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/accounts/manual", response_model=OAuthAccountResponse)
+async def create_account_manual(
+    data: OAuthAccountManualCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Manual cookie submit for OAuth account
+    """
+    try:
+        credentials = {
+            "cookies": data.cookies,
+            "tokens": data.tokens or {},
+            "user_agent": data.user_agent or "",
+        }
+        account = oauth_service.create_or_update_account_with_credentials(
+            db=db,
+            user_id=current_user.id,
+            platform=data.platform,
+            account_name=data.account_name,
+            credentials=credentials,
+        )
+        return account
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 

@@ -2,6 +2,7 @@
 发布管理API
 """
 from typing import List
+from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -23,8 +24,32 @@ from app.schemas.publish import (
     PublishStatusResponse
 )
 from app.services.publish.platforms import get_platform, PLATFORM_REGISTRY
+from app.services.publish.playwright_service import publish_playwright_service
 
 router = APIRouter()
+
+
+def _build_cookie_list(login_url: str, cookies: dict) -> List[dict]:
+    parsed = urlparse(login_url)
+    host = parsed.netloc
+    parts = host.split(".")
+    root = ".".join(parts[-2:]) if len(parts) >= 2 else host
+    domain = f".{root}"
+    return [
+        {"name": name, "value": value, "domain": domain, "path": "/"}
+        for name, value in cookies.items()
+    ]
+
+
+async def _validate_cookies_with_publisher(publisher, account: PlatformAccount) -> bool:
+    try:
+        return await publisher.validate_cookies(account)
+    except TypeError:
+        cookie_dict = publisher.get_cookies(account)
+        if not cookie_dict:
+            return False
+        cookie_list = _build_cookie_list(publisher.get_login_url(), cookie_dict)
+        return await publisher.validate_cookies(cookie_list)
 
 
 @router.get("/platforms", response_model=List[PlatformInfo])
@@ -55,6 +80,67 @@ async def get_platform_login_info(platform: str):
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/platforms/accounts/authorize", response_model=PlatformAccountResponse)
+async def authorize_platform_account(
+    account_data: PlatformAccountCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    自动打开浏览器登录并抓取Cookie
+    """
+    try:
+        publisher = get_platform(account_data.platform)
+
+        # upsert account by platform + account_name
+        account = db.query(PlatformAccount).filter(
+            PlatformAccount.user_id == current_user.id,
+            PlatformAccount.platform == account_data.platform,
+            PlatformAccount.account_name == account_data.account_name
+        ).first()
+
+        if not account:
+            account = PlatformAccount(
+                user_id=current_user.id,
+                platform=account_data.platform,
+                account_name=account_data.account_name,
+                cookies_valid="unknown"
+            )
+            db.add(account)
+            db.commit()
+            db.refresh(account)
+
+        success_pattern = getattr(publisher, "get_success_pattern", None)
+        cookie_domain = getattr(publisher, "get_cookie_domain", None)
+
+        credentials = await publish_playwright_service.authorize_platform(
+            login_url=publisher.get_login_url(),
+            success_pattern=success_pattern() if callable(success_pattern) else None,
+            cookie_domain=cookie_domain() if callable(cookie_domain) else None,
+        )
+
+        publisher.set_cookies(account, credentials.get("cookies", {}))
+        db.commit()
+        db.refresh(account)
+
+        is_valid = await _validate_cookies_with_publisher(publisher, account)
+        account.cookies_valid = "valid" if is_valid else "invalid"
+        db.commit()
+        db.refresh(account)
+
+        return PlatformAccountResponse(
+            id=account.id,
+            platform=account.platform,
+            account_name=account.account_name,
+            cookies_valid=account.cookies_valid,
+            cookies_updated_at=account.cookies_updated_at,
+            is_active=account.is_active,
+            created_at=account.created_at
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"授权失败: {str(e)}")
 
 
 @router.post("/platforms/accounts", response_model=PlatformAccountResponse)
@@ -201,10 +287,12 @@ async def update_cookies(
         publisher = get_platform(account.platform)
         
         # 保存Cookie
-        publisher.set_cookies(account, cookie_data.cookies, db)
+        publisher.set_cookies(account, cookie_data.cookies)
+        db.commit()
+        db.refresh(account)
         
         # 验证Cookie
-        is_valid = await publisher.validate_cookies(account)
+        is_valid = await _validate_cookies_with_publisher(publisher, account)
         
         return CookieValidationResponse(
             valid=is_valid,
@@ -235,7 +323,7 @@ async def validate_cookies(
     
     try:
         publisher = get_platform(account.platform)
-        is_valid = await publisher.validate_cookies(account)
+        is_valid = await _validate_cookies_with_publisher(publisher, account)
         
         return CookieValidationResponse(
             valid=is_valid,

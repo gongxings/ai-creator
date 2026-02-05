@@ -40,6 +40,7 @@ class PlatformConfigResponse(PlatformConfigBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    oauth_meta: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True
@@ -60,6 +61,13 @@ class OAuthAccountCreate(OAuthAccountBase):
 class OAuthAccountAuthorize(OAuthAccountBase):
     """授权OAuth账号（浏览器授权流程）"""
     pass
+
+
+class OAuthAccountManualCreate(OAuthAccountBase):
+    """鎵嬪姩鎻愪緵Cookie鐨凮Auth璐﹀彿"""
+    cookies: Dict[str, str] = Field(..., description="Cookie键值对")
+    tokens: Optional[Dict[str, str]] = Field(None, description="可选Token")
+    user_agent: Optional[str] = Field(None, description="可选User-Agent")
 
 
 class OAuthAccountUpdate(BaseModel):
