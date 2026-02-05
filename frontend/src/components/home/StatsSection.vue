@@ -81,7 +81,7 @@ const loadStats = async () => {
     }
     
     // 加载发布统计
-    const publishResponse = await getPublishHistory({ page: 1, page_size: 1 })
+    const publishResponse = await getPublishHistory({ skip: 0, limit: 1 })
     stats.value.published = publishResponse.total || 0
     
     // 加载绑定平台数
