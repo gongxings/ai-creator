@@ -300,15 +300,23 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .image-generation {
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
 
   .header-card {
     margin-bottom: 20px;
     text-align: center;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     h2 {
       margin: 0 0 10px 0;
       font-size: 24px;
-      color: #303133;
+      color: #1f2937;
     }
 
     .subtitle {
@@ -324,29 +332,37 @@ onUnmounted(() => {
     align-items: center;
   }
 
+  .history-card {
+    :deep(.el-card__header) {
+      font-weight: 600;
+      color: #1f2937;
+    }
+  }
+
   .history-list {
     max-height: 400px;
     overflow-y: auto;
 
     .history-item {
       display: flex;
+      background: #fff;
       gap: 12px;
       padding: 12px;
       margin-bottom: 12px;
       border: 1px solid #ebeef5;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.3s;
 
       &:hover {
         border-color: #409eff;
-        background-color: #f5f7fa;
+        background-color: #f1f5f9;
       }
 
       .history-thumbnail {
         width: 80px;
         height: 80px;
-        border-radius: 4px;
+        border-radius: 10px;
         flex-shrink: 0;
       }
 
@@ -379,13 +395,15 @@ onUnmounted(() => {
     gap: 20px;
 
     .image-item {
-      border: 1px solid #ebeef5;
-      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
       overflow: hidden;
+      background: #fff;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
 
       .el-image {
         width: 100%;
-        height: 300px;
+        height: 280px;
       }
 
       .image-actions {
@@ -393,7 +411,7 @@ onUnmounted(() => {
         display: flex;
         gap: 8px;
         justify-content: center;
-        background-color: #f5f7fa;
+        background-color: #f1f5f9;
       }
     }
   }
@@ -401,7 +419,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .image-generation {
-    padding: 10px;
+    padding: 12px;
 
     .image-grid {
       grid-template-columns: 1fr;

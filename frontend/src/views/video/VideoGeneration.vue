@@ -381,8 +381,18 @@ const downloadVideo = () => {
 }
 
 // 分享视频
-const shareVideo = () => {
-  ElMessage.info('分享功能开发中')
+const shareVideo = async () => {
+  if (!currentTask.value?.video_url) {
+    ElMessage.warning('暂无可分享的视频链接')
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(currentTask.value.video_url)
+    ElMessage.success('视频链接已复制，可直接分享')
+  } catch (error) {
+    ElMessage.warning('复制失败，请手动复制链接')
+  }
 }
 
 // 加载历史记录
@@ -425,15 +435,23 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .video-generation {
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
 
   .header-card {
     margin-bottom: 20px;
     text-align: center;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     h2 {
       margin: 0 0 10px 0;
       font-size: 24px;
-      color: #303133;
+      color: #1f2937;
     }
 
     .subtitle {
@@ -460,11 +478,12 @@ onUnmounted(() => {
   }
 
   .video-player {
+    padding-top: 8px;
     .video-element {
       width: 100%;
       max-height: 500px;
       background-color: #000;
-      border-radius: 4px;
+      border-radius: 12px;
     }
 
     .video-actions {
@@ -481,17 +500,18 @@ onUnmounted(() => {
 
     .history-item {
       display: flex;
+      background: #fff;
       gap: 12px;
       padding: 12px;
       margin-bottom: 12px;
       border: 1px solid #ebeef5;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.3s;
 
       &:hover {
         border-color: #409eff;
-        background-color: #f5f7fa;
+        background-color: #f1f5f9;
       }
 
       .history-thumbnail {
@@ -538,7 +558,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .video-generation {
-    padding: 10px;
+    padding: 12px;
   }
 }
 </style>

@@ -1,10 +1,10 @@
 <template>
   <div class="home">
     <!-- 欢迎横幅 -->
-<!--    <div class="welcome-section">-->
-<!--      <h1>欢迎使用AI创作者平台</h1>-->
-<!--      <p>让AI助力您的创作，一键生成优质内容</p>-->
-<!--    </div>-->
+    <div class="welcome-section">
+      <h1>欢迎使用 AI 创作者平台</h1>
+      <p>从写作到多媒体生成，一站式提升内容创作效率。</p>
+    </div>
 
     <!-- 统计数据 -->
     <StatsSection />
@@ -20,12 +20,6 @@
 
     <!-- 创作工具 -->
     <ToolsSection />
-<!--    <LoginGuide v-if="!userStore.isLoggedIn" />-->
-
-<!--    &lt;!&ndash; 已登录用户内容 &ndash;&gt;-->
-<!--    <template v-else>-->
-<!--      -->
-<!--    </template>-->
   </div>
 </template>
 
@@ -42,24 +36,27 @@ const userStore = useUserStore()
 
 <style scoped lang="scss">
 .home {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
   .welcome-section {
     text-align: center;
     padding: 60px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%);
     color: #fff;
     border-radius: 16px;
-    margin-bottom: 32px;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+    margin-bottom: 0;
+    box-shadow: 0 16px 36px rgba(37, 99, 235, 0.24);
 
     h1 {
-      font-size: 42px;
+      font-size: 40px;
       font-weight: 700;
       margin-bottom: 16px;
       letter-spacing: -0.5px;
     }
 
     p {
-      font-size: 20px;
+      font-size: 18px;
       opacity: 0.95;
       font-weight: 400;
     }

@@ -158,7 +158,11 @@ const downloadPPT = () => {
 }
 
 const previewPPT = () => {
-  ElMessage.info('在线预览功能开发中')
+  if (currentPPT.value?.ppt_url) {
+    window.open(currentPPT.value.ppt_url, '_blank')
+    return
+  }
+  ElMessage.warning('暂无可预览的PPT文件')
 }
 
 const startPolling = () => {
@@ -200,15 +204,23 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .ppt-generation {
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
 
   .header-card {
     margin-bottom: 20px;
     text-align: center;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     h2 {
       margin: 0 0 10px 0;
       font-size: 24px;
-      color: #303133;
+      color: #1f2937;
     }
 
     .subtitle {
@@ -224,8 +236,18 @@ onUnmounted(() => {
     align-items: center;
   }
 
+  :deep(.el-tabs__item.is-active) {
+    color: #2563eb;
+    font-weight: 600;
+  }
+
+  :deep(.el-tabs__active-bar) {
+    background-color: #2563eb;
+  }
+
   .ppt-preview {
     min-height: 300px;
+    padding-top: 12px;
 
     .ppt-info {
       text-align: center;
@@ -240,6 +262,12 @@ onUnmounted(() => {
       justify-content: center;
       margin-top: 20px;
     }
+  }
+}
+
+@media (max-width: 768px) {
+  .ppt-generation {
+    padding: 12px;
   }
 }
 </style>
