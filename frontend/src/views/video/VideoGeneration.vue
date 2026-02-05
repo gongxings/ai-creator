@@ -211,6 +211,7 @@ interface ImageForm {
   image: File | null
   motion_prompt: string
   duration: number
+  image_data_url?: string
 }
 
 interface VideoTask {
@@ -250,8 +251,9 @@ const imageForm = reactive<ImageForm>({
 })
 
 // 处理图片上传
-const handleImageChange = (file: UploadFile) => {
+const handleImageChange = async (file: UploadFile) => {
   imageForm.image = file.raw as File
+  imageForm.image_data_url = await readFileAsDataUrl(file.raw as File)
 }
 
 // 生成视频
@@ -272,20 +274,26 @@ const generateVideo = async () => {
   try {
     let response
     if (activeTab.value === 'text') {
-      response = await request.post('/v1/video/text-to-video', textForm)
+      response = await request.post('/v1/video/text-to-video', {
+        text: textForm.prompt,
+        background_music: false,
+        subtitle: true,
+      })
     } else {
-      const formData = new FormData()
-      formData.append('image', imageForm.image!)
-      formData.append('motion_prompt', imageForm.motion_prompt)
-      formData.append('duration', imageForm.duration.toString())
-      response = await request.post('/v1/video/image-to-video', formData)
+      const images = imageForm.image_data_url ? [imageForm.image_data_url] : []
+      response = await request.post('/v1/video/image-to-video', {
+        images,
+        transition: 'fade',
+        duration_per_image: imageForm.duration,
+      })
     }
 
+    const task = response.data
     currentTask.value = {
-      id: response.task_id,
+      id: task.task_id,
       status: 'processing',
       progress: 0,
-      estimated_time: response.estimated_time || 60,
+      estimated_time: task.estimated_time || 60,
     }
 
     ElMessage.success('视频生成任务已提交')
@@ -308,7 +316,8 @@ const startPolling = () => {
     if (!currentTask.value) return
 
     try {
-      const data = await request.get(`/v1/video/${currentTask.value.id}/status`)
+      const result = await request.get(`/v1/video/task/${currentTask.value.id}`)
+      const data = result.data
 
       currentTask.value = {
         ...currentTask.value,
@@ -333,6 +342,13 @@ const startPolling = () => {
     }
   }, 3000)
 }
+
+const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(reader.result as string)
+  reader.onerror = () => reject(new Error('读取图片失败'))
+  reader.readAsDataURL(file)
+})
 
 const stopPolling = () => {
   if (pollTimer) {
@@ -375,8 +391,8 @@ const loadHistory = async () => {
     const response = await request.get('/v1/creations', {
       params: {
         content_type: 'video',
-        page: 1,
-        page_size: 10,
+        skip: 0,
+        limit: 10,
       },
     })
     historyList.value = response.items

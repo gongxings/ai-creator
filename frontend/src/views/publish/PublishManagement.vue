@@ -24,49 +24,40 @@
           </el-button>
         </div>
       </template>
-      <div class="platforms-grid">
-        <div
-          v-for="platform in platforms"
-          :key="platform.id"
-          class="platform-card"
-          :class="{ bound: platform.isBound }"
-        >
-          <div class="platform-icon">
-            <el-icon :size="32">
-              <component :is="getPlatformIcon(platform.code)" />
-            </el-icon>
-          </div>
-          <div class="platform-info">
-            <h4>{{ platform.name }}</h4>
-            <p v-if="platform.isBound" class="bound-status">
-              <el-icon color="#67c23a"><CircleCheck /></el-icon>
-              已绑定
-            </p>
-            <p v-else class="unbound-status">
-              <el-icon color="#909399"><CircleClose /></el-icon>
-              未绑定
-            </p>
-          </div>
-          <div class="platform-actions">
-            <el-button
-              v-if="platform.isBound"
-              text
-              type="danger"
-              @click="unbindPlatform(platform.id)"
-            >
-              解绑
-            </el-button>
-            <el-button
-              v-else
-              text
-              type="primary"
-              @click="bindPlatform(platform.code)"
-            >
-              绑定
-            </el-button>
-          </div>
-        </div>
-      </div>
+      <el-table :data="platformAccounts" v-loading="loadingAccounts" style="width: 100%">
+        <el-table-column label="平台" width="160">
+          <template #default="{ row }">
+            {{ getPlatformName(row.platform) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="account_name" label="账号名称" min-width="180" />
+        <el-table-column label="Cookie状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="getCookieStatusType(row.cookies_valid)">
+              {{ getCookieStatusText(row.cookies_valid) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="Cookie更新时间" width="180">
+          <template #default="{ row }">
+            {{ row.cookies_updated_at ? formatDate(row.cookies_updated_at) : '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="账号状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="row.is_active === 'active' ? 'success' : 'info'">
+              {{ row.is_active === 'active' ? '启用' : '停用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="240">
+          <template #default="{ row }">
+            <el-button size="small" @click="openCookieDialog(row)">更新Cookie</el-button>
+            <el-button size="small" @click="handleValidateCookies(row)">校验</el-button>
+            <el-button size="small" type="danger" @click="unbindPlatform(row.id)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-card>
 
     <!-- 发布历史 -->
@@ -89,15 +80,10 @@
       </template>
       <el-table :data="publishHistory" v-loading="loading">
         <el-table-column prop="title" label="标题" min-width="200" />
-        <el-table-column prop="platforms" label="发布平台" width="200">
+        <el-table-column prop="platform" label="发布平台" width="200">
           <template #default="{ row }">
-            <el-tag
-              v-for="platform in row.platforms"
-              :key="platform"
-              size="small"
-              style="margin-right: 5px"
-            >
-              {{ platform }}
+            <el-tag size="small">
+              {{ getPlatformName(row.platform) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -108,7 +94,17 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="publishTime" label="发布时间" width="180" />
+        <el-table-column label="发布时间" width="180">
+          <template #default="{ row }">
+            {{
+              row.status === 'scheduled' && row.scheduled_at
+                ? formatDate(row.scheduled_at)
+                : row.published_at
+                ? formatDate(row.published_at)
+                : '-'
+            }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" @click="viewDetail(row)">
@@ -158,16 +154,19 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="发布平台" prop="platformIds">
-          <el-checkbox-group v-model="publishForm.platformIds">
-            <el-checkbox
-              v-for="platform in boundPlatforms"
-              :key="platform.id"
-              :label="platform.id"
-            >
-              {{ platform.name }}
-            </el-checkbox>
-          </el-checkbox-group>
+        <el-form-item label="发布账号" prop="accountId">
+          <el-select
+            v-model="publishForm.accountId"
+            placeholder="选择平台账号"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="account in activePlatformAccounts"
+              :key="account.id"
+              :label="`${getPlatformName(account.platform)} - ${account.account_name}`"
+              :value="account.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="发布方式" prop="publishType">
           <el-radio-group v-model="publishForm.publishType">
@@ -178,10 +177,10 @@
         <el-form-item
           v-if="publishForm.publishType === 'scheduled'"
           label="发布时间"
-          prop="scheduledTime"
+          prop="scheduledAt"
         >
           <el-date-picker
-            v-model="publishForm.scheduledTime"
+            v-model="publishForm.scheduledAt"
             type="datetime"
             placeholder="选择发布时间"
             :disabled-date="disabledDate"
@@ -194,7 +193,7 @@
       <template #footer>
         <el-button @click="showPublishDialog = false">取消</el-button>
         <el-button type="primary" @click="handlePublish" :loading="publishing">
-          {{ publishForm.publishType === 'immediate' ? '立即发布' : '定时发布' }}
+          {{ publishForm.publishType === 'scheduled' ? '定时发布' : '立即发布' }}
         </el-button>
       </template>
     </el-dialog>
@@ -212,31 +211,74 @@
             v-model="bindForm.platformCode"
             placeholder="选择要绑定的平台"
             style="width: 100%"
+            @change="handlePlatformChange"
           >
             <el-option
-              v-for="platform in unboundPlatforms"
-              :key="platform.code"
+              v-for="platform in platforms"
+              :key="platform.platform"
               :label="platform.name"
-              :value="platform.code"
+              :value="platform.platform"
             />
           </el-select>
         </el-form-item>
         <el-form-item label="账号名称" prop="accountName">
           <el-input v-model="bindForm.accountName" placeholder="输入账号名称" />
         </el-form-item>
-        <el-form-item label="认证信息" prop="credentials">
+        <el-form-item label="Cookie" prop="cookies">
           <el-input
-            v-model="bindForm.credentials"
+            v-model="bindForm.cookies"
             type="textarea"
             :rows="4"
-            placeholder="输入平台API密钥或认证信息（JSON格式）"
+            placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}）"
           />
         </el-form-item>
+        <el-alert
+          v-if="loginInfo"
+          :title="loginInfo.instructions"
+          type="info"
+          :closable="false"
+          show-icon
+        >
+          <template #default>
+            <div class="login-info">
+              <div>登录地址：<a :href="loginInfo.login_url" target="_blank">{{ loginInfo.login_url }}</a></div>
+              <div>完成登录后复制Cookie再提交</div>
+            </div>
+          </template>
+        </el-alert>
       </el-form>
       <template #footer>
         <el-button @click="showBindDialog = false">取消</el-button>
         <el-button type="primary" @click="handleBind" :loading="binding">
           绑定
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 更新Cookie对话框 -->
+    <el-dialog
+      v-model="showCookieDialog"
+      title="更新Cookie"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="cookieForm" :rules="cookieRules" ref="cookieFormRef" label-width="100px">
+        <el-form-item label="平台账号">
+          <span>{{ cookieForm.accountLabel }}</span>
+        </el-form-item>
+        <el-form-item label="Cookie" prop="cookies">
+          <el-input
+            v-model="cookieForm.cookies"
+            type="textarea"
+            :rows="4"
+            placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}）"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showCookieDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleUpdateCookies" :loading="updatingCookies">
+          更新
         </el-button>
       </template>
     </el-dialog>
@@ -257,20 +299,21 @@
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="发布时间">
-          {{ currentRecord.publishTime }}
+          {{
+            currentRecord.status === 'scheduled' && currentRecord.scheduled_at
+              ? formatDate(currentRecord.scheduled_at)
+              : currentRecord.published_at
+              ? formatDate(currentRecord.published_at)
+              : '-'
+          }}
         </el-descriptions-item>
         <el-descriptions-item label="发布平台">
-          <el-tag
-            v-for="platform in currentRecord.platforms"
-            :key="platform"
-            size="small"
-            style="margin-right: 5px"
-          >
-            {{ platform }}
+          <el-tag size="small">
+            {{ getPlatformName(currentRecord.platform) }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="内容" :span="2">
-          <div class="content-preview" v-html="currentRecord.content"></div>
+        <el-descriptions-item label="账号名称">
+          {{ currentRecord.account_name || '-' }}
         </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
@@ -280,21 +323,14 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Upload,
-  Plus,
-  Search,
-  CircleCheck,
-  CircleClose,
-  ChatDotRound,
-  Picture,
-  VideoCamera,
-  Document
-} from '@element-plus/icons-vue'
+import { Upload, Plus, Search } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
   getPlatforms,
-  bindPlatformAccount,
+  getPlatformLoginInfo,
+  createPlatformAccount,
+  updatePlatformCookies,
+  validatePlatformCookies,
   getPlatformAccounts,
   deletePlatformAccount,
   publishContent,
@@ -307,27 +343,26 @@ import { getCreations } from '@/api/creations'
 const loading = ref(false)
 const publishing = ref(false)
 const binding = ref(false)
+const updatingCookies = ref(false)
+const loadingAccounts = ref(false)
 const showPublishDialog = ref(false)
 const showBindDialog = ref(false)
+const showCookieDialog = ref(false)
 const showDetailDialog = ref(false)
 const searchKeyword = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const loginInfo = ref<{ platform: string; name: string; login_url: string; instructions: string } | null>(null)
 
 // 表单引用
 const publishFormRef = ref<FormInstance>()
 const bindFormRef = ref<FormInstance>()
+const cookieFormRef = ref<FormInstance>()
 
 // 平台列表
-const platforms = ref([
-  { id: 1, code: 'wechat', name: '微信公众号', isBound: false },
-  { id: 2, code: 'xiaohongshu', name: '小红书', isBound: false },
-  { id: 3, code: 'douyin', name: '抖音', isBound: false },
-  { id: 4, code: 'kuaishou', name: '快手', isBound: false },
-  { id: 5, code: 'toutiao', name: '今日头条', isBound: false },
-  { id: 6, code: 'zhihu', name: '知乎', isBound: false }
-])
+const platforms = ref<any[]>([])
+const platformAccounts = ref<any[]>([])
 
 // 发布历史
 const publishHistory = ref([])
@@ -337,6 +372,7 @@ const creations = ref([])
 
 // 当前记录
 const currentRecord = ref(null)
+const selectedCreation = ref<any>(null)
 
 // 内容预览
 const contentPreview = ref('')
@@ -344,52 +380,69 @@ const contentPreview = ref('')
 // 发布表单
 const publishForm = reactive({
   creationId: null,
-  platformIds: [],
+  accountId: null,
+  contentType: '',
   publishType: 'immediate',
-  scheduledTime: null
+  scheduledAt: null as Date | null,
 })
 
 // 绑定表单
 const bindForm = reactive({
   platformCode: '',
   accountName: '',
-  credentials: ''
+  cookies: ''
+})
+
+// Cookie表单
+const cookieForm = reactive({
+  accountId: 0,
+  accountLabel: '',
+  cookies: ''
 })
 
 // 表单验证规则
 const publishRules: FormRules = {
   creationId: [{ required: true, message: '请选择要发布的内容', trigger: 'change' }],
-  platformIds: [{ required: true, message: '请选择发布平台', trigger: 'change' }],
+  accountId: [{ required: true, message: '请选择发布账号', trigger: 'change' }],
   publishType: [{ required: true, message: '请选择发布方式', trigger: 'change' }],
-  scheduledTime: [{ required: true, message: '请选择发布时间', trigger: 'change' }]
+  scheduledAt: [
+    {
+      validator: (_rule, value, callback) => {
+        if (publishForm.publishType === 'scheduled' && !value) {
+          callback(new Error('请选择发布时间'))
+          return
+        }
+        callback()
+      },
+      trigger: 'change',
+    },
+  ],
 }
 
 const bindRules: FormRules = {
   platformCode: [{ required: true, message: '请选择平台', trigger: 'change' }],
   accountName: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
-  credentials: [{ required: true, message: '请输入认证信息', trigger: 'blur' }]
+  cookies: [{ required: true, message: '请输入Cookie', trigger: 'blur' }]
+}
+
+const cookieRules: FormRules = {
+  cookies: [{ required: true, message: '请输入Cookie', trigger: 'blur' }]
 }
 
 // 计算属性
-const boundPlatforms = computed(() => platforms.value.filter(p => p.isBound))
-const unboundPlatforms = computed(() => platforms.value.filter(p => !p.isBound))
+const activePlatformAccounts = computed(() =>
+  platformAccounts.value.filter((account: any) => account.is_active === 'active')
+)
 
-// 获取平台图标
-const getPlatformIcon = (code: string) => {
-  const icons: Record<string, any> = {
-    wechat: ChatDotRound,
-    xiaohongshu: Picture,
-    douyin: VideoCamera,
-    kuaishou: VideoCamera,
-    toutiao: Document,
-    zhihu: Document
-  }
-  return icons[code] || Document
+const getPlatformName = (code: string) => {
+  const match = platforms.value.find((platform: any) => platform.platform === code)
+  return match?.name || code
 }
 
 // 获取状态类型
 const getStatusType = (status: string) => {
   const types: Record<string, any> = {
+    draft: 'info',
     pending: 'info',
     publishing: 'warning',
     success: 'success',
@@ -401,10 +454,12 @@ const getStatusType = (status: string) => {
 // 获取状态文本
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
+    draft: '草稿',
     pending: '待发布',
     publishing: '发布中',
     success: '已发布',
-    failed: '发布失败'
+    failed: '发布失败',
+    scheduled: '已排期'
   }
   return texts[status] || '未知'
 }
@@ -414,23 +469,51 @@ const disabledDate = (time: Date) => {
   return time.getTime() < Date.now()
 }
 
+const getCookieStatusType = (status?: string | null) => {
+  if (status === 'valid') return 'success'
+  if (status === 'invalid') return 'danger'
+  return 'info'
+}
+
+const getCookieStatusText = (status?: string | null) => {
+  if (status === 'valid') return '有效'
+  if (status === 'invalid') return '失效'
+  return '未知'
+}
+
+const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 // 加载平台列表
 const loadPlatforms = async () => {
   try {
-    const platformList = await getPlatforms()
-    
-    // 获取已绑定的账号
-    const accounts = await getPlatformAccounts()
-    const boundPlatformCodes = accounts.map((acc: any) => acc.platform)
-    
-    // 更新平台绑定状态
-    platforms.value = platforms.value.map(p => ({
-      ...p,
-      isBound: boundPlatformCodes.includes(p.code)
-    }))
+    const response = await getPlatforms()
+    platforms.value = response || []
   } catch (error: any) {
     console.error('加载平台列表失败:', error)
     ElMessage.error(error.message || '加载平台列表失败')
+  }
+}
+
+// 加载平台账号列表
+const loadPlatformAccounts = async () => {
+  loadingAccounts.value = true
+  try {
+    const response = await getPlatformAccounts()
+    platformAccounts.value = response || []
+  } catch (error: any) {
+    console.error('加载平台账号失败:', error)
+    ElMessage.error(error.message || '加载平台账号失败')
+  } finally {
+    loadingAccounts.value = false
   }
 }
 
@@ -439,8 +522,8 @@ const loadPublishHistory = async () => {
   loading.value = true
   try {
     const response = await getPublishHistory({
-      page: currentPage.value,
-      page_size: pageSize.value,
+      skip: (currentPage.value - 1) * pageSize.value,
+      limit: pageSize.value,
     })
     publishHistory.value = response.items
     total.value = response.total
@@ -484,7 +567,9 @@ const handleCurrentChange = (page: number) => {
 const handleCreationChange = (creationId: number) => {
   const creation = creations.value.find((c: any) => c.id === creationId)
   if (creation) {
+    selectedCreation.value = creation
     contentPreview.value = creation.content
+    publishForm.contentType = creation.content_type
   }
 }
 
@@ -497,14 +582,21 @@ const handlePublish = async () => {
       publishing.value = true
       try {
         await publishContent({
+          account_id: publishForm.accountId!,
           creation_id: publishForm.creationId!,
-          platform_ids: publishForm.platformIds,
-          publish_type: publishForm.publishType,
-          scheduled_time: publishForm.scheduledTime || undefined,
+          content_type: publishForm.contentType,
+          scheduled_at:
+            publishForm.publishType === 'scheduled' && publishForm.scheduledAt
+              ? publishForm.scheduledAt.toISOString()
+              : undefined,
+          title: selectedCreation.value?.title,
+          content: selectedCreation.value?.content,
         })
         
         ElMessage.success('发布成功')
         showPublishDialog.value = false
+        publishForm.publishType = 'immediate'
+        publishForm.scheduledAt = null
         loadPublishHistory()
       } catch (error: any) {
         console.error('发布失败:', error)
@@ -516,10 +608,18 @@ const handlePublish = async () => {
   })
 }
 
-// 绑定平台
-const bindPlatform = (code: string) => {
-  bindForm.platformCode = code
-  showBindDialog.value = true
+const handlePlatformChange = async (platformCode: string) => {
+  if (!platformCode) {
+    loginInfo.value = null
+    return
+  }
+  try {
+    const response = await getPlatformLoginInfo(platformCode)
+    loginInfo.value = response
+  } catch (error: any) {
+    loginInfo.value = null
+    ElMessage.error(error.message || '加载登录信息失败')
+  }
 }
 
 // 处理绑定
@@ -530,24 +630,33 @@ const handleBind = async () => {
     if (valid) {
       binding.value = true
       try {
-        let credentials: Record<string, any> = {}
+        let cookies: Record<string, string> = {}
         try {
-          credentials = JSON.parse(bindForm.credentials)
+          cookies = JSON.parse(bindForm.cookies)
         } catch (e) {
-          ElMessage.error('认证信息格式错误，请输入有效的JSON')
+          ElMessage.error('Cookie格式错误，请输入有效的JSON')
           binding.value = false
           return
         }
         
-        await bindPlatformAccount({
+        const accountResponse = await createPlatformAccount({
           platform: bindForm.platformCode,
           account_name: bindForm.accountName,
-          credentials,
         })
-        
-        ElMessage.success('绑定成功')
+
+        const updateResponse = await updatePlatformCookies(accountResponse.id, cookies)
+        if (updateResponse.valid) {
+          ElMessage.success('绑定成功，Cookie有效')
+        } else {
+          ElMessage.warning(updateResponse.message || '绑定成功，但Cookie验证失败')
+        }
+
         showBindDialog.value = false
-        loadPlatforms()
+        bindForm.platformCode = ''
+        bindForm.accountName = ''
+        bindForm.cookies = ''
+        loginInfo.value = null
+        loadPlatformAccounts()
       } catch (error: any) {
         console.error('绑定失败:', error)
         ElMessage.error(error.message || '绑定失败')
@@ -556,6 +665,59 @@ const handleBind = async () => {
       }
     }
   })
+}
+
+const openCookieDialog = (row: any) => {
+  cookieForm.accountId = row.id
+  cookieForm.accountLabel = `${getPlatformName(row.platform)} - ${row.account_name}`
+  cookieForm.cookies = ''
+  showCookieDialog.value = true
+}
+
+const handleUpdateCookies = async () => {
+  if (!cookieFormRef.value) return
+  await cookieFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    updatingCookies.value = true
+    try {
+      let cookies: Record<string, string> = {}
+      try {
+        cookies = JSON.parse(cookieForm.cookies)
+      } catch (e) {
+        ElMessage.error('Cookie格式错误，请输入有效的JSON')
+        updatingCookies.value = false
+        return
+      }
+      const response = await updatePlatformCookies(cookieForm.accountId, cookies)
+      if (response.valid) {
+        ElMessage.success('Cookie更新成功')
+      } else {
+        ElMessage.warning(response.message || 'Cookie更新失败')
+      }
+      showCookieDialog.value = false
+      loadPlatformAccounts()
+    } catch (error: any) {
+      console.error('更新Cookie失败:', error)
+      ElMessage.error(error.message || '更新Cookie失败')
+    } finally {
+      updatingCookies.value = false
+    }
+  })
+}
+
+const handleValidateCookies = async (row: any) => {
+  try {
+    const response = await validatePlatformCookies(row.id)
+    if (response.valid) {
+      ElMessage.success('Cookie有效')
+    } else {
+      ElMessage.warning(response.message || 'Cookie已失效')
+    }
+    loadPlatformAccounts()
+  } catch (error: any) {
+    console.error('校验Cookie失败:', error)
+    ElMessage.error(error.message || '校验Cookie失败')
+  }
 }
 
 // 解绑平台
@@ -570,7 +732,7 @@ const unbindPlatform = async (platformId: number) => {
     await deletePlatformAccount(platformId)
     
     ElMessage.success('解绑成功')
-    loadPlatforms()
+    loadPlatformAccounts()
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('解绑失败:', error)
@@ -609,6 +771,7 @@ const deleteRecord = async (id: number) => {
 // 初始化
 onMounted(() => {
   loadPlatforms()
+  loadPlatformAccounts()
   loadPublishHistory()
   loadCreations()
 })
@@ -647,61 +810,6 @@ onMounted(() => {
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-
-    .platforms-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
-
-      .platform-card {
-        padding: 20px;
-        border: 1px solid #e4e7ed;
-        border-radius: 8px;
-        transition: all 0.3s;
-
-        &:hover {
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        &.bound {
-          border-color: #67c23a;
-          background-color: #f0f9ff;
-        }
-
-        .platform-icon {
-          margin-bottom: 12px;
-          color: #409eff;
-        }
-
-        .platform-info {
-          h4 {
-            margin: 0 0 8px 0;
-            font-size: 16px;
-            font-weight: 600;
-          }
-
-          p {
-            margin: 0;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          }
-
-          .bound-status {
-            color: #67c23a;
-          }
-
-          .unbound-status {
-            color: #909399;
-          }
-        }
-
-        .platform-actions {
-          margin-top: 12px;
-        }
-      }
     }
   }
 
@@ -744,6 +852,17 @@ onMounted(() => {
       padding: 2px 6px;
       border-radius: 3px;
       font-family: 'Courier New', monospace;
+    }
+  }
+
+  .login-info {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    a {
+      color: #409eff;
     }
   }
 }

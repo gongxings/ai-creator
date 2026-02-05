@@ -123,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture, Download, Star } from '@element-plus/icons-vue'
 import request from '@/api/request'
@@ -154,6 +154,8 @@ const form = reactive<ImageForm>({
 const generating = ref(false)
 const generatedImages = ref<string[]>([])
 const historyList = ref<HistoryItem[]>([])
+const currentTask = ref<{ id: string; status: string; progress: number } | null>(null)
+let pollTimer: number | null = null
 
 // 生成图片
 const generateImage = async () => {
@@ -164,9 +166,23 @@ const generateImage = async () => {
 
   generating.value = true
   try {
-    const result = await request.post('/v1/image/generate', form)
-    generatedImages.value = result.images
-    ElMessage.success('图片生成成功')
+    const { width, height } = parseSize(form.size)
+    const result = await request.post('/v1/image/generate', {
+      prompt: form.prompt,
+      width,
+      height,
+      num_images: form.n,
+      style: form.style,
+    })
+    const task = result.data
+    currentTask.value = {
+      id: task.task_id,
+      status: task.status,
+      progress: task.progress || 0,
+    }
+    generatedImages.value = []
+    ElMessage.success('图片生成任务已提交')
+    startPolling()
     
     // 刷新历史记录
     loadHistory()
@@ -174,6 +190,54 @@ const generateImage = async () => {
     ElMessage.error(error.response?.data?.message || '图片生成失败')
   } finally {
     generating.value = false
+  }
+}
+
+const startPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
+
+  pollTimer = window.setInterval(async () => {
+    if (!currentTask.value) return
+
+    try {
+      const result = await request.get(`/v1/image/task/${currentTask.value.id}`)
+      const task = result.data
+
+      currentTask.value = {
+        id: task.task_id,
+        status: task.status,
+        progress: task.progress || 0,
+      }
+
+      if (task.status === 'completed') {
+        generatedImages.value = task.images || []
+        stopPolling()
+        ElMessage.success('图片生成完成')
+        loadHistory()
+      } else if (task.status === 'failed') {
+        stopPolling()
+        ElMessage.error('图片生成失败')
+      }
+    } catch (error) {
+      console.error('获取图片任务状态失败', error)
+    }
+  }, 3000)
+}
+
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+const parseSize = (size: string) => {
+  const [width, height] = size.split('x').map((value) => Number(value))
+  return {
+    width: Number.isFinite(width) ? width : 1024,
+    height: Number.isFinite(height) ? height : 1024,
   }
 }
 
@@ -202,8 +266,8 @@ const loadHistory = async (item?: HistoryItem) => {
     const result = await request.get('/v1/creations', {
       params: {
         content_type: 'image',
-        page: 1,
-        page_size: 10,
+        skip: 0,
+        limit: 10,
       },
     })
     historyList.value = result.items
@@ -226,6 +290,10 @@ const formatTime = (time: string) => {
 
 onMounted(() => {
   loadHistory()
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
 
