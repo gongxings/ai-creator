@@ -4,7 +4,7 @@
 import os
 from pathlib import Path
 from typing import Optional
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
 
@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(
         default="redis://localhost:6379/0",
         description="Redis连接URL"
+    )
+    REDIS_PASSWORD: Optional[str] = Field(
+        default=None,
+        description="Redis密码"
     )
     
     # JWT配置
@@ -123,17 +127,19 @@ class Settings(BaseSettings):
         default="your-oauth-encryption-key-change-in-production",
         description="OAuth凭据加密密钥"
     )
-    
-    class Config:
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        # 忽略.env文件中的额外字段
-        extra = "ignore"
-
 
 # 获取.env文件路径
 _env_file_path = get_env_file_path()
 print(f"[CONFIG] Loading environment from: {_env_file_path}")
 
-# 创建全局配置实例
-settings = Settings(_env_file=_env_file_path)
+# 创建全局配置实例 - 在Pydantic v2中，通过环境变量或实例化前设置Config
+class _Settings(Settings):
+    """内部Settings类，用于动态设置env_file"""
+    model_config = SettingsConfigDict(
+        env_file=_env_file_path,
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
+
+settings = _Settings()

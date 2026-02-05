@@ -27,6 +27,9 @@ ADAPTER_MAP = {
     'doubao': DoubaoAdapter,
 }
 
+# 兼容旧名称
+PLATFORM_ADAPTERS = ADAPTER_MAP
+
 
 def get_adapter(platform_id: str, config: Dict[str, Any]) -> Optional[PlatformAdapter]:
     """
@@ -66,6 +69,8 @@ __all__ = [
     'ClaudeAdapter',
     'GeminiAdapter',
     'DoubaoAdapter',
+    'ADAPTER_MAP',
+    'PLATFORM_ADAPTERS',
     'get_adapter',
     'get_supported_platforms',
 ]

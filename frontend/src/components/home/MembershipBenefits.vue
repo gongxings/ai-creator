@@ -135,6 +135,9 @@ const goToPurchase = (planType: string) => {
       position: relative;
       transition: all 0.3s;
       border: 2px solid transparent;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
 
       &.recommended {
         border-color: #409eff;
@@ -160,6 +163,9 @@ const goToPurchase = (planType: string) => {
 
       :deep(.el-card__body) {
         padding: 32px 24px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
       }
 
       .plan-header {
@@ -198,6 +204,7 @@ const goToPurchase = (planType: string) => {
         list-style: none;
         padding: 0;
         margin: 0 0 24px 0;
+        flex: 1;
 
         li {
           display: flex;

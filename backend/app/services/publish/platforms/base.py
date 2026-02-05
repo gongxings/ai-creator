@@ -1,8 +1,9 @@
-﻿"""
+"""
 平台发布器基类
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List\nfrom urllib.parse import urlparse
+from typing import Dict, Any, Optional, List
+from urllib.parse import urlparse
 from datetime import datetime
 import json
 import logging

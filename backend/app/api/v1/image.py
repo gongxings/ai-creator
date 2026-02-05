@@ -173,7 +173,7 @@ async def generate_image(
         # 创建创作记录
         creation = Creation(
             user_id=current_user.id,
-            tool_type="image_generation",
+            creation_type="image",
             title=f"图片生成: {request.prompt[:50]}",
             input_data={
                 "prompt": request.prompt,
@@ -244,12 +244,13 @@ async def create_image_variation(
         
         creation = Creation(
             user_id=current_user.id,
-            tool_type="image_variation",
+            creation_type="image",
             title="图片变体",
             input_data={
                 "image": request.image,
                 "num_variations": request.num_variations
             },
+            extra_data={"image_action": "variation"},
             status="processing",
             task_id=task_id
         )
@@ -309,13 +310,14 @@ async def edit_image(
         
         creation = Creation(
             user_id=current_user.id,
-            tool_type="image_edit",
+            creation_type="image",
             title=f"图片编辑: {request.prompt[:50]}",
             input_data={
                 "image": request.image,
                 "prompt": request.prompt,
                 "mask": request.mask
             },
+            extra_data={"image_action": "edit"},
             status="processing",
             task_id=task_id
         )
@@ -375,12 +377,13 @@ async def upscale_image(
         
         creation = Creation(
             user_id=current_user.id,
-            tool_type="image_upscale",
+            creation_type="image",
             title=f"图片放大 {request.scale}x",
             input_data={
                 "image": request.image,
                 "scale": request.scale
             },
+            extra_data={"image_action": "upscale"},
             status="processing",
             task_id=task_id
         )

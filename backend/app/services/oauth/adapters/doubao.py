@@ -1,7 +1,7 @@
 """
 豆包网页版适配器
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
 
 
@@ -14,7 +14,8 @@ class DoubaoAdapter(PlatformAdapter):
     
     def get_success_pattern(self) -> str:
         """获取登录成功的URL模式"""
-        return "**/doubao.com/**"
+        # 豆包登录后URL不变，使用特殊的 pattern 表示需要等待固定时间
+        return "WAIT_FOR_LOGIN"
     
     def get_cookie_names(self) -> list:
         """获取需要提取的Cookie名称"""
@@ -22,6 +23,11 @@ class DoubaoAdapter(PlatformAdapter):
             "sessionid",
             "sessionid_ss",
             "s_v_web_id",
+        ]
+
+    def get_optional_cookie_names(self) -> list:
+        """获取可选的Cookie名称"""
+        return [
             "tt_webid",
         ]
     
@@ -31,7 +37,20 @@ class DoubaoAdapter(PlatformAdapter):
     
     def get_check_url(self) -> str:
         """获取凭证验证URL"""
-        return "https://www.doubao.com/api/user/info"
+        return "https://www.doubao.com/"
+    
+    def get_auto_login_config(self) -> Dict[str, Any]:
+        """获取自动登录配置"""
+        return {
+            # 可以从配置文件或环境变量读取
+            "username": self.oauth_config.get("username"),
+            "password": self.oauth_config.get("password"),
+        }
+    
+    def get_qr_code_selector(self) -> Optional[str]:
+        """获取二维码元素选择器"""
+        # 豆包登录页面的二维码元素选择器
+        return "img[src*='qrcode'], canvas.qrcode, .qrcode img"
     
     def build_litellm_config(self, credentials: Dict[str, Any]) -> Dict[str, Any]:
         """

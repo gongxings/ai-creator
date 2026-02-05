@@ -89,12 +89,20 @@ class OAuthService:
             adapter.get_platform_config()
         )
         
+        logger.info(f"Credentials received: {credentials.keys()}")
+        logger.info(f"Cookies count: {len(credentials.get('cookies', {}))}")
+        
         # 验证凭证
         if not adapter.validate_credentials(credentials):
+            logger.error("Credentials validation failed")
             raise ValueError("Invalid credentials")
         
+        logger.info("Credentials validated successfully")
+        
         # 加密凭证
+        logger.info("Encrypting credentials...")
         encrypted_credentials = encrypt_credentials(credentials)
+        logger.info(f"Credentials encrypted, length: {len(encrypted_credentials)}")
         
         # 检查是否已存在账号
         existing_account = db.query(OAuthAccount).filter(
@@ -119,6 +127,8 @@ class OAuthService:
         # 创建新账号
         quota_limit = adapter.get_quota_limit()
         
+        logger.info(f"Creating new OAuth account: user_id={user_id}, platform={platform}")
+        
         account = OAuthAccount(
             user_id=user_id,
             platform=platform,
@@ -130,8 +140,11 @@ class OAuthService:
             quota_limit=quota_limit,
         )
         
+        logger.info("Adding account to database session...")
         db.add(account)
+        logger.info("Committing database transaction...")
         db.commit()
+        logger.info(f"Database commit successful, account ID: {account.id}")
         db.refresh(account)
         
         logger.info(f"Created OAuth account {account.id}")

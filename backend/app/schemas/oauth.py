@@ -80,6 +80,8 @@ class OAuthAccountResponse(OAuthAccountBase):
     """OAuth账号响应"""
     id: int
     user_id: int
+    platform_name: Optional[str] = None
+    platform_icon: Optional[str] = None
     is_active: bool
     is_expired: bool
     quota_used: int
