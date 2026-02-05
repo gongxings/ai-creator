@@ -152,8 +152,8 @@ class BasePlatformPublisher(ABC):
         # 更新Cookie状态
         account.cookies_valid = "valid"
         return cookies
-    
-        def _build_cookie_list(self, login_url: str, cookies: Dict[str, str]) -> List[Dict[str, Any]]:
+
+    def _build_cookie_list(self, login_url: str, cookies: Dict[str, str]) -> List[Dict[str, Any]]:
         parsed = urlparse(login_url)
         host = parsed.netloc
         parts = host.split(".")
@@ -164,10 +164,11 @@ class BasePlatformPublisher(ABC):
             for name, value in cookies.items()
         ]
 
-\1(self) -> str:
+    @abstractmethod
+    def get_platform_name(self) -> str:
         """获取平台名称"""
         pass
-    
+
     @abstractmethod
     def get_login_url(self) -> str:
         """获取平台登录URL"""

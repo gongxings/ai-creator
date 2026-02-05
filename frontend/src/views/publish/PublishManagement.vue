@@ -52,7 +52,8 @@
         </el-table-column>
         <el-table-column label="操作" width="240">
           <template #default="{ row }">
-            <el-button size="small" type="primary" @click="handleAutoAuthorize(row)">自动获取</el-button>\n            <el-button size="small" @click="openCookieDialog(row)">更新Cookie</el-button>
+            <el-button size="small" type="primary" @click="handleAutoAuthorize(row)">自动获取</el-button>
+            <el-button size="small" @click="openCookieDialog(row)">更新Cookie</el-button>
             <el-button size="small" @click="handleValidateCookies(row)">校验</el-button>
             <el-button size="small" type="danger" @click="unbindPlatform(row.id)">删除</el-button>
           </template>
