@@ -96,18 +96,18 @@ class DoubaoAdapter(PlatformAdapter):
     async def send_message(self, message: str, cookies: Dict[str, str], conversation_id: str = None, bot_id: str = None) -> Dict[str, Any]:
         """
         发送消息到豆包网页版
-        
+
         Args:
             message: 用户消息
             cookies: Cookie字典
             conversation_id: 会话ID（可选）
             bot_id: 机器人ID（可选）
-            
+
         Returns:
             响应数据
         """
         import httpx
-        
+
         # 构建请求头
         headers = {
             "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
@@ -116,7 +116,7 @@ class DoubaoAdapter(PlatformAdapter):
             "Origin": "https://www.doubao.com",
             "Content-Type": "application/json",
         }
-        
+
         # 构建请求体
         payload = {
             "conversation_id": conversation_id or "",
@@ -124,7 +124,7 @@ class DoubaoAdapter(PlatformAdapter):
             "user_input": message,
             "stream": True,
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://www.doubao.com/api/chat/stream",
@@ -133,11 +133,11 @@ class DoubaoAdapter(PlatformAdapter):
                 timeout=60.0,
             )
             response.raise_for_status()
-            
+
             # 豆包返回SSE流
             lines = response.text.strip().split("\n")
             result = {"conversation_id": conversation_id}
-            
+
             for line in lines:
                 if line.startswith("data:"):
                     data = line[5:].strip()
@@ -151,5 +151,165 @@ class DoubaoAdapter(PlatformAdapter):
                                 result["conversation_id"] = parsed["conversation_id"]
                         except:
                             continue
-            
+
             return result
+
+    async def generate_image(
+        self,
+        prompt: str,
+        cookies: Dict[str, str],
+        negative_prompt: Optional[str] = None,
+        style: Optional[str] = None,
+        size: str = "1024x1024"
+    ) -> Dict[str, Any]:
+        """
+        生成图片（通过豆包网页版）
+
+        Args:
+            prompt: 图片描述
+            cookies: Cookie字典
+            negative_prompt: 负面提示词（可选）
+            style: 风格（可选）
+            size: 图片尺寸，默认 1024x1024
+
+        Returns:
+            生成的图片URL
+        """
+        import httpx
+        import json
+
+        # 构建请求头
+        headers = {
+            "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Referer": "https://www.doubao.com/",
+            "Origin": "https://www.doubao.com",
+            "Content-Type": "application/json",
+        }
+
+        # 构建请求体 - 使用豆包图片生成接口
+        # 注意：这是基于豆包网页版逆向的接口
+        payload = {
+            "user_input": f"画一张图片，{prompt}",
+            "bot_id": "7358044466096914465",
+            "stream": False,
+        }
+
+        # 添加风格和尺寸参数
+        if style:
+            payload["user_input"] += f"，风格：{style}"
+
+        if negative_prompt:
+            payload["user_input"] += f"，避免：{negative_prompt}"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://www.doubao.com/api/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120.0,
+            )
+            response.raise_for_status()
+
+            # 解析响应
+            data = response.json()
+
+            # 提取图片URL
+            images = []
+            if "choices" in data and len(data["choices"]) > 0:
+                choice = data["choices"][0]
+                if "message" in choice:
+                    message = choice["message"]
+                    if "content" in message:
+                        content = message["content"]
+                        # 豆包可能返回Markdown格式的图片链接
+                        # 提取 ![image](url) 格式的图片链接
+                        import re
+                        image_urls = re.findall(r'!\[.*?\]\((.*?)\)', content)
+                        images = image_urls
+
+            return {
+                "images": images,
+                "prompt": prompt,
+                "style": style
+            }
+    
+    async def generate_image(
+        self, 
+        prompt: str, 
+        cookies: Dict[str, str],
+        negative_prompt: Optional[str] = None,
+        style: Optional[str] = None,
+        size: str = "1024x1024"
+    ) -> Dict[str, Any]:
+        """
+        生成图片（通过豆包网页版）
+        
+        Args:
+            prompt: 图片描述
+            cookies: Cookie字典
+            negative_prompt: 负面提示词（可选）
+            style: 风格（可选）
+            size: 图片尺寸，默认 1024x1024
+            
+        Returns:
+            生成的图片URL
+        """
+        import httpx
+        import json
+        
+        # 构建请求头
+        headers = {
+            "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://www.doubao.com/",
+            "Origin": "https://www.doubao.com",
+            "Content-Type": "application/json",
+        }
+        
+        # 豆包图片生成 API 端点（使用网页版接口）
+        # 注意：这是基于豆包网页版逆向的接口
+        payload = {
+            "user_input": f"画一张图片，{prompt}",
+            "bot_id": "7358044466096914465",
+            "stream": False,
+        }
+        
+        # 添加风格和尺寸参数
+        if style:
+            payload["user_input"] += f"，风格：{style}"
+        
+        if negative_prompt:
+            payload["user_input"] += f"，避免：{negative_prompt}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://www.doubao.com/api/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120.0,
+            )
+            response.raise_for_status()
+            
+            # 解析响应
+            data = response.json()
+            
+            # 提取图片URL
+            images = []
+            if "choices" in data and len(data["choices"]) > 0:
+                choice = data["choices"][0]
+                if "message" in choice:
+                    message = choice["message"]
+                    if "content" in message:
+                        content = message["content"]
+                        # 豆包可能返回Markdown格式的图片链接
+                        # 提取 ![image](url) 格式的图片链接
+                        import re
+                        image_urls = re.findall(r'!\[.*?\]\((.*?)\)', content)
+                        images = image_urls
+            
+            return {
+                "images": images,
+                "prompt": prompt,
+                "style": style
+            }

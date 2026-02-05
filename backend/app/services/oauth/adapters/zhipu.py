@@ -1,7 +1,7 @@
 """
 智谱清言网页版适配器
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
 
 
@@ -23,6 +23,10 @@ class ZhipuAdapter(PlatformAdapter):
             "chatglm_refresh_token",
             "chatglm_user_id",
         ]
+    
+    def get_optional_cookie_names(self) -> list:
+        """获取可选的Cookie名称"""
+        return []
     
     def get_cookie_domain(self) -> str:
         """获取Cookie域名"""
@@ -71,22 +75,22 @@ class ZhipuAdapter(PlatformAdapter):
             "requests_per_minute": 60,
             "tokens_per_minute": 100000,
         }
-    
+
     async def send_message(self, message: str, cookies: Dict[str, str], conversation_id: str = None, assistant_id: str = None) -> Dict[str, Any]:
         """
         发送消息到智谱清言网页版
-        
+
         Args:
             message: 用户消息
             cookies: Cookie字典
             conversation_id: 会话ID（可选）
             assistant_id: 助手ID（可选）
-            
+
         Returns:
             响应数据
         """
         import httpx
-        
+
         # 构建请求头
         headers = {
             "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
@@ -95,10 +99,10 @@ class ZhipuAdapter(PlatformAdapter):
             "Origin": "https://chatglm.cn",
             "Content-Type": "application/json",
         }
-        
+
         # 构建请求体
         payload = {
-            "assistant_id": assistant_id or "65940acff94777010aa6b796",  # 默认助手ID
+            "assistant_id": assistant_id or "65940acff94777010aa6b796",
             "conversation_id": conversation_id or "",
             "messages": [{"role": "user", "content": [{"type": "text", "text": message}]}],
             "meta_data": {
@@ -108,7 +112,7 @@ class ZhipuAdapter(PlatformAdapter):
                 "is_test": False,
             },
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://chatglm.cn/chatglm/backend-api/assistant/stream",
@@ -117,11 +121,11 @@ class ZhipuAdapter(PlatformAdapter):
                 timeout=60.0,
             )
             response.raise_for_status()
-            
+
             # 智谱清言返回SSE流
             lines = response.text.strip().split("\n")
             result = {"conversation_id": conversation_id}
-            
+
             for line in lines:
                 if line.startswith("data: "):
                     data = line[6:]
@@ -136,5 +140,21 @@ class ZhipuAdapter(PlatformAdapter):
                                         result["conversation_id"] = parsed.get("conversation_id")
                         except:
                             continue
-            
+
             return result
+
+    async def generate_image(
+        self,
+        prompt: str,
+        cookies: Dict[str, str],
+        negative_prompt: Optional[str] = None,
+        style: Optional[str] = None,
+        size: str = "1024x1024"
+    ) -> Dict[str, Any]:
+        """
+        生成图片（智谱清言暂不支持Cookie方式，需要API Key）
+        """
+        return {
+            "error": "智谱清言图片生成需要使用 API Key，不支持Cookie方式",
+            "images": [],
+        }

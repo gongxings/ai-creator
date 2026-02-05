@@ -60,21 +60,100 @@ class ImageTaskResponse(BaseModel):
 async def process_image_generation(db: Session, creation_id: int, request_data: dict):
     """后台处理图片生成任务"""
     try:
-        # 模拟AI图片生成（实际应调用AI服务）
-        await asyncio.sleep(2)  # 模拟处理时间
+        from app.models.oauth_account import OAuthAccount
+        from app.models.platform_config import PlatformConfig
+        from app.services.oauth.adapters import PLATFORM_ADAPTERS
         
-        # 生成模拟图片URL
-        images = [
-            f"https://example.com/generated_{uuid.uuid4().hex[:8]}.png"
-            for _ in range(request_data.get("num_images", 1))
-        ]
+        creation = db.query(Creation).filter(Creation.id == creation_id).first()
+        
+        if not creation:
+            logger.error(f"Creation {creation_id} not found")
+            return
+        
+        # 获取用户可用的 OAuth 账号
+        platform_config = db.query(PlatformConfig).filter(
+            PlatformConfig.platform_id == "doubao"
+        ).first()
+        
+        if not platform_config:
+            logger.error("Doubao platform config not found")
+            raise ValueError("平台配置未找到")
+        
+        # 获取用户的豆包 OAuth 账号
+        oauth_account = db.query(OAuthAccount).filter(
+            OAuthAccount.user_id == creation.user_id,
+            OAuthAccount.platform == "doubao",
+            OAuthAccount.is_active == True,
+            OAuthAccount.is_expired == False
+        ).first()
+        
+        if not oauth_account:
+            logger.error(f"No active OAuth account for user {creation.user_id}")
+            creation.status = "failed"
+            creation.error_message = "未找到有效的豆包 OAuth 账号"
+            creation.output_content = "{}"
+            db.commit()
+            return
+        
+        # 解密凭证
+        from app.services.oauth.encryption import decrypt_credentials
+        credentials = decrypt_credentials(oauth_account.credentials)
+        cookies = credentials.get("cookies", {})
+        
+        # 获取豆包适配器
+        adapter_class = PLATFORM_ADAPTERS.get("doubao")
+        if not adapter_class:
+            logger.error("Doubao adapter not found")
+            raise ValueError("平台适配器未找到")
+        
+        adapter = adapter_class("doubao", {
+            "oauth_config": platform_config.oauth_config,
+            "litellm_config": platform_config.litellm_config,
+            "quota_config": platform_config.quota_config,
+        })
+        
+        # 调用图片生成
+        prompt = request_data.get("prompt", "")
+        negative_prompt = request_data.get("negative_prompt")
+        style = request_data.get("style")
+        size = f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}"
+        
+        logger.info(f"Generating image with doubao adapter: prompt={prompt}, size={size}")
+        
+        result = await adapter.generate_image(
+            prompt=prompt,
+            cookies=cookies,
+            negative_prompt=negative_prompt,
+            style=style,
+            size=size
+        )
+        
+        logger.info(f"Image generation result: {result}")
+        
+        # 处理结果
+        if "error" in result:
+            raise ValueError(result.get("error", "图片生成失败"))
+        
+        images = result.get("images", [])
+        
+        if not images:
+            raise ValueError("未生成任何图片")
         
         # 更新创作记录
+        creation.status = "completed"
+        creation.output_data = {"images": images}
+        creation.error_message = None
+        db.commit()
+        
+        logger.info(f"Image generation completed for creation {creation_id}, {len(images)} images generated")
+        
+    except Exception as e:
+        logger.error(f"Image generation failed: {e}")
+        # 标记任务失败
         creation = db.query(Creation).filter(Creation.id == creation_id).first()
         if creation:
-            creation.status = "completed"
-            creation.output_data = {"images": images}
-            creation.completed_at = datetime.utcnow()
+            creation.status = "failed"
+            creation.error_message = str(e)
             db.commit()
     except Exception as e:
         # 标记任务失败
@@ -181,10 +260,10 @@ async def generate_image(
                 "width": request.width,
                 "height": request.height,
                 "num_images": request.num_images,
-                "style": request.style
+                "style": request.style,
+                "task_id": task_id
             },
-            status="processing",
-            task_id=task_id
+            status="processing"
         )
         db.add(creation)
         
@@ -248,11 +327,11 @@ async def create_image_variation(
             title="图片变体",
             input_data={
                 "image": request.image,
-                "num_variations": request.num_variations
+                "num_variations": request.num_variations,
+                "task_id": task_id
             },
             extra_data={"image_action": "variation"},
-            status="processing",
-            task_id=task_id
+            status="processing"
         )
         db.add(creation)
         
@@ -315,11 +394,11 @@ async def edit_image(
             input_data={
                 "image": request.image,
                 "prompt": request.prompt,
-                "mask": request.mask
+                "mask": request.mask,
+                "task_id": task_id
             },
             extra_data={"image_action": "edit"},
-            status="processing",
-            task_id=task_id
+            status="processing"
         )
         db.add(creation)
         
@@ -381,11 +460,11 @@ async def upscale_image(
             title=f"图片放大 {request.scale}x",
             input_data={
                 "image": request.image,
-                "scale": request.scale
+                "scale": request.scale,
+                "task_id": task_id
             },
             extra_data={"image_action": "upscale"},
-            status="processing",
-            task_id=task_id
+            status="processing"
         )
         db.add(creation)
         
@@ -433,10 +512,20 @@ async def get_image_task_status(
 ):
     """获取图片任务状态"""
     try:
-        creation = db.query(Creation).filter(
-            Creation.task_id == task_id,
-            Creation.user_id == current_user.id
-        ).first()
+        # 从 input_data 中查找包含指定 task_id 的创作记录
+        # SQLite JSON 查询需要特殊处理
+        all_creations = db.query(Creation).filter(
+            Creation.user_id == current_user.id,
+            Creation.creation_type == "image"
+        ).all()
+        
+        # 在内存中查找匹配的 task_id
+        creation = None
+        for c in all_creations:
+            if c.input_data and isinstance(c.input_data, dict):
+                if c.input_data.get("task_id") == task_id:
+                    creation = c
+                    break
         
         if not creation:
             raise HTTPException(status_code=404, detail="任务不存在")
