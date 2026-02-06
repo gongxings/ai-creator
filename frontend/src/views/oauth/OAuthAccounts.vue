@@ -180,45 +180,44 @@
            </el-button>
          </el-tab-pane>
          
-         <el-tab-pane label="后端授权" name="backend">
-           <el-form-item label="选择平台" prop="platform">
-             <el-select
-               v-model="addForm.platform"
-               placeholder="请选择平台"
-               style="width: 100%"
-             >
-               <el-option
-                 v-for="platform in platforms"
-                 :key="platform.platform_id"
-                   :label="platform.platform_name"
-                   :value="platform.platform_id"
-                 >
-                   <div class="platform-option">
-                     <span>{{ platform.platform_name }}</span>
-                     <span class="platform-desc">{{ platform.description }}</span>
-                   </div>
-                 </el-option>
-               </el-select>
-             </el-form-item>
-             
-             <el-form-item label="账号名称" prop="account_name">
-               <el-input
-                 v-model="addForm.account_name"
-                 placeholder="请输入账号名称（用于识别）"
-               />
-             </el-form-item>
-           </div>
-           
-           <el-button
-             type="primary"
-             @click="handleAdd"
-             :loading="adding"
-             style="width: 100%; margin-top: 20px"
-             size="large"
-           >
-             后端授权
-           </el-button>
-         </el-tab-pane>
+          <el-tab-pane label="后端授权" name="backend">
+            <el-form-item label="选择平台" prop="platform">
+              <el-select
+                v-model="addForm.platform"
+                placeholder="请选择平台"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="platform in platforms"
+                  :key="platform.platform_id"
+                  :label="platform.platform_name"
+                  :value="platform.platform_id"
+                >
+                  <div class="platform-option">
+                    <span>{{ platform.platform_name }}</span>
+                    <span class="platform-desc">{{ platform.description }}</span>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+            
+            <el-form-item label="账号名称" prop="account_name">
+              <el-input
+                v-model="addForm.account_name"
+                placeholder="请输入账号名称（用于识别）"
+              />
+            </el-form-item>
+            
+            <el-button
+              type="primary"
+              @click="handleAdd"
+              :loading="adding"
+              style="width: 100%; margin-top: 20px"
+              size="large"
+            >
+              后端授权
+            </el-button>
+          </el-tab-pane>
        </el-tabs>
        
        <template #footer>

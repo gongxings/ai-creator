@@ -563,10 +563,10 @@ async def validate_cookies_page(request: Request, platform: str, db: Session = D
             }
         }});
         
-        // 自动尝试提取（5秒后）
-        setTimeout(() => {{
-            // console.log('授权窗口已准备就绪');
-        }}, 5000);
+         // 自动尝试提取（5秒后）
+         setTimeout(() => {{
+             // console.log('授权窗口已准备就绪');
+         }}}, 5000);
     </script>
 </body>
 </html>

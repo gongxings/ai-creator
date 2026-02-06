@@ -3,6 +3,9 @@
 """
 from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DoubaoAdapter(PlatformAdapter):
@@ -51,6 +54,80 @@ class DoubaoAdapter(PlatformAdapter):
         """获取二维码元素选择器"""
         # 豆包登录页面的二维码元素选择器
         return "img[src*='qrcode'], canvas.qrcode, .qrcode img"
+    
+    def validate_credentials(self, credentials: Dict[str, Any]) -> bool:
+        """
+        验证凭证有效性（重写基类方法）
+        
+        Args:
+            credentials: 凭证信息
+            
+        Returns:
+            是否有效
+        """
+        # 先检查基础格式
+        if not credentials:
+            return False
+        
+        cookies = credentials.get("cookies", {})
+        if not cookies:
+            return False
+        
+        # 检查必需的Cookie是否存在
+        required_cookies = self.get_cookie_names()
+        for cookie_name in required_cookies:
+            if cookie_name not in cookies or not cookies[cookie_name]:
+                logger.warning(f"Missing required cookie: {cookie_name}")
+                return False
+        
+        logger.info(f"Basic credential validation passed for doubao")
+        return True
+    
+    async def validate_cookies_online(self, cookies: Dict[str, str]) -> bool:
+        """
+        在线验证Cookie是否有效（实际调用API验证）
+        
+        Args:
+            cookies: Cookie字典
+            
+        Returns:
+            是否有效
+        """
+        import httpx
+        
+        try:
+            headers = {
+                "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json, text/plain, */*",
+                "Referer": "https://www.doubao.com/",
+            }
+            
+            # 测试访问豆包首页
+            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                response = await client.get(
+                    "https://www.doubao.com/",
+                    headers=headers
+                )
+                
+                # 检查是否需要登录
+                if response.status_code == 200:
+                    content = response.text
+                    # 如果页面包含登录相关的元素，说明Cookie无效
+                    if "login" in content.lower() and "Please Login" in content:
+                        logger.warning("Cookie appears to be expired - login page detected")
+                        return False
+                    logger.info(f"Cookie validation successful - status code: {response.status_code}")
+                    return True
+                
+                logger.warning(f"Cookie validation failed - status code: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Cookie validation failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False
     
     def build_litellm_config(self, credentials: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -150,78 +227,9 @@ class DoubaoAdapter(PlatformAdapter):
                             if "conversation_id" in parsed:
                                 result["conversation_id"] = parsed["conversation_id"]
                         except:
-                            continue
+                            continue 
 
             return result
-    
-    def validate_credentials(self, credentials: Dict[str, Any]) -> bool:
-        """
-        验证凭证有效性（重写基类方法）
-        
-        Args:
-            credentials: 凭证信息
-            
-        Returns:
-            是否有效
-        """
-        # 先检查基础格式
-        if not credentials:
-            return False
-        
-        cookies = credentials.get("cookies", {})
-        if not cookies:
-            return False
-        
-        # 检查必需的Cookie是否存在
-        required_cookies = self.get_cookie_names()
-        for cookie_name in required_cookies:
-            if cookie_name not in cookies or not cookies[cookie_name]:
-                return False
-        
-        return True
-    
-    async def validate_cookies_online(self, cookies: Dict[str, str]) -> bool:
-        """
-        在线验证Cookie是否有效（实际调用API验证）
-        
-        Args:
-            cookies: Cookie字典
-            
-        Returns:
-            是否有效
-        """
-        import httpx
-        
-        try:
-            headers = {
-                "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "application/json, text/plain, */*",
-                "Referer": "https://www.doubao.com/",
-            }
-            
-            # 测试访问豆包首页
-            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-                response = await client.get(
-                    "https://www.doubao.com/",
-                    headers=headers
-                )
-                
-                # 检查是否需要登录
-                if response.status_code == 200:
-                    content = response.text
-                    # 如果页面包含登录相关的元素，说明Cookie无效
-                    if "login" in content.lower() and "Please Login" in content:
-                        return False
-                    return True
-                
-                return False
-                
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Cookie validation failed: {e}")
-            return False
     
     async def generate_image(
         self,
@@ -246,9 +254,7 @@ class DoubaoAdapter(PlatformAdapter):
         """
         import httpx
         import json
-        import logging
-
-        logger = logging.getLogger(__name__)
+        import re
 
         # 构建请求头
         # 添加更多豆包所需的请求头
@@ -276,7 +282,7 @@ class DoubaoAdapter(PlatformAdapter):
         # 添加风格和尺寸参数
         if style:
             payload["user_input"] += f"，风格：{style}"
-
+        
         if negative_prompt:
             payload["user_input"] += f"，避免：{negative_prompt}"
 
@@ -315,7 +321,6 @@ class DoubaoAdapter(PlatformAdapter):
                                 logger.info(f"Response content preview: {content[:200]}...")
                                 # 豆包可能返回Markdown格式的图片链接
                                 # 提取 ![image](url) 格式的图片链接
-                                import re
                                 image_urls = re.findall(r'!\[.*?\]\((.*?)\)', content)
                                 images = image_urls
                                 logger.info(f"Extracted image URLs: {images}")
@@ -344,50 +349,3 @@ class DoubaoAdapter(PlatformAdapter):
                     "error": str(e),
                     "images": [],
                 }
-        
-        # 豆包图片生成 API 端点（使用网页版接口）
-        # 注意：这是基于豆包网页版逆向的接口
-        payload = {
-            "user_input": f"画一张图片，{prompt}",
-            "bot_id": "7358044466096914465",
-            "stream": False,
-        }
-        
-        # 添加风格和尺寸参数
-        if style:
-            payload["user_input"] += f"，风格：{style}"
-        
-        if negative_prompt:
-            payload["user_input"] += f"，避免：{negative_prompt}"
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://www.doubao.com/api/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120.0,
-            )
-            response.raise_for_status()
-            
-            # 解析响应
-            data = response.json()
-            
-            # 提取图片URL
-            images = []
-            if "choices" in data and len(data["choices"]) > 0:
-                choice = data["choices"][0]
-                if "message" in choice:
-                    message = choice["message"]
-                    if "content" in message:
-                        content = message["content"]
-                        # 豆包可能返回Markdown格式的图片链接
-                        # 提取 ![image](url) 格式的图片链接
-                        import re
-                        image_urls = re.findall(r'!\[.*?\]\((.*?)\)', content)
-                        images = image_urls
-            
-            return {
-                "images": images,
-                "prompt": prompt,
-                "style": style
-            }
