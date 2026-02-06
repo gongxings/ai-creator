@@ -288,8 +288,9 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  align-items: stretch;
+  min-height: 100dvh;
+  overflow-x: hidden;
   font-family: 'Outfit', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   color: $text-primary;
   background:
@@ -374,9 +375,13 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 .login-content {
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 48px 24px;
+  align-items: stretch;
+  height: 100dvh;
+  padding: 24px 32px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
   position: relative;
   z-index: 1;
 
@@ -394,9 +399,23 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
   box-shadow: $shadow-lg;
   backdrop-filter: blur(18px) saturate(1.08);
   width: 100%;
-  max-width: 1120px;
+  max-width: 1240px;
+  min-height: 100%;
+  align-self: stretch;
+  min-width: 0;
+  box-sizing: border-box;
   overflow: hidden;
   animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.1), rgba(37, 99, 235, 0.85), rgba(56, 189, 248, 0.8));
+    opacity: 0.9;
+    pointer-events: none;
+  }
 
   &::after {
     content: '';
@@ -416,31 +435,40 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 
   @media (max-width: 900px) {
     max-width: 720px;
+    min-height: auto;
   }
 
   @media (max-width: 768px) {
     max-width: 100%;
     border-radius: 20px;
+    min-height: auto;
   }
 }
 
 .login-shell {
   display: grid;
   grid-template-columns: 1.08fr 1fr;
-  min-height: 560px;
+  min-height: 100%;
+  height: 100%;
+  min-width: 0;
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
     min-height: auto;
+    height: auto;
   }
 }
 
 .brand-panel {
   padding: 44px 40px;
+  min-width: 0;
   background:
     linear-gradient(145deg, rgba(37, 99, 235, 0.18), rgba(56, 189, 248, 0.12)),
     radial-gradient(180px circle at 20% 15%, rgba(37, 99, 235, 0.2), transparent 70%);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 
   &::after {
     content: '';
@@ -467,8 +495,11 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 
 .form-panel {
   padding: 44px 42px;
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(239, 246, 255, 0.92));
   border-left: 1px solid rgba(37, 99, 235, 0.12);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 
   @media (max-width: 900px) {
     border-left: none;
@@ -543,6 +574,7 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 1;
 }
 
 .brand-tags {
@@ -636,7 +668,18 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 }
 
 .login-form {
+  width: 100%;
+
+  :deep(.el-form-item__content) {
+    width: 100%;
+  }
+
+  :deep(.el-input) {
+    width: 100%;
+  }
+
   .el-form-item {
+    width: 100%;
     margin-bottom: 18px;
 
     &:last-child {
@@ -644,6 +687,8 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
     }
 
     :deep(.el-input__wrapper) {
+      width: 100%;
+      box-sizing: border-box;
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.86);
       border: 1px solid rgba(37, 99, 235, 0.14);
@@ -674,6 +719,20 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 
     :deep(.el-input__prefix) {
       color: rgba(37, 99, 235, 0.75);
+    }
+
+    :deep(.el-input__suffix) {
+      display: inline-flex;
+      flex: 0 0 52px;
+      width: 52px;
+      justify-content: flex-end;
+    }
+
+    :deep(.el-input__suffix-inner) {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
   }
 
