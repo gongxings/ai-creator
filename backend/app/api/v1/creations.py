@@ -41,11 +41,11 @@ async def get_creations(
     
     # 内容类型筛选
     if content_type:
-        query = query.filter(Creation.content_type == content_type)
+        query = query.filter(Creation.creation_type == content_type)
     
     # 工具类型筛选
     if tool_type:
-        query = query.filter(Creation.tool_type == tool_type)
+        query = query.filter(Creation.creation_type == tool_type)
     
     # 搜索功能
     if search:
@@ -53,7 +53,7 @@ async def get_creations(
         query = query.filter(
             or_(
                 Creation.title.like(search_pattern),
-                Creation.content.like(search_pattern)
+                Creation.output_content.like(search_pattern)
             )
         )
     
@@ -100,7 +100,11 @@ async def create_creation(
     """
     creation = Creation(
         user_id=current_user.id,
-        **creation_data.model_dump()
+        title=creation_data.title,
+        creation_type=creation_data.content_type,
+        output_content=creation_data.content,
+        input_data=creation_data.input_data,
+        extra_data=creation_data.extra_data
     )
     
     db.add(creation)
@@ -131,20 +135,23 @@ async def update_creation(
         raise HTTPException(status_code=404, detail="创作记录不存在")
     
     # 保存版本历史
-    if creation_data.content and creation_data.content != creation.content:
-        if not creation.version_history:
-            creation.version_history = []
-        
-        creation.version_history.append({
-            "version": len(creation.version_history) + 1,
-            "content": creation.content,
-            "updated_at": creation.updated_at.isoformat()
-        })
+    if creation_data.content and creation_data.content != creation.output_content:
+        from app.models.creation import CreationVersion
+        new_version = CreationVersion(
+            creation_id=creation.id,
+            version_number=creation.version_count + 1,
+            content=creation.output_content
+        )
+        db.add(new_version)
+        creation.version_count = creation.version_count + 1
     
     # 更新字段
-    update_data = creation_data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(creation, field, value)
+    if creation_data.title is not None:
+        creation.title = creation_data.title
+    if creation_data.content is not None:
+        creation.output_content = creation_data.content
+    if creation_data.extra_data is not None:
+        creation.extra_data = creation_data.extra_data
     
     db.commit()
     db.refresh(creation)
@@ -185,6 +192,8 @@ async def get_creation_versions(
     """
     获取创作的版本历史
     """
+    from app.models.creation import CreationVersion
+    
     creation = db.query(Creation).filter(
         Creation.id == creation_id,
         Creation.user_id == current_user.id
@@ -193,10 +202,11 @@ async def get_creation_versions(
     if not creation:
         raise HTTPException(status_code=404, detail="创作记录不存在")
     
-    if not creation.version_history:
-        return []
+    versions = db.query(CreationVersion).filter(
+        CreationVersion.creation_id == creation_id
+    ).order_by(CreationVersion.version_number).all()
     
-    return creation.version_history
+    return versions
 
 
 @router.post("/{creation_id}/restore/{version}")
@@ -209,6 +219,8 @@ async def restore_creation_version(
     """
     恢复到指定版本
     """
+    from app.models.creation import CreationVersion
+    
     creation = db.query(Creation).filter(
         Creation.id == creation_id,
         Creation.user_id == current_user.id
@@ -217,19 +229,25 @@ async def restore_creation_version(
     if not creation:
         raise HTTPException(status_code=404, detail="创作记录不存在")
     
-    if not creation.version_history or version > len(creation.version_history):
+    target_version = db.query(CreationVersion).filter(
+        CreationVersion.creation_id == creation_id,
+        CreationVersion.version_number == version
+    ).first()
+    
+    if not target_version:
         raise HTTPException(status_code=404, detail="版本不存在")
     
     # 保存当前版本到历史
-    creation.version_history.append({
-        "version": len(creation.version_history) + 1,
-        "content": creation.content,
-        "updated_at": creation.updated_at.isoformat()
-    })
+    current_version = CreationVersion(
+        creation_id=creation.id,
+        version_number=creation.version_count + 1,
+        content=creation.output_content
+    )
+    db.add(current_version)
     
     # 恢复到指定版本
-    target_version = creation.version_history[version - 1]
-    creation.content = target_version["content"]
+    creation.output_content = target_version.content
+    creation.version_count = creation.version_count + 1
     
     db.commit()
     db.refresh(creation)

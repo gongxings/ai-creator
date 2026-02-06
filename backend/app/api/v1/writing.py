@@ -2,6 +2,7 @@
 AI写作相关API路由
 """
 from typing import Any, List, Optional
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
@@ -20,6 +21,7 @@ from app.schemas.creation import (
 from app.services.writing_service import WritingService
 from app.services.credit_service import CreditService
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -140,6 +142,9 @@ async def generate_content(
 ) -> Any:
     """
     生成AI写作内容
+    支持两种模式：
+    1. API Key模式：提供model_id，系统使用配置的API Key
+    2. Cookie模式：提供platform（如'doubao'），系统使用用户授权的Cookie账号
     """
     # 检查并扣减积分（会员不扣积分）
     credit_service = CreditService(db)
@@ -157,21 +162,36 @@ async def generate_content(
             detail=str(e),
         )
     
-    # 创建写作服务实例
-    writing_service = WritingService(db)
-    
     try:
-        # 生成内容
-        result = await writing_service.generate_content(
-            user_id=current_user.id,
-            tool_type=request.tool_type,
-            input_data=request.input_data,
-            ai_model_id=request.ai_model_id,
-        )
+        # 创建写作服务实例
+        writing_service = WritingService(db)
+        
+        # 判断使用哪种模式
+        if request.platform:
+            # Cookie模式
+            logger.info(f"Using Cookie mode for platform: {request.platform}")
+            result = await writing_service.generate_content_with_cookie(
+                db=db,
+                user_id=current_user.id,
+                tool_type=request.tool_type,
+                user_input=request.parameters or {},
+                platform=request.platform,
+            )
+        else:
+            # API Key模式（原有方式）
+            logger.info(f"Using API Key mode with model_id: {request.model_id}")
+            result = await writing_service.generate_content(
+                db=db,
+                user_id=current_user.id,
+                tool_type=request.tool_type,
+                input_data=request.parameters or {},
+                ai_model_id=request.model_id,
+            )
         
         return result
         
     except Exception as e:
+        logger.error(f"Content generation failed: {e}", exc_info=True)
         # 生成失败，退还积分
         if not current_user.is_member:
             await credit_service.add_credits(

@@ -7,6 +7,9 @@ from .xiaohongshu import XiaohongshuPublisher
 from .douyin import DouyinPublisher
 from .kuaishou import KuaishouPublisher
 from .toutiao import ToutiaoPublisher
+from .zhihu import ZhihuPublisher
+from .jianshu import JianshuPublisher
+from .baijiahao import BaijiahaoPublisher
 
 # 平台注册表
 PLATFORM_REGISTRY = {
@@ -15,6 +18,9 @@ PLATFORM_REGISTRY = {
     "douyin": DouyinPublisher,
     "kuaishou": KuaishouPublisher,
     "toutiao": ToutiaoPublisher,
+    "zhihu": ZhihuPublisher,
+    "jianshu": JianshuPublisher,
+    "baijiahao": BaijiahaoPublisher,
 }
 
 
@@ -44,6 +50,9 @@ __all__ = [
     "DouyinPublisher",
     "KuaishouPublisher",
     "ToutiaoPublisher",
+    "ZhihuPublisher",
+    "JianshuPublisher",
+    "BaijiahaoPublisher",
     "PLATFORM_REGISTRY",
     "get_platform",
 ]

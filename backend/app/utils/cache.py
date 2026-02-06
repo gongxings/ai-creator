@@ -9,8 +9,28 @@ from app.core.config import settings
 
 # Create Redis connection safely
 try:
+    # 如果设置了密码，则构建带认证的URL
+    redis_url = settings.REDIS_URL
+    if settings.REDIS_PASSWORD:
+        # 解析现有URL并添加密码
+        from urllib.parse import urlparse, urlunparse
+        parsed = urlparse(redis_url)
+        # 构建带密码的新URL: redis://:password@host:port/db
+        if parsed.port:
+            netloc = f":{settings.REDIS_PASSWORD}@{parsed.hostname}:{parsed.port}"
+        else:
+            netloc = f":{settings.REDIS_PASSWORD}@{parsed.hostname}"
+        redis_url = urlunparse((
+            parsed.scheme,
+            netloc,
+            parsed.path,
+            parsed.params,
+            parsed.query,
+            parsed.fragment
+        ))
+    
     redis_client = redis.from_url(
-        settings.REDIS_URL,
+        redis_url,
         encoding="utf-8",
         decode_responses=True
     )

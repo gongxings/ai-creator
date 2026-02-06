@@ -1,0 +1,227 @@
+/* 前端授权页面优化样式 - 授权页面 */
+
+.auth-page-container {
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+    
+    h1 {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    p.subtitle {
+      color: #666;
+      font-size: 14px;
+    }
+  }
+  
+  .info-box {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #667eea;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    
+    .info-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+    }
+    
+    .info-content {
+      line-height: 1.8;
+      color: #666;
+      font-size: 14px;
+      
+      ul {
+        padding-left: 20px;
+        margin: 0;
+        
+        li {
+          margin-bottom: 8px;
+          position: relative;
+          padding-left: 20px;
+          
+          &::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-size: 18px;
+            font-weight: bold;
+          }
+        }
+      }
+    }
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    justify-content: center;
+    
+    .btn {
+      flex: 1;
+      padding: 15px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      
+      &.btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+      }
+      
+      &.btn-secondary {
+        background: #e9ecef;
+        color: #495057;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        
+        &:hover {
+          background: #dbe2e6;
+        }
+      }
+      
+      .icon {
+        font-size: 20px;
+      }
+    }
+  }
+  
+  .status-container {
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  
+  .status-box {
+    text-align: center;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 400px;
+    
+    &.loading {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+      
+      p {
+        color: #666;
+        margin: 0;
+      }
+    }
+    
+    &.success {
+      background: #d4edda;
+      color: #155724;
+      
+      .success-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+        animation: success 0.5s ease;
+      }
+      
+      p {
+        font-size: 16px;
+        font-weight: 500;
+        margin: 0;
+      }
+    }
+    
+    &.error {
+      background: #f8d7da;
+      color: #721c24;
+      
+      .error-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+        animation: error 0.5s ease;
+      }
+      
+      .error-message {
+        color: #721c24;
+        font-size: 14px;
+        margin: 10px 0 0;
+        line-height: 1.5;
+      }
+      
+      .retry-btn {
+        margin-top: 20px;
+      }
+    }
+  }
+}
+
+/* 动画 */
+@keyframes spin {
+   0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes success {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes error {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25%, 75% {
+    transform: translateX(-5px);
+  }
+ 50% {
+    transform: translateX(5px);
+  }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    width: 100%;
+    
+    .btn {
+      width: 100%;
+    }
+  }
+}

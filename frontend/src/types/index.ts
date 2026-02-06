@@ -99,6 +99,7 @@ export interface GenerateContentParams {
   tool_type: string
   params: Record<string, any>
   ai_model_id?: number
+  platform?: string  // 新增：Cookie模式的平台，如'doubao'、'qwen'等
 }
 
 export interface CreationVersion {
@@ -114,7 +115,8 @@ export interface CreationVersion {
 export interface Platform {
   platform: string
   name: string
-  description: string
+  login_url: string
+  supported_types: string[]
 }
 
 export interface PlatformAccount {
@@ -122,31 +124,38 @@ export interface PlatformAccount {
   user_id: number
   platform: string
   account_name: string
-  credentials: Record<string, any>
-  is_active: boolean
+  is_active: string
+  cookies_valid?: string | null
+  cookies_updated_at?: string | null
   created_at: string
 }
 
 export interface PublishRecord {
   id: number
-  user_id: number
-  creation_id: number
   platform: string
-  platform_account_id: number
-  publish_config: Record<string, any>
   status: string
+  title?: string
+  account_name?: string | null
+  content_type?: string | null
   platform_url?: string
   error_message?: string
+  scheduled_at?: string
   published_at?: string
   created_at: string
 }
 
 export interface PublishParams {
+  account_id: number
   creation_id: number
-  platforms: string[]
-  platform_accounts: Record<string, number>
-  publish_config?: Record<string, any>
-  scheduled_time?: string
+  content_type: string
+  scheduled_at?: string
+  title?: string
+  content?: string
+  cover_image?: string
+  images?: string[]
+  video_url?: string
+  tags?: string[]
+  location?: string
 }
 
 // 可用模型相关（整合OAuth和API Key模型）

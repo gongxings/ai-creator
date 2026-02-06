@@ -2,18 +2,58 @@
   <div class="oauth-accounts">
     <el-card class="header-card">
       <div class="header">
-        <h2>OAuth账号管理</h2>
+        <div class="header-left">
+          <h2>OAuth账号管理</h2>
+          <p class="description">
+            绑定AI平台账号，使用平台免费额度进行创作，无需消耗积分
+          </p>
+        </div>
         <el-button type="primary" @click="showAddDialog = true">
           <el-icon><Plus /></el-icon>
           添加账号
         </el-button>
       </div>
-      <p class="description">
-        绑定AI平台账号，使用平台免费额度进行创作，无需消耗积分
-      </p>
     </el-card>
 
-    <!-- 账号列表 -->
+    <!-- 首次使用引导 -->
+    <el-card v-if="accounts.length === 0 && !loading" class="guide-card">
+      <div class="guide-content">
+        <el-icon class="guide-icon"><Key /></el-icon>
+        <h3>欢迎使用OAuth账号管理</h3>
+        <p>绑定您的AI平台账号（如豆包、通义千问），即可使用平台免费额度进行创作！</p>
+        
+        <div class="guide-steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>选择平台</h4>
+              <p>选择要绑定的AI平台</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>登录授权</h4>
+              <p>在弹出窗口中登录平台账号</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>开始使用</h4>
+              <p>授权成功后即可免费使用</p>
+            </div>
+          </div>
+        </div>
+        
+        <el-button type="primary" size="large" @click="showAddDialog = true">
+          <el-icon><Plus /></el-icon>
+          立即添加账号
+        </el-button>
+      </div>
+    </el-card>
+
+    <!-- 账号列表 - 桌面版表格 -->
     <el-card class="accounts-card">
       <el-tabs v-model="activeTab" @tab-change="handleTabChange">
         <el-tab-pane label="全部账号" name="all"></el-tab-pane>
@@ -25,152 +65,256 @@
         ></el-tab-pane>
       </el-tabs>
 
-      <el-table
-        v-loading="loading"
-        :data="accounts"
-        style="width: 100%"
-        :empty-text="'暂无账号'"
-      >
-        <el-table-column prop="platform_name" label="平台" width="120">
-          <template #default="{ row }">
-            <el-tag>{{ row.platform_name }}</el-tag>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="account_name" label="账号名称" width="150" />
-        
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'danger'">
-              {{ row.is_active ? '正常' : '已禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="配额使用" width="200">
-          <template #default="{ row }">
-            <div class="quota-info">
-              <el-progress
-                :percentage="getQuotaPercentage(row)"
-                :color="getQuotaColor(row)"
-              />
-              <span class="quota-text">
-                {{ formatNumber(row.quota_used) }} / {{ formatNumber(row.quota_limit) }}
+      <!-- 桌面版表格 -->
+      <div class="table-view">
+        <el-table
+          v-loading="loading"
+          :data="accounts"
+          style="width: 100%"
+          :empty-text="'暂无账号'"
+        >
+          <el-table-column prop="platform_name" label="平台" width="120">
+            <template #default="{ row }">
+              <el-tag>{{ row.platform_name }}</el-tag>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="account_name" label="账号名称" width="150" />
+          
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.is_active ? 'success' : 'danger'">
+                {{ row.is_active ? '正常' : '已禁用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="配额使用" width="200">
+            <template #default="{ row }">
+              <div class="quota-info">
+                <el-progress
+                  :percentage="getQuotaPercentage(row)"
+                  :color="getQuotaColor(row)"
+                />
+                <span class="quota-text">
+                  {{ formatNumber(row.quota_used) }} / {{ formatNumber(row.quota_limit) }}
+                </span>
+              </div>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="last_used_at" label="最后使用" width="180">
+            <template #default="{ row }">
+              {{ row.last_used_at ? formatDate(row.last_used_at) : '未使用' }}
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="expires_at" label="过期时间" width="180">
+            <template #default="{ row }">
+              <span :class="{ 'text-danger': isExpiringSoon(row.expires_at) }">
+                {{ formatDate(row.expires_at) }}
               </span>
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="操作" width="280" fixed="right">
+            <template #default="{ row }">
+              <el-button
+                size="small"
+                @click="handleCheck(row)"
+                :loading="checkingId === row.id"
+              >
+                检查
+              </el-button>
+              <el-button
+                size="small"
+                @click="handleViewUsage(row)"
+              >
+                使用记录
+              </el-button>
+              <el-button
+                size="small"
+                type="primary"
+                @click="handleEdit(row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                @click="handleDelete(row)"
+              >
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 手机版卡片视图 -->
+      <div v-if="accounts.length > 0" class="card-view">
+        <div v-for="account in accounts" :key="account.id" class="account-card">
+          <div class="card-header">
+            <div class="header-info">
+              <el-tag>{{ account.platform_name }}</el-tag>
+              <span class="account-name">{{ account.account_name }}</span>
             </div>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="last_used_at" label="最后使用" width="180">
-          <template #default="{ row }">
-            {{ row.last_used_at ? formatDate(row.last_used_at) : '未使用' }}
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="expires_at" label="过期时间" width="180">
-          <template #default="{ row }">
-            <span :class="{ 'text-danger': isExpiringSoon(row.expires_at) }">
-              {{ formatDate(row.expires_at) }}
-            </span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="操作" width="280" fixed="right">
-          <template #default="{ row }">
+            <el-tag :type="account.is_active ? 'success' : 'danger'">
+              {{ account.is_active ? '正常' : '已禁用' }}
+            </el-tag>
+          </div>
+
+          <div class="card-body">
+            <div class="quota-section">
+              <div class="label">配额使用情况</div>
+              <el-progress
+                :percentage="getQuotaPercentage(account)"
+                :color="getQuotaColor(account)"
+              />
+              <div class="quota-text">
+                {{ formatNumber(account.quota_used) }} / {{ formatNumber(account.quota_limit) }}
+              </div>
+            </div>
+
+            <div class="info-row">
+              <span class="label">最后使用：</span>
+              <span>{{ account.last_used_at ? formatDate(account.last_used_at) : '未使用' }}</span>
+            </div>
+
+            <div class="info-row" :class="{ 'text-danger': isExpiringSoon(account.expires_at) }">
+              <span class="label">过期时间：</span>
+              <span>{{ formatDate(account.expires_at) }}</span>
+            </div>
+          </div>
+
+          <div class="card-footer">
             <el-button
+              type="text"
               size="small"
-              @click="handleCheck(row)"
-              :loading="checkingId === row.id"
+              @click="handleCheck(account)"
+              :loading="checkingId === account.id"
             >
               检查
             </el-button>
             <el-button
+              type="text"
               size="small"
-              @click="handleViewUsage(row)"
+              @click="handleViewUsage(account)"
             >
-              使用记录
+              记录
             </el-button>
             <el-button
+              type="text"
               size="small"
-              type="primary"
-              @click="handleEdit(row)"
+              @click="handleEdit(account)"
             >
               编辑
             </el-button>
             <el-button
+              type="text"
               size="small"
-              type="danger"
-              @click="handleDelete(row)"
+              @click="handleDelete(account)"
             >
               删除
             </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          </div>
+        </div>
+      </div>
+
+      <el-empty v-else description="暂无账号" />
     </el-card>
 
-    <!-- 添加账号对话框 -->
-    <el-dialog
-      v-model="showAddDialog"
-      title="添加OAuth账号"
-      width="500px"
-    >
-      <el-form
-        ref="addFormRef"
-        :model="addForm"
-        :rules="addFormRules"
-        label-width="100px"
-      >
-        <el-form-item label="选择平台" prop="platform">
-          <el-select
-            v-model="addForm.platform"
-            placeholder="请选择平台"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="platform in platforms"
-              :key="platform.platform_id"
-              :label="platform.platform_name"
-              :value="platform.platform_id"
-            >
-              <div class="platform-option">
-                <span>{{ platform.platform_name }}</span>
-                <span class="platform-desc">{{ platform.description }}</span>
-              </div>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item label="账号名称" prop="account_name">
-          <el-input
-            v-model="addForm.account_name"
-            placeholder="请输入账号名称（用于识别）"
-          />
-        </el-form-item>
-        
-        <el-alert
-          title="授权说明"
-          type="info"
-          :closable="false"
-          show-icon
-        >
-          <p>点击确定后，系统将打开浏览器窗口</p>
-          <p>请在浏览器中完成登录授权</p>
-          <p>授权完成后，系统会自动保存凭证</p>
-        </el-alert>
-      </el-form>
-      
-      <template #footer>
-        <el-button @click="showAddDialog = false">取消</el-button>
-        <el-button
-          type="primary"
-          @click="handleAdd"
-          :loading="adding"
-        >
-          确定
-        </el-button>
-      </template>
-    </el-dialog>
+     <!-- 添加账号对话框 -->
+     <el-dialog
+       v-model="showAddDialog"
+       title="添加OAuth账号"
+       width="600px"
+       :close-on-click-modal="false"
+     >
+       <el-steps :active="authStep" align-center finish-status="success" class="auth-steps">
+         <el-step title="选择平台" />
+         <el-step title="登录授权" />
+         <el-step title="完成" />
+       </el-steps>
+
+       <div class="auth-content">
+         <el-form-item label="选择平台" prop="platform">
+           <el-select
+             v-model="addForm.platform"
+             placeholder="请选择要绑定的AI平台"
+             style="width: 100%"
+             size="large"
+           >
+             <el-option
+               v-for="platform in platforms"
+               :key="platform.platform_id"
+               :label="platform.platform_name"
+               :value="platform.platform_id"
+             >
+               <div class="platform-option">
+                 <span class="platform-name">{{ platform.platform_name }}</span>
+                 <span class="platform-desc">{{ platform.description }}</span>
+               </div>
+             </el-option>
+           </el-select>
+         </el-form-item>
+         
+         <el-form-item label="账号名称" prop="account_name">
+           <el-input
+             v-model="addForm.account_name"
+             placeholder="为该账号起个名字（用于识别）"
+             size="large"
+           />
+         </el-form-item>
+
+         <div class="auth-method-section">
+           <div class="method-label">选择授权方式</div>
+           <el-radio-group v-model="authMethod" size="large" class="auth-methods">
+             <el-radio-button label="frontend">
+               <el-icon><Link /></el-icon>
+               前端授权（推荐）
+             </el-radio-button>
+             <el-radio-button label="backend">
+               <el-icon><Monitor /></el-icon>
+               后端授权
+             </el-radio-button>
+           </el-radio-group>
+
+           <div class="method-tip">
+             <el-alert
+               v-if="authMethod === 'frontend'"
+               type="success"
+               :closable="false"
+             >
+               <template #title>
+                 <span>前端授权：在弹出窗口中登录，自动获取Cookie</span>
+               </template>
+             </el-alert>
+             <el-alert
+               v-else
+               type="info"
+               :closable="false"
+             >
+               <template #title>
+                 <span>后端授权：系统打开浏览器，在浏览器中扫码登录</span>
+               </template>
+             </el-alert>
+           </div>
+         </div>
+       </div>
+
+       <template #footer>
+         <el-button @click="showAddDialog = false">取消</el-button>
+         <el-button
+           type="primary"
+           @click="authMethod === 'frontend' ? handleFrontendAuth() : handleAdd()"
+           :loading="adding"
+           :disabled="!addForm.platform || !addForm.account_name"
+         >
+           {{ authMethod === 'frontend' ? '打开授权窗口' : '后端授权' }}
+         </el-button>
+       </template>
+     </el-dialog>
 
     <!-- 编辑账号对话框 -->
     <el-dialog
@@ -292,9 +436,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Key, Link, Monitor } from '@element-plus/icons-vue'
 import {
   getPlatforms,
   getAccounts,
@@ -314,13 +458,18 @@ const accounts = ref<OAuthAccount[]>([])
 const usageLogs = ref<OAuthUsageLog[]>([])
 const currentLog = ref<OAuthUsageLog | null>(null)
 
-// 状态
+ // 状态
 const loading = ref(false)
 const loadingUsage = ref(false)
 const adding = ref(false)
 const updating = ref(false)
 const checkingId = ref<number | null>(null)
 const activeTab = ref('all')
+const authMethod = ref('frontend')
+const authStep = ref(0)  // 授权步骤
+
+// 授权窗口引用
+const authWindow = ref<Window | null>(null)
 
 // 对话框
 const showAddDialog = ref(false)
@@ -396,6 +545,78 @@ const handleAdd = async () => {
       adding.value = false
     }
   })
+}
+
+// 前端授权
+const handleFrontendAuth = async () => {
+  if (!addForm.platform) {
+    ElMessage.warning('请选择平台')
+    return
+  }
+  
+  if (!addForm.account_name) {
+    ElMessage.warning('请输入账号名称')
+    return
+  }
+  
+  adding.value = true
+  try {
+    // 打开授权窗口
+    const width = 800
+    const height = 600
+    const left = (window.innerWidth - width) / 2 + window.screenX
+    const top = (window.innerHeight - height) / 2 + window.screenY
+    
+    const authUrl = `${window.location.origin}/api/v1/oauth/accounts/cookie-validate/${addForm.platform}`
+    
+    authWindow.value = window.open(
+      authUrl,
+      `oauth-${Date.now()}`,
+      `width=${width},height=${height},left=${left},top=${top}`
+    )
+    
+    // 监听来自授权窗口的消息
+    const handleAuthMessage = (event: MessageEvent) => {
+      // 验证消息来源
+      if (event.origin !== window.location.origin) {
+        return
+      }
+      
+      const { type, platform, data } = event.data
+      
+      if (type === 'oauth_success') {
+        ElMessage.success('授权成功！')
+        
+        // 关闭授权窗口
+        if (authWindow.value && !authWindow.value.closed) {
+          authWindow.value.close()
+        }
+        
+        // 刷新账号列表
+        loadAccounts()
+        
+        // 关闭对话框
+        showAddDialog.value = false
+        addForm.value = { platform: '', account_name: '' }
+      }
+    }
+    
+    window.addEventListener('message', handleAuthMessage)
+    
+    // 设置超时，5分钟后自动清理
+    setTimeout(() => {
+      window.removeEventListener('message', handleAuthMessage)
+      if (authWindow.value && !authWindow.value.closed) {
+        authWindow.value.close()
+      }
+      adding.value = false
+    }, 5 * 60 * 1000)
+    
+  } catch (error: any) {
+    console.error('打开授权窗口失败:', error)
+    ElMessage.error('打开授权窗口失败')
+    adding.value = false
+  }
 }
 
 // 编辑账号
@@ -541,36 +762,133 @@ onMounted(() => {
   loadPlatforms()
   loadAccounts()
 })
+
+onUnmounted(() => {
+  // 清理授权窗口引用
+  if (authWindow.value && !authWindow.value.closed) {
+    authWindow.value.close()
+  }
+  authWindow.value = null
+})
 </script>
 
 <style scoped lang="scss">
 .oauth-accounts {
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
 
   .header-card {
     margin-bottom: 20px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     .header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
+      align-items: flex-start;
 
-      h2 {
-        margin: 0;
-        font-size: 24px;
-        font-weight: 600;
+      .header-left {
+        h2 {
+          margin: 0 0 8px 0;
+          font-size: 24px;
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .description {
+          margin: 0;
+          color: #64748b;
+          font-size: 14px;
+        }
       }
     }
+  }
 
-    .description {
-      margin: 0;
-      color: #666;
-      font-size: 14px;
+  // 首次使用引导卡片
+  .guide-card {
+    margin-bottom: 20px;
+
+    .guide-content {
+      text-align: center;
+      padding: 40px 20px;
+
+      .guide-icon {
+        font-size: 64px;
+        color: #409eff;
+        margin-bottom: 20px;
+      }
+
+      h3 {
+        font-size: 20px;
+        color: #1f2937;
+        margin: 0 0 12px 0;
+      }
+
+      > p {
+        color: #64748b;
+        margin-bottom: 32px;
+      }
+
+      .guide-steps {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-bottom: 32px;
+
+        .step {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+
+          .step-num {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #409eff, #79bbff);
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+          }
+
+          .step-content {
+            h4 {
+              margin: 0 0 4px 0;
+              font-size: 14px;
+              color: #1f2937;
+            }
+
+            p {
+              margin: 0;
+              font-size: 12px;
+              color: #64748b;
+            }
+          }
+        }
+      }
     }
   }
 
   .accounts-card {
+    // 桌面版表格
+    .table-view {
+      display: block;
+    }
+
+    // 手机版卡片
+    .card-view {
+      display: none;
+    }
+
     .quota-info {
       .quota-text {
         display: block;
@@ -585,9 +903,118 @@ onMounted(() => {
     }
   }
 
+  // 手机版卡片样式
+  .account-card {
+    background: #fff;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .header-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .account-name {
+          font-weight: 600;
+          color: #1f2937;
+        }
+      }
+    }
+
+    .card-body {
+      .quota-section {
+        margin-bottom: 16px;
+        
+        .label {
+          font-size: 12px;
+          color: #64748b;
+          margin-bottom: 8px;
+        }
+
+        .quota-text {
+          font-size: 12px;
+          color: #64748b;
+          margin-top: 6px;
+        }
+      }
+
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        margin-bottom: 8px;
+        color: #64748b;
+
+        .label {
+          color: #94a3b8;
+        }
+      }
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid #f1f5f9;
+      margin-top: 12px;
+    }
+  }
+
+  // 添加账号对话框
+  .auth-steps {
+    margin-bottom: 24px;
+  }
+
+  .auth-content {
+    .auth-method-section {
+      margin-top: 20px;
+
+      .method-label {
+        font-size: 14px;
+        color: #606266;
+        margin-bottom: 12px;
+      }
+
+      .auth-methods {
+        width: 100%;
+        display: flex;
+
+        :deep(.el-radio-button) {
+          flex: 1;
+
+          .el-radio-button__inner {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          }
+        }
+      }
+
+      .method-tip {
+        margin-top: 12px;
+      }
+    }
+  }
+
   .platform-option {
     display: flex;
     flex-direction: column;
+    padding: 4px 0;
+
+    .platform-name {
+      font-weight: 500;
+    }
 
     .platform-desc {
       font-size: 12px;
@@ -613,6 +1040,47 @@ onMounted(() => {
     border-radius: 4px;
     font-size: 12px;
     line-height: 1.5;
+  }
+}
+
+// 响应式适配
+@media (max-width: 992px) {
+  .oauth-accounts {
+    padding: 12px;
+
+    .header-card {
+      .header {
+        flex-direction: column;
+        gap: 12px;
+
+        .header-left {
+          h2 {
+            font-size: 20px;
+          }
+        }
+      }
+    }
+
+    .guide-card {
+      .guide-content {
+        padding: 24px 12px;
+
+        .guide-steps {
+          flex-direction: column;
+          gap: 20px;
+        }
+      }
+    }
+
+    .accounts-card {
+      .table-view {
+        display: none;
+      }
+
+      .card-view {
+        display: block;
+      }
+    }
   }
 }
 </style>

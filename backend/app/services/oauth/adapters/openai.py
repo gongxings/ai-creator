@@ -1,7 +1,7 @@
 """
 ChatGPT网页版适配器
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
 
 
@@ -24,6 +24,10 @@ class OpenAIAdapter(PlatformAdapter):
             "__Host-next-auth.csrf-token",
             "_cfuvid",
         ]
+    
+    def get_optional_cookie_names(self) -> list:
+        """获取可选的Cookie名称"""
+        return []
     
     def get_cookie_domain(self) -> str:
         """获取Cookie域名"""
@@ -73,23 +77,23 @@ class OpenAIAdapter(PlatformAdapter):
             "requests_per_minute": 60,
             "tokens_per_minute": 90000,
         }
-    
+
     async def send_message(self, message: str, cookies: Dict[str, str], conversation_id: str = None, parent_message_id: str = None) -> Dict[str, Any]:
         """
         发送消息到ChatGPT网页版
-        
+
         Args:
             message: 用户消息
             cookies: Cookie字典
             conversation_id: 会话ID（可选）
             parent_message_id: 父消息ID（可选）
-            
+
         Returns:
             响应数据
         """
         import httpx
         import uuid
-        
+
         # 构建请求头
         headers = {
             "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
@@ -98,7 +102,7 @@ class OpenAIAdapter(PlatformAdapter):
             "Origin": "https://chatgpt.com",
             "Content-Type": "application/json",
         }
-        
+
         # 构建请求体
         payload = {
             "action": "next",
@@ -118,10 +122,10 @@ class OpenAIAdapter(PlatformAdapter):
             "force_paragen": False,
             "force_rate_limit": False,
         }
-        
+
         if conversation_id:
             payload["conversation_id"] = conversation_id
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://chatgpt.com/backend-api/conversation",
@@ -130,7 +134,7 @@ class OpenAIAdapter(PlatformAdapter):
                 timeout=60.0,
             )
             response.raise_for_status()
-            
+
             # ChatGPT返回的是SSE流，需要解析
             lines = response.text.strip().split("\n")
             for line in lines:
@@ -142,5 +146,21 @@ class OpenAIAdapter(PlatformAdapter):
                             return json.loads(data)
                         except:
                             continue
-            
+
             return {}
+
+    async def generate_image(
+        self,
+        prompt: str,
+        cookies: Dict[str, str],
+        negative_prompt: Optional[str] = None,
+        style: Optional[str] = None,
+        size: str = "1024x1024"
+    ) -> Dict[str, Any]:
+        """
+        生成图片（ChatGPT暂不支持Cookie方式）
+        """
+        return {
+            "error": "ChatGPT图片生成需要使用 API Key，不支持Cookie方式",
+            "images": [],
+        }

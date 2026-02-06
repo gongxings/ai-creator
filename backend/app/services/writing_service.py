@@ -1,12 +1,18 @@
 """
 写作服务
+支持两种模式：
+1. API Key模式（传统方式）
+2. Cookie模式（通过OAuth账号使用网页版）
 """
 from typing import Dict, Any, Optional, List
+import logging
 from sqlalchemy.orm import Session
 from app.models.creation import Creation
 from app.models.ai_model import AIModel
 from app.schemas.creation import CreationCreate
 from app.services.ai import OpenAIService, AnthropicService
+
+logger = logging.getLogger(__name__)
 
 
 class WritingService:
@@ -306,8 +312,114 @@ class WritingService:
         
         return optimized_content
     
-    @staticmethod
-    def get_available_tools() -> List[Dict[str, Any]]:
+    @classmethod
+    async def generate_content_with_cookie(
+        cls,
+        db: Session,
+        user_id: int,
+        tool_type: str,
+        user_input: Dict[str, Any],
+        platform: str = "doubao",
+    ) -> str:
+        """
+        使用Cookie方式生成内容（通过OAuth账号）
+        
+        Args:
+            db: 数据库连接
+            user_id: 用户ID
+            tool_type: 工具类型
+            user_input: 用户输入
+            platform: AI平台（默认为豆包）
+            
+        Returns:
+            生成的内容
+        """
+        # 动态导入Cookie管理器（避免循环导入）
+        from app.services.cookie_ai_manager import CookieAIServiceManager
+        
+        # 获取提示词模板
+        if tool_type not in cls.TOOL_PROMPTS:
+            raise ValueError(f"不支持的写作工具类型: {tool_type}")
+        
+        prompt_template = cls.TOOL_PROMPTS[tool_type]
+        
+        # 填充提示词
+        try:
+            prompt = prompt_template.format(**user_input)
+        except KeyError as e:
+            raise ValueError(f"缺少必需的输入参数: {str(e)}")
+        
+        # 使用Cookie服务调用AI
+        manager = CookieAIServiceManager(db)
+        
+        try:
+            content = await manager.generate_text_with_cookie(
+                user_id=user_id,
+                platform=platform,
+                prompt=prompt,
+            )
+            return content
+        except ValueError as e:
+            logger.error(f"Cookie-based generation failed: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during Cookie-based generation: {e}")
+            raise ValueError(f"生成内容失败: {str(e)}")
+    
+    @classmethod
+    async def optimize_content_with_cookie(
+        cls,
+        db: Session,
+        user_id: int,
+        content: str,
+        optimization_type: str,
+        platform: str = "doubao",
+    ) -> str:
+        """
+        使用Cookie方式优化内容
+        
+        Args:
+            db: 数据库连接
+            user_id: 用户ID
+            content: 原始内容
+            optimization_type: 优化类型
+            platform: AI平台（默认为豆包）
+            
+        Returns:
+            优化后的内容
+        """
+        from app.services.cookie_ai_manager import CookieAIServiceManager
+        
+        optimization_prompts = {
+            "seo": f"请对以下内容进行SEO优化，提高搜索引擎友好度：\n\n{content}",
+            "readability": f"请优化以下内容的可读性，使其更易理解：\n\n{content}",
+            "engagement": f"请优化以下内容，提高用户参与度和互动性：\n\n{content}",
+            "concise": f"请精简以下内容，保留核心信息：\n\n{content}",
+            "expand": f"请扩展以下内容，增加细节和深度：\n\n{content}"
+        }
+        
+        if optimization_type not in optimization_prompts:
+            raise ValueError(f"不支持的优化类型: {optimization_type}")
+        
+        prompt = optimization_prompts[optimization_type]
+        
+        # 使用Cookie服务调用AI
+        manager = CookieAIServiceManager(db)
+        
+        try:
+            optimized_content = await manager.generate_text_with_cookie(
+                user_id=user_id,
+                platform=platform,
+                prompt=prompt,
+            )
+            return optimized_content
+        except ValueError as e:
+            logger.error(f"Cookie-based optimization failed: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during Cookie-based optimization: {e}")
+            raise ValueError(f"优化内容失败: {str(e)}")
+
         """获取所有可用的写作工具列表"""
         tools = [
             {

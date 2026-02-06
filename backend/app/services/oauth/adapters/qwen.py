@@ -1,7 +1,7 @@
 """
 通义千问网页版适配器
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
 
 
@@ -28,6 +28,10 @@ class QwenAdapter(PlatformAdapter):
             "login_aliyunid_pk",
             "tfstk",
         ]
+    
+    def get_optional_cookie_names(self) -> list:
+        """获取可选的Cookie名称"""
+        return []
     
     def get_cookie_domain(self) -> str:
         """获取Cookie域名"""
@@ -86,12 +90,12 @@ class QwenAdapter(PlatformAdapter):
             message: 用户消息
             cookies: Cookie字典
             conversation_id: 会话ID（可选）
-            
+
         Returns:
             响应数据
         """
         import httpx
-        
+
         # 构建请求头
         headers = {
             "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
@@ -100,7 +104,7 @@ class QwenAdapter(PlatformAdapter):
             "Origin": "https://tongyi.aliyun.com",
             "Content-Type": "application/json",
         }
-        
+
         # 构建请求体
         payload = {
             "model": "",
@@ -114,7 +118,7 @@ class QwenAdapter(PlatformAdapter):
                 "content": message,
             },
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://qianwen.biz.aliyun.com/dialog/conversation",
@@ -124,3 +128,19 @@ class QwenAdapter(PlatformAdapter):
             )
             response.raise_for_status()
             return response.json()
+
+    async def generate_image(
+        self,
+        prompt: str,
+        cookies: Dict[str, str],
+        negative_prompt: Optional[str] = None,
+        style: Optional[str] = None,
+        size: str = "1024x1024"
+    ) -> Dict[str, Any]:
+        """
+        生成图片（通义千问暂不支持Cookie方式，需要API Key）
+        """
+        return {
+            "error": "通义千问图片生成需要使用 DashScope API Key，不支持Cookie方式",
+            "images": [],
+        }

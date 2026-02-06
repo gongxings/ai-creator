@@ -2,7 +2,6 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.5
 pydantic-settings==2.7.1
-pydantic-core==2.27.2
 email-validator==2.1.0
 sqlalchemy==2.0.36
 alembic==1.14.0
@@ -26,6 +25,8 @@ playwright==1.49.1
 litellm==1.17.9
 websockets==14.1
 loguru==0.7.3
-pytest==8.3.4
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
+requests==2.32.3
+python-dateutil==2.9.0
+pillow==11.1.0
+imageio==2.36.1
+psutil==6.1.1

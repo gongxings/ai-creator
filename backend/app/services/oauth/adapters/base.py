@@ -46,12 +46,21 @@ class PlatformAdapter(ABC):
     @abstractmethod
     def get_cookie_names(self) -> list:
         """
-        获取需要提取的Cookie名称列表
+        获取需要提取的Cookie名称列表（必需的）
         
         Returns:
             Cookie名称列表
         """
         pass
+
+    def get_optional_cookie_names(self) -> list:
+        """
+        获取可选的Cookie名称列表（非必需，但有则更好）
+        
+        Returns:
+            Cookie名称列表
+        """
+        return []
     
     def get_cookie_domain(self) -> str:
         """
@@ -112,14 +121,34 @@ class PlatformAdapter(ABC):
         Returns:
             平台配置字典
         """
-        return {
+        # 合并必需和可选的 cookie 名称
+        all_cookie_names = self.get_cookie_names() + self.get_optional_cookie_names()
+        
+        config = {
             "platform_id": self.platform_id,
             "oauth_url": self.get_oauth_url(),
             "success_pattern": self.get_success_pattern(),
-            "cookie_names": self.get_cookie_names(),
+            "cookie_names": all_cookie_names,
             "cookie_domain": self.get_cookie_domain(),
             "check_url": self.get_check_url(),
         }
+
+        # 添加自动登录配置（如果有）
+        auto_login_config = self.get_auto_login_config()
+        if auto_login_config:
+            config["username"] = auto_login_config.get("username")
+            config["password"] = auto_login_config.get("password")
+
+        return config
+    
+    def get_auto_login_config(self) -> Dict[str, Any]:
+        """
+        获取自动登录配置
+        
+        Returns:
+            自动登录配置字典（username, password）
+        """
+        return {}
     
     def extract_user_info(self, credentials: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -156,5 +185,14 @@ class PlatformAdapter(ABC):
             if cookie_name not in cookies:
                 logger.warning(f"Missing required cookie: {cookie_name}")
                 return False
+
+        # 记录可选Cookie的状态（仅用于日志）
+        optional_cookies = self.get_optional_cookie_names()
+        if optional_cookies:
+            found_optional = [c for c in optional_cookies if c in cookies]
+            if found_optional:
+                logger.info(f"Found optional cookies: {found_optional}")
+            else:
+                logger.warning(f"No optional cookies found: {optional_cookies}")
         
         return True

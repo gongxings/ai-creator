@@ -1,7 +1,7 @@
 """
 讯飞星火网页版适配器
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
 
 
@@ -23,6 +23,10 @@ class SparkAdapter(PlatformAdapter):
             "refreshToken",
             "accessToken",
         ]
+    
+    def get_optional_cookie_names(self) -> list:
+        """获取可选的Cookie名称"""
+        return []
     
     def get_cookie_domain(self) -> str:
         """获取Cookie域名"""
@@ -71,21 +75,21 @@ class SparkAdapter(PlatformAdapter):
             "requests_per_minute": 60,
             "tokens_per_minute": 100000,
         }
-    
+
     async def send_message(self, message: str, cookies: Dict[str, str], chat_id: str = None) -> Dict[str, Any]:
         """
         发送消息到讯飞星火网页版
-        
+
         Args:
             message: 用户消息
             cookies: Cookie字典
             chat_id: 聊天ID（可选）
-            
+
         Returns:
             响应数据
         """
         import httpx
-        
+
         # 构建请求头
         headers = {
             "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
@@ -94,7 +98,7 @@ class SparkAdapter(PlatformAdapter):
             "Origin": "https://xinghuo.xfyun.cn",
             "Content-Type": "application/json",
         }
-        
+
         # 构建请求体
         payload = {
             "chatId": chat_id or "",
@@ -102,7 +106,7 @@ class SparkAdapter(PlatformAdapter):
             "clientType": "1",
             "model": "general",
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://xinghuo.xfyun.cn/iflygpt-chat/u/chat_message/chat",
@@ -111,11 +115,11 @@ class SparkAdapter(PlatformAdapter):
                 timeout=60.0,
             )
             response.raise_for_status()
-            
+
             # 讯飞星火返回SSE流
             lines = response.text.strip().split("\n")
             result = {"chat_id": chat_id}
-            
+
             for line in lines:
                 if line.startswith("data:"):
                     data = line[5:].strip()
@@ -129,5 +133,21 @@ class SparkAdapter(PlatformAdapter):
                                 result["chat_id"] = parsed["chatId"]
                         except:
                             continue
-            
+
             return result
+
+    async def generate_image(
+        self,
+        prompt: str,
+        cookies: Dict[str, str],
+        negative_prompt: Optional[str] = None,
+        style: Optional[str] = None,
+        size: str = "1024x1024"
+    ) -> Dict[str, Any]:
+        """
+        生成图片（讯飞星火暂不支持Cookie方式）
+        """
+        return {
+            "error": "讯飞星火图片生成需要使用 API Key，不支持Cookie方式",
+            "images": [],
+        }

@@ -2,6 +2,7 @@
 FastAPI应用主入口
 """
 import sys
+import asyncio
 from pathlib import Path
 
 # 确保backend目录在Python路径中
@@ -236,10 +237,19 @@ app.include_router(
 
 
 if __name__ == "__main__":
+    # 应用nest_asyncio以支持Windows上的Playwright
+    try:
+        import nest_asyncio
+        nest_asyncio.apply()
+    except ImportError:
+        print("[WARNING] nest_asyncio not installed. Run: pip install nest-asyncio")
+    
     import uvicorn
+    
     uvicorn.run(
-        "app.main:app",
+        app,
         host=settings.HOST,
         port=settings.PORT,
-        reload=settings.DEBUG
+        reload=settings.DEBUG,
+        log_level=settings.LOG_LEVEL.lower()
     )

@@ -1,7 +1,7 @@
 """
 Google Gemini网页版适配器
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
 
 
@@ -27,6 +27,10 @@ class GeminiAdapter(PlatformAdapter):
             "__Secure-1PSID",
             "__Secure-3PSID",
         ]
+    
+    def get_optional_cookie_names(self) -> list:
+        """获取可选的Cookie名称"""
+        return []
     
     def get_cookie_domain(self) -> str:
         """获取Cookie域名"""
@@ -76,22 +80,22 @@ class GeminiAdapter(PlatformAdapter):
             "requests_per_minute": 60,
             "tokens_per_minute": 100000,
         }
-    
+
     async def send_message(self, message: str, cookies: Dict[str, str], conversation_id: str = None, message_id: str = None) -> Dict[str, Any]:
         """
         发送消息到Gemini网页版
-        
+
         Args:
             message: 用户消息
             cookies: Cookie字典
             conversation_id: 会话ID（可选）
             message_id: 消息ID（可选）
-            
+
         Returns:
             响应数据
         """
         import httpx
-        
+
         # 构建请求头
         headers = {
             "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
@@ -100,13 +104,15 @@ class GeminiAdapter(PlatformAdapter):
             "Origin": "https://gemini.google.com",
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        
+
         # 构建请求体
+        # 注意：需要正确转义方括号和引号给Gemini API
+        escaped_message = message.replace('"', '\\"')
         payload = {
-            "f.req": f'[[null,"[\\"{message}\\"]"]]',
+            "f.req": f'[[null,"[\\"{escaped_message}\\"]"]]',
             "at": cookies.get("__Secure-1PSID", ""),
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate",
@@ -115,7 +121,7 @@ class GeminiAdapter(PlatformAdapter):
                 timeout=60.0,
             )
             response.raise_for_status()
-            
+
             # Gemini返回特殊格式，需要解析
             text = response.text
             import json
@@ -137,5 +143,21 @@ class GeminiAdapter(PlatformAdapter):
                                     }
             except:
                 pass
-            
+
             return {}
+
+    async def generate_image(
+        self,
+        prompt: str,
+        cookies: Dict[str, str],
+        negative_prompt: Optional[str] = None,
+        style: Optional[str] = None,
+        size: str = "1024x1024"
+    ) -> Dict[str, Any]:
+        """
+        生成图片（Gemini暂不支持Cookie方式）
+        """
+        return {
+            "error": "Gemini图片生成需要使用 API Key，不支持Cookie方式",
+            "images": [],
+        }

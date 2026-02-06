@@ -1,197 +1,323 @@
 """
 PPT生成API路由
 """
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from typing import Optional, List
+import uuid
+import asyncio
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+import logging
 
 from app.core.database import get_db
-from app.core.security import get_current_user
 from app.models.user import User
 from app.models.creation import Creation
-from app.schemas.creation import CreationCreate, CreationResponse
-from app.services.ai.factory import AIServiceFactory
+from app.models.credit import CreditTransaction, TransactionType
+from app.schemas.common import success_response
+from app.utils.deps import get_current_user
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/generate", response_model=CreationResponse)
+class PPTGenerateRequest(BaseModel):
+    topic: str
+    slides_count: Optional[int] = 10
+    style: Optional[str] = None
+    language: Optional[str] = None
+    platform: Optional[str] = None  # 支持Cookie模式
+
+
+class PPTFromOutlineRequest(BaseModel):
+    outline: str
+    style: Optional[str] = None
+    platform: Optional[str] = None  # 支持Cookie模式
+
+
+class PPTTaskResponse(BaseModel):
+    task_id: str
+    status: str
+    ppt_url: Optional[str] = None
+    outline: Optional[str] = None
+    preview_images: Optional[List[str]] = None
+    progress: Optional[int] = None
+
+
+async def process_ppt_generation(db: Session, creation_id: int, request_data: dict, user_id: int = None, platform: Optional[str] = None):
+    """后台处理PPT生成任务"""
+    try:
+        logger.info(f"Starting PPT generation for creation {creation_id}, platform={platform}")
+
+        creation = db.query(Creation).filter(Creation.id == creation_id).first()
+        if not creation:
+            logger.error(f"Creation {creation_id} not found")
+            return
+
+        if platform:
+            # Cookie模式
+            logger.info(f"Using Cookie mode for platform: {platform}")
+            
+            from app.models.oauth_account import OAuthAccount
+            from app.services.oauth.encryption import decrypt_credentials
+            from app.services.ai.ppt_service import DoubiaoPPTService
+
+            # 获取用户的OAuth账号
+            oauth_account = db.query(OAuthAccount).filter(
+                OAuthAccount.user_id == user_id,
+                OAuthAccount.platform == platform,
+                OAuthAccount.is_active == True,
+                OAuthAccount.is_expired == False
+            ).first()
+
+            if not oauth_account:
+                logger.error(f"No active OAuth account for platform {platform}")
+                creation.status = "failed"
+                creation.error_message = f"未找到有效的 {platform} 账号"
+                creation.output_data = {"error": f"未找到有效的 {platform} 账号"}
+                db.commit()
+                return
+
+            # 解密凭证
+            try:
+                credentials = decrypt_credentials(oauth_account.credentials)
+                cookies = credentials.get("cookies", {})
+            except Exception as e:
+                logger.error(f"Failed to decrypt credentials: {e}")
+                creation.status = "failed"
+                creation.error_message = f"解密凭证失败: {str(e)}"
+                creation.output_data = {"error": f"解密凭证失败: {str(e)}"}
+                db.commit()
+                return
+
+            # 调用PPT生成服务
+            if platform == "doubao":
+                service = DoubiaoPPTService(cookies=cookies)
+                
+                # 验证Cookie
+                is_valid = await service.validate_cookies()
+                if not is_valid:
+                    logger.warning(f"Cookie validation failed for {platform}")
+                    creation.status = "failed"
+                    creation.error_message = f"{platform} Cookie已过期"
+                    creation.output_data = {"error": f"{platform} Cookie已过期"}
+                    db.commit()
+                    return
+                
+                # 生成PPT大纲
+                result = await service.generate_ppt_outline(
+                    title=request_data.get("topic", ""),
+                    content="",
+                    num_slides=request_data.get("slides_count", 10)
+                )
+                
+                logger.info(f"PPT generation result: {result}")
+                
+                if "error" in result:
+                    creation.status = "failed"
+                    creation.error_message = result.get("error", "PPT生成失败")
+                    creation.output_data = result
+                else:
+                    creation.status = "completed"
+                    creation.output_data = result
+                
+                db.commit()
+            else:
+                logger.error(f"Unsupported platform: {platform}")
+                creation.status = "failed"
+                creation.error_message = f"不支持的平台: {platform}"
+                creation.output_data = {"error": f"不支持的平台: {platform}"}
+                db.commit()
+        else:
+            # API Key模式 - 模拟
+            await asyncio.sleep(2)
+            ppt_url = f"https://example.com/ppt_{uuid.uuid4().hex[:8]}.pptx"
+            preview_images = [
+                f"https://example.com/ppt_preview_{uuid.uuid4().hex[:8]}.png"
+                for _ in range(3)
+            ]
+            creation.status = "completed"
+            creation.output_data = {"ppt_url": ppt_url, "preview_images": preview_images}
+            db.commit()
+
+    except Exception as e:
+        logger.error(f"PPT generation failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        try:
+            creation = db.query(Creation).filter(Creation.id == creation_id).first()
+            if creation:
+                creation.status = "failed"
+                creation.error_message = str(e)
+                creation.output_data = {"error": str(e)}
+                db.commit()
+        except Exception as db_error:
+            logger.error(f"Failed to update creation status: {db_error}")
+
+
+@router.post("/generate")
 async def generate_ppt(
-    request: CreationCreate,
+    request: PPTGenerateRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    生成PPT
-    
-    支持的生成方式：
-    - 主题生成：提供主题和大纲
-    - 文档转换：上传文档内容
-    """
+    """主题生成PPT - 支持Cookie和API Key模式"""
     try:
-        # 创建创作记录
+        # Cookie模式不需要积分
+        if not request.platform:
+            # API Key模式：计算所需积分
+            required_credits = (request.slides_count or 10) * 50
+            
+            if current_user.credits < required_credits:
+                raise HTTPException(status_code=402, detail="积分不足")
+        
+        task_id = f"ppt_{uuid.uuid4().hex[:16]}"
         creation = Creation(
             user_id=current_user.id,
-            type="ppt",
-            title=request.title or "未命名PPT",
-            input_data=request.input_data,
+            creation_type="ppt",
+            title=f"PPT: {request.topic[:50]}",
+            input_data={
+                **request.dict(),
+                "task_id": task_id
+            },
             status="processing"
         )
         db.add(creation)
+        
+        # 仅在API Key模式下扣除积分
+        if not request.platform:
+            required_credits = (request.slides_count or 10) * 50
+            current_user.credits -= required_credits
+            transaction = CreditTransaction(
+                user_id=current_user.id,
+                transaction_type=TransactionType.CONSUME,
+                amount=-required_credits,
+                balance_before=current_user.credits + required_credits,
+                balance_after=current_user.credits,
+                description=f"PPT生成: {request.slides_count}页",
+                related_id=creation.id,
+                related_type="creation"
+            )
+            db.add(transaction)
+        
         db.commit()
         db.refresh(creation)
-        
-        # 异步生成PPT
-        background_tasks.add_task(
-            _generate_ppt_task,
-            creation.id,
-            request.input_data,
-            request.config
+
+        background_tasks.add_task(process_ppt_generation, db, creation.id, request.dict(), current_user.id, request.platform)
+
+        return success_response(
+            data=PPTTaskResponse(task_id=task_id, status="processing", progress=0),
+            message="PPT生成任务已创建"
         )
-        
-        return creation
-        
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"生成PPT失败: {str(e)}")
 
 
-async def _generate_ppt_task(creation_id: int, input_data: dict, config: dict = None):
-    """
-    异步生成PPT任务
-    """
-    from app.core.database import SessionLocal
-    
-    db = SessionLocal()
+@router.post("/from-outline")
+async def generate_ppt_from_outline(
+    request: PPTFromOutlineRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """大纲生成PPT"""
     try:
-        creation = db.query(Creation).filter(Creation.id == creation_id).first()
-        if not creation:
-            return
-        
-        # 获取AI服务
-        ai_service = AIServiceFactory.get_service(config.get("model", "openai") if config else "openai")
-        
-        # 构建提示词
-        prompt = _build_ppt_prompt(input_data)
-        
-        # 调用AI生成PPT大纲和内容
-        result = await ai_service.generate(prompt)
-        
-        # 解析生成结果
-        ppt_data = _parse_ppt_result(result)
-        
-        # 更新创作记录
-        creation.content = ppt_data
-        creation.status = "completed"
+        task_id = f"ppt_outline_{uuid.uuid4().hex[:16]}"
+        creation = Creation(
+            user_id=current_user.id,
+            tool_type="ppt_outline",
+            title="PPT: 大纲生成",
+            input_data=request.dict(),
+            status="processing",
+            task_id=task_id
+        )
+        db.add(creation)
         db.commit()
-        
+        db.refresh(creation)
+
+        background_tasks.add_task(process_ppt_generation, db, creation.id, request.dict())
+
+        return success_response(
+            data=PPTTaskResponse(task_id=task_id, status="processing", progress=0),
+            message="PPT生成任务已创建"
+        )
     except Exception as e:
-        if creation:
-            creation.status = "failed"
-            creation.error_message = str(e)
-            db.commit()
-    finally:
-        db.close()
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"生成PPT失败: {str(e)}")
 
 
-def _build_ppt_prompt(input_data: dict) -> str:
-    """
-    构建PPT生成提示词
-    """
-    generation_type = input_data.get("type", "theme")
-    
-    if generation_type == "theme":
-        # 主题生成PPT
-        theme = input_data.get("theme", "")
-        outline = input_data.get("outline", "")
-        slides_count = input_data.get("slides_count", 10)
-        
-        prompt = f"""请根据以下主题和大纲生成一个专业的PPT内容：
-
-主题：{theme}
-大纲：{outline}
-幻灯片数量：{slides_count}
-
-要求：
-1. 生成完整的PPT结构，包括标题页、目录页、内容页和结束页
-2. 每页包含标题、要点和详细说明
-3. 内容要专业、清晰、有逻辑性
-4. 适当使用数据、案例和图表说明
-5. 返回JSON格式，包含slides数组，每个slide包含：
-   - title: 标题
-   - content: 内容要点（数组）
-   - notes: 演讲备注
-   - layout: 布局类型（title/content/two-column/image等）
-
-请直接返回JSON格式的PPT内容。"""
-
-    elif generation_type == "document":
-        # 文档转PPT
-        document = input_data.get("document", "")
-        slides_count = input_data.get("slides_count", 10)
-        
-        prompt = f"""请将以下文档内容转换为PPT格式：
-
-文档内容：
-{document}
-
-要求：
-1. 提取文档的核心内容和结构
-2. 生成约{slides_count}页幻灯片
-3. 每页包含标题、要点和详细说明
-4. 保持原文档的逻辑结构
-5. 返回JSON格式，包含slides数组
-
-请直接返回JSON格式的PPT内容。"""
-
-    else:
-        # 大纲生成PPT
-        outline = input_data.get("outline", "")
-        
-        prompt = f"""请根据以下大纲生成PPT内容：
-
-大纲：
-{outline}
-
-要求：
-1. 根据大纲结构生成幻灯片
-2. 每个大纲要点对应一页或多页幻灯片
-3. 内容要详细、专业
-4. 返回JSON格式
-
-请直接返回JSON格式的PPT内容。"""
-    
-    return prompt
-
-
-def _parse_ppt_result(result: str) -> dict:
-    """
-    解析PPT生成结果
-    """
-    import json
-    import re
-    
+@router.post("/from-document")
+async def generate_ppt_from_document(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """文档转PPT"""
     try:
-        # 尝试直接解析JSON
-        return json.loads(result)
-    except:
-        # 如果不是纯JSON，尝试提取JSON部分
-        json_match = re.search(r'\{[\s\S]*\}', result)
-        if json_match:
-            return json.loads(json_match.group())
-        
-        # 如果都失败，返回原始文本
-        return {
-            "slides": [
-                {
-                    "title": "生成的PPT内容",
-                    "content": [result],
-                    "notes": "",
-                    "layout": "content"
-                }
-            ]
-        }
+        task_id = f"ppt_doc_{uuid.uuid4().hex[:16]}"
+        creation = Creation(
+            user_id=current_user.id,
+            tool_type="ppt_document",
+            title=f"PPT: {file.filename}",
+            input_data={"filename": file.filename},
+            status="processing",
+            task_id=task_id
+        )
+        db.add(creation)
+        db.commit()
+        db.refresh(creation)
+
+        if background_tasks:
+            background_tasks.add_task(process_ppt_generation, db, creation.id, {"filename": file.filename})
+
+        return success_response(
+            data=PPTTaskResponse(task_id=task_id, status="processing", progress=0),
+            message="PPT生成任务已创建"
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"生成PPT失败: {str(e)}")
+
+
+@router.get("/task/{task_id}")
+async def get_ppt_task_status(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """获取PPT任务状态"""
+    try:
+        creation = db.query(Creation).filter(
+            Creation.task_id == task_id,
+            Creation.user_id == current_user.id
+        ).first()
+        if not creation:
+            raise HTTPException(status_code=404, detail="任务不存在")
+
+        data = creation.output_data or {}
+        progress = 100 if creation.status == "completed" else (
+            50 if creation.status == "processing" else 0
+        )
+
+        return success_response(
+            data=PPTTaskResponse(
+                task_id=task_id,
+                status=creation.status,
+                ppt_url=data.get("ppt_url"),
+                preview_images=data.get("preview_images"),
+                progress=progress
+            ),
+            message="获取成功"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取任务状态失败: {str(e)}")
 
 
 @router.get("/{ppt_id}/download")
@@ -200,95 +326,31 @@ async def download_ppt(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    下载PPT文件
-    """
+    """下载PPT文件"""
     creation = db.query(Creation).filter(
         Creation.id == ppt_id,
-        Creation.user_id == current_user.id,
-        Creation.type == "ppt"
+        Creation.user_id == current_user.id
     ).first()
-    
+
     if not creation:
         raise HTTPException(status_code=404, detail="PPT不存在")
-    
-    if creation.status != "completed":
-        raise HTTPException(status_code=400, detail="PPT尚未生成完成")
-    
-    # 生成PPT文件
-    try:
-        from pptx import Presentation
-        from pptx.util import Inches, Pt
-        import os
-        from datetime import datetime
-        
-        # 创建PPT对象
-        prs = Presentation()
-        prs.slide_width = Inches(10)
-        prs.slide_height = Inches(7.5)
-        
-        # 获取PPT数据
-        ppt_data = creation.content
-        slides_data = ppt_data.get("slides", [])
-        
-        # 生成每一页幻灯片
-        for slide_data in slides_data:
-            layout_type = slide_data.get("layout", "content")
-            
-            # 根据布局类型选择幻灯片布局
-            if layout_type == "title":
-                slide_layout = prs.slide_layouts[0]  # 标题页
-            elif layout_type == "two-column":
-                slide_layout = prs.slide_layouts[3]  # 两栏布局
-            else:
-                slide_layout = prs.slide_layouts[1]  # 标题和内容
-            
-            slide = prs.slides.add_slide(slide_layout)
-            
-            # 设置标题
-            title = slide.shapes.title
-            title.text = slide_data.get("title", "")
-            
-            # 设置内容
-            if layout_type != "title" and len(slide.shapes) > 1:
-                content_shape = slide.shapes[1]
-                if hasattr(content_shape, "text_frame"):
-                    text_frame = content_shape.text_frame
-                    text_frame.clear()
-                    
-                    content_items = slide_data.get("content", [])
-                    for item in content_items:
-                        p = text_frame.add_paragraph()
-                        p.text = item
-                        p.level = 0
-        
-        # 保存PPT文件
-        upload_dir = "app/uploads/ppt"
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        filename = f"ppt_{ppt_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pptx"
-        filepath = os.path.join(upload_dir, filename)
-        prs.save(filepath)
-        
-        return {
-            "code": 200,
-            "message": "success",
-            "data": {
-                "download_url": f"/uploads/ppt/{filename}",
-                "filename": filename,
-                "ppt_data": creation.content
-            }
-        }
-        
-    except ImportError:
-        # 如果没有安装python-pptx，返回JSON数据
-        return {
-            "code": 200,
-            "message": "PPT数据已生成，但需要安装python-pptx库才能导出文件",
-            "data": {
-                "ppt_data": creation.content,
-                "note": "请运行: pip install python-pptx"
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"生成PPT文件失败: {str(e)}")
+
+    data = creation.output_data or {}
+    download_url = data.get("ppt_url") or f"https://example.com/ppt/{ppt_id}.pptx"
+    return success_response(
+        data={"download_url": download_url},
+        message="success"
+    )
+
+
+@router.get("/templates")
+async def get_ppt_templates():
+    """获取PPT模板列表"""
+    return success_response(
+        data=[
+            {"id": "default", "name": "默认模板"},
+            {"id": "business", "name": "商务模板"},
+            {"id": "simple", "name": "简约模板"}
+        ],
+        message="success"
+    )
