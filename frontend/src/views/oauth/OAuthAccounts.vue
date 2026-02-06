@@ -271,7 +271,7 @@
            <div class="method-label">选择授权方式</div>
            <el-radio-group v-model="authMethod" size="large" class="auth-methods">
              <el-radio-button label="frontend">
-               <el-icon><Chrome /></el-icon>
+               <el-icon><Link /></el-icon>
                前端授权（推荐）
              </el-radio-button>
              <el-radio-button label="backend">
@@ -438,7 +438,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
-import { Plus, Key, Chrome, Monitor } from '@element-plus/icons-vue'
+import { Plus, Key, Link, Monitor } from '@element-plus/icons-vue'
 import {
   getPlatforms,
   getAccounts,
