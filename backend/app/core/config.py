@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # 应用基本信息
     APP_NAME: str = "AI创作者平台"
     APP_VERSION: str = "1.0.0"
-    API_V1_PREFIX: str = "/api/v1"
+    API_V1_PREFIX: str = "/api/"
     DEBUG: bool = False
     
     # 服务器配置

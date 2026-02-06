@@ -29,30 +29,30 @@ export interface ImageToVideoRequest {
 
 // 生成视频
 export function generateVideo(data: VideoGenerateRequest) {
-  return request.post<{ data: VideoGenerateResponse }>('/video/generate', data)
+  return request.post<{ data: VideoGenerateResponse }>('/v1/video/generate', data)
 }
 
 // 文本转视频
 export function textToVideo(data: TextToVideoRequest) {
-  return request.post<{ data: VideoGenerateResponse }>('/video/text-to-video', data)
+  return request.post<{ data: VideoGenerateResponse }>('/v1/video/text-to-video', data)
 }
 
 // 图片转视频
 export function imageToVideo(data: ImageToVideoRequest) {
-  return request.post<{ data: VideoGenerateResponse }>('/video/image-to-video', data)
+  return request.post<{ data: VideoGenerateResponse }>('/v1/video/image-to-video', data)
 }
 
 // 获取任务状态
 export function getVideoTaskStatus(taskId: string) {
-  return request.get<{ data: VideoGenerateResponse }>(`/video/task/${taskId}`)
+  return request.get<{ data: VideoGenerateResponse }>(`/v1/video/task/${taskId}`)
 }
 
 // AI配音
 export function generateVoiceover(data: { text: string; voice?: string }) {
-  return request.post<{ data: { audio_url: string } }>('/video/voiceover', data)
+  return request.post<{ data: { audio_url: string } }>('/v1/video/voiceover', data)
 }
 
 // 生成字幕
 export function generateSubtitles(data: { video_url: string }) {
-  return request.post<{ data: { subtitles: any[] } }>('/video/subtitles', data)
+  return request.post<{ data: { subtitles: any[] } }>('/v1/video/subtitles', data)
 }

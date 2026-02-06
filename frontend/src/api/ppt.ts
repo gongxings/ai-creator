@@ -21,12 +21,12 @@ export interface PPTGenerateResponse {
 
 // 主题生成PPT
 export function generatePPT(data: PPTGenerateRequest) {
-  return request.post<{ data: PPTGenerateResponse }>('/ppt/generate', data)
+  return request.post<{ data: PPTGenerateResponse }>('/v1/ppt/generate', data)
 }
 
 // 大纲生成PPT
 export function generatePPTFromOutline(data: PPTFromOutlineRequest) {
-  return request.post<{ data: PPTGenerateResponse }>('/ppt/from-outline', data)
+  return request.post<{ data: PPTGenerateResponse }>('/v1/ppt/from-outline', data)
 }
 
 // 文档转PPT
@@ -37,7 +37,7 @@ export function convertDocToPPT(data: { file: File; style?: string }) {
     formData.append('style', data.style)
   }
   
-  return request.post<{ data: PPTGenerateResponse }>('/ppt/from-document', formData, {
+  return request.post<{ data: PPTGenerateResponse }>('/v1/ppt/from-document', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -46,17 +46,17 @@ export function convertDocToPPT(data: { file: File; style?: string }) {
 
 // 获取任务状态
 export function getPPTTaskStatus(taskId: string) {
-  return request.get<{ data: PPTGenerateResponse }>(`/ppt/task/${taskId}`)
+  return request.get<{ data: PPTGenerateResponse }>(`/v1/ppt/task/${taskId}`)
 }
 
 // 下载PPT
 export function downloadPPT(pptId: string) {
-  return request.get(`/ppt/${pptId}/download`, {
+  return request.get(`/v1/ppt/${pptId}/download`, {
     responseType: 'blob',
   })
 }
 
 // 获取PPT模板列表
 export function getPPTTemplates() {
-  return request.get<{ data: any[] }>('/ppt/templates')
+  return request.get<{ data: any[] }>('/v1/ppt/templates')
 }

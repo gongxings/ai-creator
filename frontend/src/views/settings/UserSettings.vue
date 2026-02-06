@@ -804,9 +804,20 @@ onMounted(() => {
   --hero-to: rgba(14, 165, 233, 0.18);
   --page-accent: #2563eb;
 
+  .page-body {
+    align-items: stretch;
+  }
+
+  .main-panel,
+  .side-panel {
+    height: 100%;
+  }
+
   .settings-card {
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     .card-header {
       display: flex;
@@ -817,8 +828,28 @@ onMounted(() => {
     }
   }
 
+  :deep(.settings-card .el-card__body) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .settings-tabs {
-    margin-top: 20px;
+    margin-top: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  :deep(.settings-tabs .el-tabs__content) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  :deep(.settings-tabs .el-tab-pane) {
+    height: 100%;
   }
 
   .settings-form {
@@ -828,6 +859,11 @@ onMounted(() => {
 
   .oauth-section,
   .models-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+
     .section-header {
       display: flex;
       justify-content: space-between;
