@@ -2,7 +2,7 @@
   <div class="publish-management">
     <el-card class="header-card">
       <div class="header-content">
-        <div>
+        <div class="header-left">
           <h2>发布管理</h2>
           <p class="subtitle">一键发布到多个平台</p>
         </div>
@@ -18,47 +18,90 @@
       <template #header>
         <div class="card-header">
           <span>平台账号</span>
-          <el-button text @click="openBindDialog">
+          <el-button text type="primary" @click="openBindDialog">
             <el-icon><Plus /></el-icon>
             绑定账号
           </el-button>
         </div>
       </template>
-      <el-table :data="platformAccounts" v-loading="loadingAccounts" style="width: 100%">
-        <el-table-column label="平台" width="160">
-          <template #default="{ row }">
-            {{ getPlatformName(row.platform) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="account_name" label="账号名称" min-width="180" />
-        <el-table-column label="Cookie状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="getCookieStatusType(row.cookies_valid)">
-              {{ getCookieStatusText(row.cookies_valid) }}
+
+      <!-- 桌面版表格 -->
+      <div class="table-view">
+        <el-table :data="platformAccounts" v-loading="loadingAccounts" style="width: 100%">
+          <el-table-column label="平台" width="160">
+            <template #default="{ row }">
+              {{ getPlatformName(row.platform) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="account_name" label="账号名称" min-width="180" />
+          <el-table-column label="Cookie状态" width="120">
+            <template #default="{ row }">
+              <el-tag :type="getCookieStatusType(row.cookies_valid)">
+                {{ getCookieStatusText(row.cookies_valid) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="Cookie更新时间" width="180">
+            <template #default="{ row }">
+              {{ row.cookies_updated_at ? formatDate(row.cookies_updated_at) : '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="账号状态" width="120">
+            <template #default="{ row }">
+              <el-tag :type="row.is_active === 'active' ? 'success' : 'info'">
+                {{ row.is_active === 'active' ? '启用' : '停用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="240">
+            <template #default="{ row }">
+              <el-button size="small" type="primary" @click="handleAutoAuthorize(row)">自动获取</el-button>
+              <el-button size="small" @click="openCookieDialog(row)">更新Cookie</el-button>
+              <el-button size="small" @click="handleValidateCookies(row)">校验</el-button>
+              <el-button size="small" type="danger" @click="unbindPlatform(row.id)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 手机版卡片 -->
+      <div v-if="platformAccounts.length > 0" class="card-view">
+        <div v-for="account in platformAccounts" :key="account.id" class="platform-card">
+          <div class="card-header">
+            <div class="platform-info">
+              <el-tag>{{ getPlatformName(account.platform) }}</el-tag>
+              <span class="account-name">{{ account.account_name }}</span>
+            </div>
+            <el-tag :type="account.is_active === 'active' ? 'success' : 'info'" size="small">
+              {{ account.is_active === 'active' ? '启用' : '停用' }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="Cookie更新时间" width="180">
-          <template #default="{ row }">
-            {{ row.cookies_updated_at ? formatDate(row.cookies_updated_at) : '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="账号状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="row.is_active === 'active' ? 'success' : 'info'">
-              {{ row.is_active === 'active' ? '启用' : '停用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="240">
-          <template #default="{ row }">
-            <el-button size="small" type="primary" @click="handleAutoAuthorize(row)">自动获取</el-button>
-            <el-button size="small" @click="openCookieDialog(row)">更新Cookie</el-button>
-            <el-button size="small" @click="handleValidateCookies(row)">校验</el-button>
-            <el-button size="small" type="danger" @click="unbindPlatform(row.id)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          </div>
+
+          <div class="card-body">
+            <div class="info-row">
+              <span class="label">Cookie状态：</span>
+              <el-tag :type="getCookieStatusType(account.cookies_valid)" size="small">
+                {{ getCookieStatusText(account.cookies_valid) }}
+              </el-tag>
+            </div>
+            <div class="info-row">
+              <span class="label">更新时间：</span>
+              <span>{{ account.cookies_updated_at ? formatDate(account.cookies_updated_at) : '-' }}</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <el-button type="primary" size="small" @click="handleAutoAuthorize(account)">授权</el-button>
+            <el-button size="small" @click="openCookieDialog(account)">Cookie</el-button>
+            <el-button size="small" @click="handleValidateCookies(account)">校验</el-button>
+            <el-button type="danger" size="small" plain @click="unbindPlatform(account.id)">删除</el-button>
+          </div>
+        </div>
+      </div>
+
+      <el-empty v-else-if="!loadingAccounts" description="暂无平台账号">
+        <el-button type="primary" @click="openBindDialog">绑定账号</el-button>
+      </el-empty>
     </el-card>
 
     <!-- 发布历史 -->
@@ -69,7 +112,7 @@
           <el-input
             v-model="searchKeyword"
             placeholder="搜索标题"
-            style="width: 200px"
+            class="search-input"
             clearable
             @input="handleSearch"
           >
@@ -79,54 +122,96 @@
           </el-input>
         </div>
       </template>
-      <el-table :data="publishHistory" v-loading="loading">
-        <el-table-column prop="title" label="标题" min-width="200" />
-        <el-table-column prop="platform" label="发布平台" width="200">
-          <template #default="{ row }">
-            <el-tag size="small">
-              {{ getPlatformName(row.platform) }}
+
+      <!-- 桌面版表格 -->
+      <div class="table-view">
+        <el-table :data="publishHistory" v-loading="loading">
+          <el-table-column prop="title" label="标题" min-width="200" />
+          <el-table-column prop="platform" label="发布平台" width="200">
+            <template #default="{ row }">
+              <el-tag size="small">
+                {{ getPlatformName(row.platform) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="{ row }">
+              <el-tag :type="getStatusType(row.status)">
+                {{ getStatusText(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="发布时间" width="180">
+            <template #default="{ row }">
+              {{
+                row.status === 'scheduled' && row.scheduled_at
+                  ? formatDate(row.scheduled_at)
+                  : row.published_at
+                  ? formatDate(row.published_at)
+                  : '-'
+              }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150" fixed="right">
+            <template #default="{ row }">
+              <el-button text type="primary" @click="viewDetail(row)">
+                查看详情
+              </el-button>
+              <el-button
+                text
+                type="danger"
+                @click="deleteRecord(row.id)"
+              >
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 手机版卡片 -->
+      <div v-if="publishHistory.length > 0" class="card-view">
+        <div v-for="record in publishHistory" :key="record.id" class="history-record-card">
+          <div class="record-header">
+            <div class="record-title">{{ record.title }}</div>
+            <el-tag :type="getStatusType(record.status)" size="small">
+              {{ getStatusText(record.status) }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
-              {{ getStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="发布时间" width="180">
-          <template #default="{ row }">
-            {{
-              row.status === 'scheduled' && row.scheduled_at
-                ? formatDate(row.scheduled_at)
-                : row.published_at
-                ? formatDate(row.published_at)
-                : '-'
-            }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button text type="primary" @click="viewDetail(row)">
-              查看详情
-            </el-button>
-            <el-button
-              text
-              type="danger"
-              @click="deleteRecord(row.id)"
-            >
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          </div>
+
+          <div class="record-body">
+            <div class="info-row">
+              <span class="label">平台：</span>
+              <el-tag size="small">{{ getPlatformName(record.platform) }}</el-tag>
+            </div>
+            <div class="info-row">
+              <span class="label">时间：</span>
+              <span>{{
+                record.status === 'scheduled' && record.scheduled_at
+                  ? formatDate(record.scheduled_at)
+                  : record.published_at
+                  ? formatDate(record.published_at)
+                  : '-'
+              }}</span>
+            </div>
+          </div>
+
+          <div class="record-actions">
+            <el-button type="primary" text size="small" @click="viewDetail(record)">查看详情</el-button>
+            <el-button type="danger" text size="small" @click="deleteRecord(record.id)">删除</el-button>
+          </div>
+        </div>
+      </div>
+
+      <el-empty v-else-if="!loading" description="暂无发布记录" />
+
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :total="total"
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
+        class="pagination"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
@@ -1007,49 +1092,171 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .publish-management {
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
 
   .header-card {
     margin-bottom: 20px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
     .header-content {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
 
-      h2 {
-        margin: 0 0 8px 0;
-        font-size: 24px;
-        font-weight: 600;
-      }
+      .header-left {
+        h2 {
+          margin: 0 0 8px 0;
+          font-size: 24px;
+          font-weight: 600;
+          color: #1f2937;
+        }
 
-      .subtitle {
-        margin: 0;
-        color: #909399;
-        font-size: 14px;
+        .subtitle {
+          margin: 0;
+          color: #64748b;
+          font-size: 14px;
+        }
       }
     }
   }
 
-  .platforms-card {
+  .platforms-card,
+  .history-card {
     margin-bottom: 20px;
 
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    // 桌面版表格
+    .table-view {
+      display: block;
+    }
+
+    // 手机版卡片
+    .card-view {
+      display: none;
+    }
+  }
+
+  .platforms-card {
+    .platform-card {
+      background: #fff;
+      border: 1px solid #edf2f7;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .platform-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          .account-name {
+            font-weight: 600;
+            color: #1f2937;
+          }
+        }
+      }
+
+      .card-body {
+        margin-bottom: 12px;
+
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          margin-bottom: 8px;
+          color: #64748b;
+
+          .label {
+            color: #94a3b8;
+          }
+        }
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid #f1f5f9;
+        justify-content: flex-end;
+      }
     }
   }
 
   .history-card {
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .search-input {
+      width: 200px;
     }
 
-    :deep(.el-pagination) {
-      margin-top: 20px;
+    .pagination {
+      display: flex;
       justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .history-record-card {
+      background: #fff;
+      border: 1px solid #edf2f7;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+
+      .record-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 12px;
+
+        .record-title {
+          font-weight: 600;
+          color: #1f2937;
+          flex: 1;
+          word-break: break-word;
+          margin-right: 8px;
+        }
+      }
+
+      .record-body {
+        margin-bottom: 12px;
+
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          margin-bottom: 6px;
+          color: #64748b;
+
+          .label {
+            color: #94a3b8;
+          }
+        }
+      }
+
+      .record-actions {
+        display: flex;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid #f1f5f9;
+        justify-content: flex-end;
+      }
     }
   }
 
@@ -1090,6 +1297,82 @@ onUnmounted(() => {
 
     a {
       color: #409eff;
+    }
+  }
+}
+
+// 响应式适配
+@media (max-width: 992px) {
+  .publish-management {
+    padding: 12px;
+
+    .header-card {
+      .header-content {
+        flex-direction: column;
+        gap: 12px;
+
+        .header-left {
+          h2 {
+            font-size: 20px;
+          }
+        }
+      }
+    }
+
+    .platforms-card,
+    .history-card {
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+
+        .search-input {
+          width: 100%;
+        }
+      }
+
+      .table-view {
+        display: none;
+      }
+
+      .card-view {
+        display: block;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .publish-management {
+    padding: 8px;
+
+    .platforms-card {
+      .platform-card {
+        .card-actions {
+          flex-wrap: wrap;
+        }
+      }
+    }
+
+    .history-card {
+      .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .history-record-card {
+        .record-header {
+          flex-direction: column;
+
+          .record-title {
+            margin-right: 0;
+            margin-bottom: 8px;
+          }
+        }
+
+        .record-actions {
+          justify-content: space-between;
+        }
+      }
     }
   }
 }
