@@ -109,68 +109,122 @@
       </el-table>
     </el-card>
 
-    <!-- 添加账号对话框 -->
-    <el-dialog
-      v-model="showAddDialog"
-      title="添加OAuth账号"
-      width="500px"
-    >
-      <el-form
-        ref="addFormRef"
-        :model="addForm"
-        :rules="addFormRules"
-        label-width="100px"
-      >
-        <el-form-item label="选择平台" prop="platform">
-          <el-select
-            v-model="addForm.platform"
-            placeholder="请选择平台"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="platform in platforms"
-              :key="platform.platform_id"
-              :label="platform.platform_name"
-              :value="platform.platform_id"
-            >
-              <div class="platform-option">
-                <span>{{ platform.platform_name }}</span>
-                <span class="platform-desc">{{ platform.description }}</span>
-              </div>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item label="账号名称" prop="account_name">
-          <el-input
-            v-model="addForm.account_name"
-            placeholder="请输入账号名称（用于识别）"
-          />
-        </el-form-item>
-        
-        <el-alert
-          title="授权说明"
-          type="info"
-          :closable="false"
-          show-icon
-        >
-          <p>点击确定后，系统将打开浏览器窗口</p>
-          <p>请在浏览器中完成登录授权</p>
-          <p>授权完成后，系统会自动保存凭证</p>
-        </el-alert>
-      </el-form>
-      
-      <template #footer>
-        <el-button @click="showAddDialog = false">取消</el-button>
-        <el-button
-          type="primary"
-          @click="handleAdd"
-          :loading="adding"
-        >
-          确定
-        </el-button>
-      </template>
-    </el-dialog>
+     <!-- 添加账号对话框 -->
+     <el-dialog
+       v-model="showAddDialog"
+       title="添加OAuth账号"
+       width="600px"
+     >
+       <el-alert
+         title="授权方式说明"
+         type="info"
+         :closable="false"
+         style="margin-bottom: 20px"
+       >
+         <p><strong>方式1：前端授权（推荐）</strong></p>
+         <ul>
+           <li>点击"前端授权"按钮打开授权窗口</li>
+           <li>在授权窗口中完成登录</li>
+           <li>Cookie会自动获取和提交</li>
+           <li>无需手动操作</li>
+         </ul>
+         
+         <p><strong>方式2：后端浏览器授权</strong></p>
+         <ul>
+           <li>点击"后端授权"按钮</li>
+           <li>系统自动打开浏览器</li>
+           <li>在浏览器中扫码登录</li>
+           <li>系统自动提取Cookie</li>
+         </ul>
+       </el-alert>
+       
+       <el-tabs v-model="authMethod">
+         <el-tab-pane label="前端授权" name="frontend">
+           <div class="auth-frontend">
+             <el-form-item label="选择平台" prop="platform">
+               <el-select
+                 v-model="addForm.platform"
+                 placeholder="请选择平台"
+                 style="width: 100%"
+               >
+                 <el-option
+                   v-for="platform in platforms"
+                   :key="platform.platform_id"
+                   :label="platform.platform_name"
+                   :value="platform.platform_id"
+                 >
+                   <div class="platform-option">
+                     <span>{{ platform.platform_name }}</span>
+                     <span class="platform-desc">{{ platform.description }}</span>
+                   </div>
+                 </el-option>
+               </el-select>
+             </el-form-item>
+             
+             <el-form-item label="账号名称" prop="account_name">
+               <el-input
+                 v-model="addForm.account_name"
+                 placeholder="请输入账号名称（用于识别）"
+               />
+             </el-form-item>
+           </div>
+           
+           <el-button
+             type="primary"
+             @click="handleFrontendAuth"
+             :loading="adding"
+             style="width: 100%; margin-top: 20px"
+             size="large"
+           >
+             前端授权
+           </el-button>
+         </el-tab-pane>
+         
+         <el-tab-pane label="后端授权" name="backend">
+           <el-form-item label="选择平台" prop="platform">
+             <el-select
+               v-model="addForm.platform"
+               placeholder="请选择平台"
+               style="width: 100%"
+             >
+               <el-option
+                 v-for="platform in platforms"
+                 :key="platform.platform_id"
+                   :label="platform.platform_name"
+                   :value="platform.platform_id"
+                 >
+                   <div class="platform-option">
+                     <span>{{ platform.platform_name }}</span>
+                     <span class="platform-desc">{{ platform.description }}</span>
+                   </div>
+                 </el-option>
+               </el-select>
+             </el-form-item>
+             
+             <el-form-item label="账号名称" prop="account_name">
+               <el-input
+                 v-model="addForm.account_name"
+                 placeholder="请输入账号名称（用于识别）"
+               />
+             </el-form-item>
+           </div>
+           
+           <el-button
+             type="primary"
+             @click="handleAdd"
+             :loading="adding"
+             style="width: 100%; margin-top: 20px"
+             size="large"
+           >
+             后端授权
+           </el-button>
+         </el-tab-pane>
+       </el-tabs>
+       
+       <template #footer>
+         <el-button @click="showAddDialog = false">取消</el-button>
+       </template>
+     </el-dialog>
 
     <!-- 编辑账号对话框 -->
     <el-dialog
@@ -314,13 +368,17 @@ const accounts = ref<OAuthAccount[]>([])
 const usageLogs = ref<OAuthUsageLog[]>([])
 const currentLog = ref<OAuthUsageLog | null>(null)
 
-// 状态
+ // 状态
 const loading = ref(false)
 const loadingUsage = ref(false)
 const adding = ref(false)
 const updating = ref(false)
 const checkingId = ref<number | null>(null)
 const activeTab = ref('all')
+const authMethod = ref('frontend')
+
+// 授权窗口引用
+const authWindow = ref<Window | null>(null)
 
 // 对话框
 const showAddDialog = ref(false)
@@ -396,6 +454,78 @@ const handleAdd = async () => {
       adding.value = false
     }
   })
+}
+
+// 前端授权
+const handleFrontendAuth = async () => {
+  if (!addForm.platform) {
+    ElMessage.warning('请选择平台')
+    return
+  }
+  
+  if (!addForm.account_name) {
+    ElMessage.warning('请输入账号名称')
+    return
+  }
+  
+  adding.value = true
+  try {
+    // 打开授权窗口
+    const width = 800
+    const height = 600
+    const left = (window.innerWidth - width) / 2 + window.screenX
+    const top = (window.innerHeight - height) / 2 + window.screenY
+    
+    const authUrl = `${window.location.origin}/api/v1/oauth/accounts/cookie-validate/${addForm.platform}`
+    
+    authWindow.value = window.open(
+      authUrl,
+      `oauth-${Date.now()}`,
+      `width=${width},height=${height},left=${left},top=${top}`
+    )
+    
+    // 监听来自授权窗口的消息
+    const handleAuthMessage = (event: MessageEvent) => {
+      // 验证消息来源
+      if (event.origin !== window.location.origin) {
+        return
+      }
+      
+      const { type, platform, data } = event.data
+      
+      if (type === 'oauth_success') {
+        ElMessage.success('授权成功！')
+        
+        // 关闭授权窗口
+        if (authWindow.value && !authWindow.value.closed) {
+          authWindow.value.close()
+        }
+        
+        // 刷新账号列表
+        loadAccounts()
+        
+        // 关闭对话框
+        showAddDialog.value = false
+        addForm.value = { platform: '', account_name: '' }
+      }
+    }
+    
+    window.addEventListener('message', handleAuthMessage)
+    
+    // 设置超时，5分钟后自动清理
+    setTimeout(() => {
+      window.removeEventListener('message', handleAuthMessage)
+      if (authWindow.value && !authWindow.value.closed) {
+        authWindow.value.close()
+      }
+      adding.value = false
+    }, 5 * 60 * 1000)
+    
+  } catch (error: any) {
+    console.error('打开授权窗口失败:', error)
+    ElMessage.error('打开授权窗口失败')
+    adding.value = false
+  }
 }
 
 // 编辑账号
@@ -540,6 +670,14 @@ const formatJSON = (data: any) => {
 onMounted(() => {
   loadPlatforms()
   loadAccounts()
+})
+
+onUnmounted(() => {
+  // 清理授权窗口引用
+  if (authWindow.value && !authWindow.value.closed) {
+    authWindow.value.close()
+  }
+  authWindow.value = null
 })
 </script>
 

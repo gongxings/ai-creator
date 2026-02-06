@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="publish-management">
     <el-card class="header-card">
       <div class="header-content">
@@ -200,72 +200,142 @@
     </el-dialog>
 
     <!-- 绑定平台对话框 -->
-        <el-dialog
+    <el-dialog
       v-model="showBindDialog"
       title="绑定平台账号"
       width="600px"
       :close-on-click-modal="false"
     >
-      <el-form :model="bindForm" :rules="bindRules" ref="bindFormRef" label-width="100px">
-        <el-form-item label="选择平台" prop="platformCode">
-          <el-select
-            v-model="bindForm.platformCode"
-            placeholder="选择要绑定的平台"
-            style="width: 100%"
-            @change="handlePlatformChange"
+      <el-alert
+        title="授权方式说明"
+        type="info"
+        :closable="false"
+        style="margin-bottom: 20px"
+      >
+        <p><strong>方式1：前端授权（推荐）</strong></p>
+        <ul>
+          <li>点击"前端授权"按钮打开授权窗口</li>
+          <li>在授权窗口中完成登录</li>
+          <li>Cookie会自动获取和提交</li>
+          <li>无需手动操作</li>
+        </ul>
+        
+        <p><strong>方式2：后端授权</strong></p>
+        <ul>
+          <li>点击"后端授权"按钮</li>
+          <li>系统自动打开浏览器</li>
+          <li>在浏览器中扫码登录</li>
+          <li>系统自动提取Cookie</li>
+        </ul>
+      </el-alert>
+      
+      <el-tabs v-model="authMethod">
+        <el-tab-pane label="前端授权" name="frontend">
+          <div class="auth-frontend">
+            <el-form-item label="选择平台" prop="platformCode">
+              <el-select
+                v-model="bindForm.platformCode"
+                placeholder="请选择平台"
+                style="width: 100%"
+                @change="handlePlatformChange"
+              >
+                <el-option
+                  v-for="platform in platforms"
+                  :key="platform.platform"
+                  :label="platform.name"
+                  :value="platform.platform"
+                />
+              </el-select>
+            </el-form-item>
+            
+            <el-form-item label="账号名称" prop="accountName">
+              <el-input v-model="bindForm.accountName" placeholder="请输入账号名称（用于识别）" />
+            </el-form-item>
+          </div>
+          
+          <el-button
+            type="primary"
+            @click="handleFrontendAuth"
+            :loading="binding"
+            style="width: 100%; margin-top: 20px"
+            size="large"
           >
-            <el-option
-              v-for="platform in platforms"
-              :key="platform.platform"
-              :label="platform.name"
-              :value="platform.platform"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="账号名称" prop="accountName">
-          <el-input v-model="bindForm.accountName" placeholder="输入账号名称" />
-        </el-form-item>
-        <el-form-item label="Auth Mode">
-          <el-radio-group v-model="bindForm.authMode">
-            <el-radio-button label="auto">Auto</el-radio-button>
-            <el-radio-button label="manual">Manual</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-alert
-          v-if="bindForm.authMode === 'auto'"
-          title="点击绑定后将自动打开浏览器登录并抓取Cookie"
-          type="info"
-          :closable="false"
-          show-icon
-        />
-        <el-form-item v-if="bindForm.authMode === 'manual'" label="Cookie" prop="cookies">
-          <el-input
-            v-model="bindForm.cookies"
-            type="textarea"
-            :rows="4"
-            placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}）"
+            前端授权
+          </el-button>
+        </el-tab-pane>
+        
+        <el-tab-pane label="后端授权" name="backend">
+          <el-form-item label="选择平台" prop="platformCode">
+            <el-select
+              v-model="bindForm.platformCode"
+              placeholder="选择要绑定的平台"
+              style="width: 100%"
+              @change="handlePlatformChange"
+            >
+              <el-option
+                v-for="platform in platforms"
+                :key="platform.platform"
+                :label="platform.name"
+                :value="platform.platform"
+              />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="账号名称" prop="accountName">
+            <el-input v-model="bindForm.accountName" placeholder="输入账号名称" />
+          </el-form-item>
+          
+          <el-form-item label="Auth Mode">
+            <el-radio-group v-model="bindForm.authMode">
+              <el-radio-button label="auto">Auto</el-radio-button>
+              <el-radio-button label="manual">Manual</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          
+          <el-alert
+            v-if="bindForm.authMode === 'auto'"
+            title="点击绑定后将自动打开浏览器登录并抓取Cookie"
+            type="info"
+            :closable="false"
+            show-icon
           />
-        </el-form-item>
-        <el-alert
-          v-if="loginInfo && bindForm.authMode === 'manual'"
-          :title="loginInfo.instructions"
-          type="info"
-          :closable="false"
-          show-icon
-        >
-          <template #default>
-            <div class="login-info">
-              <div>登录地址：<a :href="loginInfo.login_url" target="_blank">{{ loginInfo.login_url }}</a></div>
-              <div>完成登录后复制Cookie再提交</div>
-            </div>
-          </template>
-        </el-alert>
-      </el-form>
+          <el-form-item v-if="bindForm.authMode === 'manual'" label="Cookie" prop="cookies">
+            <el-input
+              v-model="bindForm.cookies"
+              type="textarea"
+              :rows="4"
+              placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}）"
+            />
+          </el-form-item>
+          <el-alert
+            v-if="loginInfo && bindForm.authMode === 'manual'"
+            :title="loginInfo.instructions"
+            type="info"
+            :closable="false"
+            show-icon
+          >
+            <template #default>
+              <div class="login-info">
+                <div>登录地址：<a :href="loginInfo.login_url" target="_blank">{{ loginInfo.login_url }}</a></div>
+                <div>完成登录后复制Cookie再提交</div>
+              </div>
+            </template>
+          </el-alert>
+          
+          <el-button
+            type="primary"
+            @click="handleBind"
+            :loading="binding"
+            style="width: 100%; margin-top: 20px"
+            size="large"
+          >
+            后端授权
+          </el-button>
+        </el-tab-pane>
+      </el-tabs>
+      
       <template #footer>
         <el-button @click="showBindDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleBind" :loading="binding">
-          绑定
-        </el-button>
       </template>
     </el-dialog>
 
@@ -335,7 +405,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, Plus, Search } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -350,7 +420,8 @@ import {
   deletePlatformAccount,
   publishContent,
   getPublishHistory,
-  deletePublishRecord
+  deletePublishRecord,
+  submitPublishCookies
 } from '@/api/publish'
 import { getCreations } from '@/api/creations'
 
@@ -369,6 +440,10 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const loginInfo = ref<{ platform: string; name: string; login_url: string; instructions: string } | null>(null)
+
+// 授权窗口引用
+const authWindow = ref<Window | null>(null)
+const authMethod = ref('frontend')
 
 // 表单引用
 const publishFormRef = ref<FormInstance>()
@@ -436,13 +511,13 @@ const publishRules: FormRules = {
 }
 
 const bindRules: FormRules = {
-  platformCode: [{ required: true, message: '璇烽€夋嫨骞冲彴', trigger: 'change' }],
-  accountName: [{ required: true, message: '璇疯緭鍏ヨ处鍙峰悕绉?, trigger: 'blur' }],
+  platformCode: [{ required: true, message: '请选择平台', trigger: 'change' }],
+  accountName: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
   cookies: [
     {
       validator: (_rule, value, callback) => {
         if (bindForm.authMode === 'manual' && !value) {
-          callback(new Error('璇疯緭鍏ookie'))
+          callback(new Error('请输入Cookie'))
           return
         }
         callback()
@@ -452,7 +527,7 @@ const bindRules: FormRules = {
   ],
 }
 
-const cookieRules': FormRules = {
+const cookieRules: FormRules = {
   cookies: [{ required: true, message: '请输入Cookie', trigger: 'blur' }]
 }
 
@@ -641,6 +716,7 @@ const openBindDialog = () => {
   bindForm.cookies = ''
   bindForm.authMode = 'auto'
   loginInfo.value = null
+  authMethod.value = 'frontend'
   showBindDialog.value = true
 }
 const handlePlatformChange = async (platformCode: string) => {
@@ -657,33 +733,125 @@ const handlePlatformChange = async (platformCode: string) => {
   }
 }
 
+// 前端授权
+const handleFrontendAuth = async () => {
+  if (!bindForm.platformCode) {
+    ElMessage.warning('请选择平台')
+    return
+  }
+  
+  if (!bindForm.accountName) {
+    ElMessage.warning('请输入账号名称')
+    return
+  }
+  
+  binding.value = true
+  try {
+    // 打开授权窗口
+    const width = 800
+    const height = 600
+    const left = (window.innerWidth - width) / 2 + window.screenX
+    const top = (window.innerHeight - height) / 2 + window.screenY
+    
+    const authUrl = `${window.location.origin}/api/v1/publish/platforms/accounts/cookie-validate/${bindForm.platformCode}`
+    
+    authWindow.value = window.open(
+      authUrl,
+      `publish-${Date.now()}`,
+      `width=${width},height=${height},left=${left},top=${top}`
+    )
+    
+    // 监听来自授权窗口的消息
+    const handleAuthMessage = (event: MessageEvent) => {
+      // 验证消息来源
+      if (event.origin !== window.location.origin) {
+        return
+      }
+      
+      const { type, platform } = event.data
+      
+      if (type === 'publish_cookies_success') {
+        ElMessage.success('授权成功！')
+        
+        // 关闭授权窗口
+        if (authWindow.value && !authWindow.value.closed) {
+          authWindow.value.close()
+        }
+        
+        // 刷新账号列表
+        loadPlatformAccounts()
+        
+        // 关闭对话框
+        showBindDialog.value = false
+        bindForm.platformCode = ''
+        bindForm.accountName = ''
+        bindForm.cookies = ''
+        loginInfo.value = null
+      }
+    }
+    
+    window.addEventListener('message', handleAuthMessage)
+    
+    // 设置超时，5分钟后自动清理
+    setTimeout(() => {
+      window.removeEventListener('message', handleAuthMessage)
+      if (authWindow.value && !authWindow.value.closed) {
+        authWindow.value.close()
+      }
+      binding.value = false
+    }, 5 * 60 * 1000)
+    
+  } catch (error: any) {
+    console.error('打开授权窗口失败:', error)
+    ElMessage.error('打开授权窗口失败')
+    binding.value = false
+  }
+}
+
 // 处理绑定
 const handleBind = async () => {
+  if (authMethod.value === 'frontend') {
+    // 前端授权模式
+    handleFrontendAuth()
+    return
+  }
+  
+  // 后端授权模式或手动模式
   if (!bindFormRef.value) return
   
   await bindFormRef.value.validate(async (valid) => {
     if (valid) {
       binding.value = true
       try {
-        let cookies: Record<string, string> = {}
-        try {
-          cookies = JSON.parse(bindForm.cookies)
-        } catch (e) {
-          ElMessage.error('Cookie格式错误，请输入有效的JSON')
-          binding.value = false
-          return
-        }
-        
-        const accountResponse = await createPlatformAccount({
-          platform: bindForm.platformCode,
-          account_name: bindForm.accountName,
-        })
-
-        const updateResponse = await updatePlatformCookies(accountResponse.id, cookies)
-        if (updateResponse.valid) {
-          ElMessage.success('绑定成功，Cookie有效')
+        if (bindForm.authMode === 'auto') {
+          // 后端Playwright自动授权
+          await authorizePlatformAccount({
+            platform: bindForm.platformCode,
+            account_name: bindForm.accountName,
+          })
+          ElMessage.success('授权成功，已自动获取Cookie')
         } else {
-          ElMessage.warning(updateResponse.message || '绑定成功，但Cookie验证失败')
+          // 手动提交Cookie
+          let cookies: Record<string, string> = {}
+          try {
+            cookies = JSON.parse(bindForm.cookies)
+          } catch (e) {
+            ElMessage.error('Cookie格式错误，请输入有效的JSON')
+            binding.value = false
+            return
+          }
+          
+          const accountResponse = await createPlatformAccount({
+            platform: bindForm.platformCode,
+            account_name: bindForm.accountName,
+          })
+
+          const updateResponse = await updatePlatformCookies(accountResponse.id, cookies)
+          if (updateResponse.valid) {
+            ElMessage.success('绑定成功，Cookie有效')
+          } else {
+            ElMessage.warning(updateResponse.message || '绑定成功，但Cookie验证失败')
+          }
         }
 
         showBindDialog.value = false
@@ -825,6 +993,14 @@ onMounted(() => {
   loadPlatformAccounts()
   loadPublishHistory()
   loadCreations()
+})
+
+onUnmounted(() => {
+  // 清理授权窗口引用
+  if (authWindow.value && !authWindow.value.closed) {
+    authWindow.value.close()
+  }
+  authWindow.value = null
 })
 </script>
 

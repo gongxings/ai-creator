@@ -79,10 +79,22 @@ export function authorizeAccount(data: {
 /**
  * 手动提交Cookie创建OAuth账号
  */
-export function createAccountManual(data: {
+export function submitOAuthCookies(data: {
   platform: string
   account_name?: string
   cookies: Record<string, string>
+  user_agent?: string
+}) {
+  return request.post<OAuthAccount>('/v1/oauth/accounts/cookie-submit', data)
+}
+
+/**
+ * 手动提交Cookie创建OAuth账号
+ */
+export function createAccountManual(data: {
+  platform: string
+  account_name?: string
+  cookies?: Record<string, string>
   tokens?: Record<string, string>
   user_agent?: string
 }) {

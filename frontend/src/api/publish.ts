@@ -13,12 +13,22 @@ export function getPlatformLoginInfo(platform: string) {
   )
 }
 
+// 提交发布平台Cookie（前端自动获取）
+export function submitPublishCookies(data: {
+  platform: string
+  account_name?: string
+  cookies: Record<string, string>
+  user_agent?: string
+}) {
+  return request.post<PlatformAccount>('/v1/publish/platforms/accounts/cookie-submit', data)
+}
+
 // 创建平台账号
 export function createPlatformAccount(data: { platform: string; account_name: string }) {
   return request.post<PlatformAccount>('/v1/publish/platforms/accounts', data)
 }
 
-// 自动授权并抓取Cookie
+// 自动授权并抓取Cookie（后端Playwright方式）
 export function authorizePlatformAccount(data: { platform: string; account_name: string }) {
   return request.post<PlatformAccount>('/v1/publish/platforms/accounts/authorize', data)
 }
@@ -67,3 +77,4 @@ export function getPublishStatus(id: number) {
 export function deletePublishRecord(id: number) {
   return request.delete(`/v1/publish/history/${id}`)
 }
+

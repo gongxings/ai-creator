@@ -38,9 +38,9 @@ class CreationOptimize(BaseModel):
 class CreationBase(BaseModel):
     """创作记录基础模型"""
     title: str = Field(..., description="标题")
-    content: str = Field(..., description="内容")
-    content_type: str = Field(..., description="内容类型")
-    tool_type: str = Field(..., description="工具类型")
+    content: Optional[str] = Field(None, description="内容")
+    creation_type: Optional[str] = Field(None, description="创作类型")
+    tool_type: Optional[str] = Field(None, description="工具类型（已弃用，保留用于兼容）")
 
 
 class CreationCreate(CreationBase):
@@ -56,16 +56,23 @@ class CreationUpdate(BaseModel):
     extra_data: Optional[Dict[str, Any]] = Field(None, description="额外数据")
 
 
-class CreationResponse(CreationBase):
+class CreationResponse(BaseModel):
     """创作记录响应"""
     id: int
     user_id: int
-    input_data: Optional[Dict[str, Any]]
-    extra_data: Optional[Dict[str, Any]]
-    version_history: Optional[List[Dict[str, Any]]]
+    title: Optional[str] = None
+    content: Optional[str] = None
+    creation_type: Optional[str] = None
+    tool_type: Optional[str] = None
+    input_data: Optional[Dict[str, Any]] = None
+    extra_data: Optional[Dict[str, Any]] = None
+    output_content: Optional[str] = None
+    output_data: Optional[Dict[str, Any]] = None
+    version_history: Optional[List[Dict[str, Any]]] = None
+    status: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -79,12 +86,13 @@ class CreationListResponse(BaseModel):
 class CreationListItem(BaseModel):
     """创作列表项"""
     id: int
-    title: str
-    tool_type: str
-    content_type: str
+    title: Optional[str] = None
+    creation_type: Optional[str] = None
+    tool_type: Optional[str] = None
+    status: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -94,7 +102,7 @@ class CreationVersion(BaseModel):
     version: int = Field(..., description="版本号")
     content: str = Field(..., description="内容")
     created_at: datetime = Field(..., description="创建时间")
-    
+
     class Config:
         from_attributes = True
 
