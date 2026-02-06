@@ -83,7 +83,7 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
             
             # 获取用户的OAuth账号
             oauth_account = db.query(OAuthAccount).filter(
-                OAuthAccount.user_id=user_id,
+                OAuthAccount.user_id == user_id,
                 OAuthAccount.platform == platform,
                 OAuthAccount.is_active == True,
                 OAuthAccount.is_expired == False
