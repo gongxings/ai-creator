@@ -1,13 +1,17 @@
 <template>
   <div class="membership-purchase">
-    <el-card class="status-card">
-      <template #header>
-        <div class="card-header">
-          <span>会员状态</span>
+    <el-card class="header-card">
+      <div class="header-content">
+        <div class="header-left">
+          <h2>开通会员</h2>
+          <p class="subtitle">畅享所有AI创作工具，无限制使用</p>
         </div>
-      </template>
+      </div>
+    </el-card>
+
+    <el-card class="status-card">
       <div class="status-info">
-        <div class="status-item">
+        <div class="status-item main">
           <div class="label">当前状态</div>
           <div class="value">
             <el-tag v-if="balance.is_member" type="success" size="large">
@@ -20,7 +24,7 @@
         </div>
         <div v-if="balance.is_member && balance.member_expired_at" class="status-item">
           <div class="label">到期时间</div>
-          <div class="value">{{ formatDate(balance.member_expired_at) }}</div>
+          <div class="value date">{{ formatDate(balance.member_expired_at) }}</div>
         </div>
         <div class="status-item">
           <div class="label">当前积分</div>
@@ -32,7 +36,7 @@
     <el-card class="benefits-card">
       <template #header>
         <div class="card-header">
-          <span>会员权益</span>
+          <span>会员专属权益</span>
         </div>
       </template>
       <div class="benefits-list">
@@ -40,28 +44,28 @@
           <el-icon class="icon" color="#67c23a"><Check /></el-icon>
           <div class="content">
             <div class="title">无限制使用</div>
-            <div class="desc">所有AI创作工具不限次数使用</div>
+            <div class="desc">所有AI创作工具不限次数</div>
           </div>
         </div>
         <div class="benefit-item">
           <el-icon class="icon" color="#67c23a"><Check /></el-icon>
           <div class="content">
             <div class="title">不扣积分</div>
-            <div class="desc">会员期间生成内容不消耗积分</div>
+            <div class="desc">会员期间不消耗积分</div>
           </div>
         </div>
         <div class="benefit-item">
           <el-icon class="icon" color="#67c23a"><Check /></el-icon>
           <div class="content">
             <div class="title">优先支持</div>
-            <div class="desc">享受优先客服支持和问题处理</div>
+            <div class="desc">专属客服优先处理</div>
           </div>
         </div>
         <div class="benefit-item">
           <el-icon class="icon" color="#67c23a"><Check /></el-icon>
           <div class="content">
-            <div class="title">新功能优先体验</div>
-            <div class="desc">第一时间体验平台新功能</div>
+            <div class="title">新功能体验</div>
+            <div class="desc">第一时间体验新功能</div>
           </div>
         </div>
       </div>
@@ -92,7 +96,7 @@
             <span class="original">¥{{ price.original_price }}</span>
           </div>
           <div class="discount">
-            省¥{{ (price.original_price - price.price).toFixed(2) }}
+            省¥{{ (price.original_price - price.price).toFixed(0) }}
           </div>
           <div class="daily">
             每天仅需¥{{ (price.price / price.duration_days).toFixed(2) }}
@@ -156,59 +160,80 @@
       <template #header>
         <div class="card-header">
           <span>购买记录</span>
-          <el-button text @click="loadOrders">刷新</el-button>
+          <el-button text type="primary" @click="loadOrders">刷新</el-button>
         </div>
       </template>
-      <el-table :data="orders" style="width: 100%">
-        <el-table-column prop="order_no" label="订单号" width="200" />
-        <el-table-column prop="membership_type" label="套餐类型" width="120">
-          <template #default="{ row }">
-            {{ getMembershipTypeName(row.membership_type) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="duration_days" label="有效期" width="100">
-          <template #default="{ row }">{{ row.duration_days }}天</template>
-        </el-table-column>
-        <el-table-column prop="price" label="支付金额" width="100">
-          <template #default="{ row }">¥{{ row.price }}</template>
-        </el-table-column>
-        <el-table-column prop="payment_method" label="支付方式" width="100">
-          <template #default="{ row }">
-            {{ row.payment_method === 'alipay' ? '支付宝' : '微信支付' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="payment_status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.payment_status === 'paid'" type="success">已支付</el-tag>
-            <el-tag v-else-if="row.payment_status === 'pending'" type="warning">待支付</el-tag>
-            <el-tag v-else-if="row.payment_status === 'failed'" type="danger">失败</el-tag>
-            <el-tag v-else type="info">{{ row.payment_status }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="有效期" width="200">
-          <template #default="{ row }">
-            <span v-if="row.start_date && row.end_date">
-              {{ formatDate(row.start_date) }} 至 {{ formatDate(row.end_date) }}
-            </span>
-            <span v-else>-</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180">
-          <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="150">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.payment_status === 'pending'"
-              text
-              type="primary"
-              @click="handleSimulatePayment(row)"
-            >
-              模拟支付
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+
+      <!-- 桌面版表格 -->
+      <div class="table-view">
+        <el-table :data="orders" style="width: 100%">
+          <el-table-column prop="order_no" label="订单号" width="200" />
+          <el-table-column prop="membership_type" label="套餐类型" width="120">
+            <template #default="{ row }">
+              {{ getMembershipTypeName(row.membership_type) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="duration_days" label="有效期" width="100">
+            <template #default="{ row }">{{ row.duration_days }}天</template>
+          </el-table-column>
+          <el-table-column prop="price" label="支付金额" width="100">
+            <template #default="{ row }">¥{{ row.price }}</template>
+          </el-table-column>
+          <el-table-column prop="payment_status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag v-if="row.payment_status === 'paid'" type="success">已支付</el-tag>
+              <el-tag v-else-if="row.payment_status === 'pending'" type="warning">待支付</el-tag>
+              <el-tag v-else type="danger">{{ row.payment_status }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="created_at" label="创建时间" width="180">
+            <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="150">
+            <template #default="{ row }">
+              <el-button
+                v-if="row.payment_status === 'pending'"
+                text
+                type="primary"
+                @click="handleSimulatePayment(row)"
+              >
+                模拟支付
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 手机版卡片 -->
+      <div v-if="orders.length > 0" class="card-view">
+        <div v-for="order in orders" :key="order.order_no" class="order-card">
+          <div class="order-header">
+            <span class="order-type">{{ getMembershipTypeName(order.membership_type) }}</span>
+            <el-tag v-if="order.payment_status === 'paid'" type="success" size="small">已支付</el-tag>
+            <el-tag v-else-if="order.payment_status === 'pending'" type="warning" size="small">待支付</el-tag>
+            <el-tag v-else type="danger" size="small">{{ order.payment_status }}</el-tag>
+          </div>
+          <div class="order-body">
+            <div class="info-row">
+              <span>有效期：</span>
+              <span>{{ order.duration_days }}天</span>
+            </div>
+            <div class="info-row">
+              <span>支付金额：</span>
+              <span class="price">¥{{ order.price }}</span>
+            </div>
+            <div class="info-row">
+              <span>创建时间：</span>
+              <span>{{ formatDate(order.created_at) }}</span>
+            </div>
+          </div>
+          <div v-if="order.payment_status === 'pending'" class="order-footer">
+            <el-button type="primary" size="small" @click="handleSimulatePayment(order)">模拟支付</el-button>
+          </div>
+        </div>
+      </div>
+
+      <el-empty v-else description="暂无购买记录" />
     </el-card>
   </div>
 </template>
@@ -334,6 +359,35 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+
+  :deep(.el-card) {
+    border-radius: 14px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
+
+  .header-card {
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+
+    .header-content {
+      .header-left {
+        h2 {
+          margin: 0 0 8px 0;
+          font-size: 24px;
+          font-weight: 600;
+          color: #92400e;
+        }
+
+        .subtitle {
+          margin: 0;
+          color: #a16207;
+          font-size: 14px;
+        }
+      }
+    }
+  }
 
   .card-header {
     display: flex;
@@ -347,6 +401,7 @@ onMounted(() => {
     .status-info {
       display: flex;
       gap: 40px;
+      flex-wrap: wrap;
 
       .status-item {
         .label {
@@ -356,9 +411,13 @@ onMounted(() => {
         }
 
         .value {
-          font-size: 24px;
+          font-size: 20px;
           font-weight: bold;
           color: #303133;
+
+          &.date {
+            font-size: 16px;
+          }
         }
       }
     }
@@ -369,7 +428,7 @@ onMounted(() => {
 
     .benefits-list {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 20px;
 
       .benefit-item {
@@ -384,14 +443,14 @@ onMounted(() => {
 
         .content {
           .title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             color: #303133;
             margin-bottom: 4px;
           }
 
           .desc {
-            font-size: 14px;
+            font-size: 13px;
             color: #909399;
           }
         }
@@ -404,26 +463,28 @@ onMounted(() => {
 
     .price-list {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 20px;
 
       .price-item {
         position: relative;
-        border: 2px solid #dcdfe6;
-        border-radius: 8px;
+        border: 2px solid #edf2f7;
+        border-radius: 12px;
         padding: 24px;
         cursor: pointer;
         transition: all 0.3s;
         text-align: center;
+        background: #fff;
 
         &:hover {
           border-color: #409eff;
-          box-shadow: 0 2px 12px rgba(64, 158, 255, 0.2);
+          box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+          transform: translateY(-2px);
         }
 
         &.active {
           border-color: #409eff;
-          background-color: #ecf5ff;
+          background: linear-gradient(135deg, #ecf5ff 0%, #f0f9ff 100%);
         }
 
         &.recommended {
@@ -443,10 +504,10 @@ onMounted(() => {
         }
 
         .type {
-          font-size: 20px;
+          font-size: 18px;
           font-weight: bold;
           color: #303133;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .duration {
@@ -459,14 +520,14 @@ onMounted(() => {
           margin-bottom: 8px;
 
           .current {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: bold;
             color: #409eff;
             margin-right: 8px;
           }
 
           .original {
-            font-size: 16px;
+            font-size: 14px;
             color: #909399;
             text-decoration: line-through;
           }
@@ -475,7 +536,8 @@ onMounted(() => {
         .discount {
           font-size: 14px;
           color: #f56c6c;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
+          font-weight: 600;
         }
 
         .daily {
@@ -493,6 +555,7 @@ onMounted(() => {
       display: flex;
       gap: 20px;
       margin-bottom: 20px;
+      flex-wrap: wrap;
 
       .payment-label {
         display: flex;
@@ -502,8 +565,8 @@ onMounted(() => {
     }
 
     .payment-summary {
-      background-color: #f5f7fa;
-      border-radius: 8px;
+      background-color: #f8fafc;
+      border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
 
@@ -521,7 +584,7 @@ onMounted(() => {
           font-size: 16px;
           font-weight: bold;
           padding-top: 12px;
-          border-top: 1px solid #dcdfe6;
+          border-top: 1px solid #e5e7eb;
         }
 
         .original-price {
@@ -531,13 +594,102 @@ onMounted(() => {
 
         .price-text {
           color: #409eff;
-          font-size: 20px;
+          font-size: 24px;
         }
       }
     }
 
     .pay-button {
       width: 100%;
+    }
+  }
+
+  .history-card {
+    .table-view {
+      display: block;
+    }
+
+    .card-view {
+      display: none;
+    }
+
+    .order-card {
+      background: #fff;
+      border: 1px solid #edf2f7;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+
+      .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .order-type {
+          font-weight: 600;
+          color: #1f2937;
+        }
+      }
+
+      .order-body {
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 14px;
+          margin-bottom: 8px;
+          color: #64748b;
+
+          .price {
+            color: #409eff;
+            font-weight: 600;
+          }
+        }
+      }
+
+      .order-footer {
+        padding-top: 12px;
+        border-top: 1px solid #f1f5f9;
+        margin-top: 12px;
+        text-align: right;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .membership-purchase {
+    padding: 12px;
+
+    .benefits-card {
+      .benefits-list {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .price-card {
+      .price-list {
+        grid-template-columns: 1fr;
+        gap: 12px;
+
+        .price-item {
+          padding: 20px;
+
+          .price .current {
+            font-size: 24px;
+          }
+        }
+      }
+    }
+
+    .history-card {
+      .table-view {
+        display: none;
+      }
+
+      .card-view {
+        display: block;
+      }
     }
   }
 }
