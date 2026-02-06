@@ -1,6 +1,68 @@
-<template>
-  <div class="referral-management">
-    <el-row :gutter="20">
+﻿<template>
+  <div class="referral-management flagship-page page-shell">
+    <section class="page-hero referral-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">Referral</span>
+          <h1 class="hero-title">推广管理</h1>
+          <p class="hero-subtitle">管理你的推广链接与返利记录。</p>
+          <div class="hero-actions">
+            <el-button type="primary" @click="copyReferralCode">复制推荐码</el-button>
+            <el-button @click="copyReferralLink">复制链接</el-button>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">推广概览</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ statistics.total_referrals }}</div>
+              <div class="hero-stat-label">累计推广</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ statistics.total_rewards }}</div>
+              <div class="hero-stat-label">累计返利</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ statistics.pending_rewards }}</div>
+              <div class="hero-stat-label">待发放</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ pagination.total }}</div>
+              <div class="hero-stat-label">记录数</div>
+            </div>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag">注册返利</span>
+            <span class="hero-tag">充值返利</span>
+            <span class="hero-tag">会员返利</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">累计推广</div>
+          <div class="value">{{ statistics.total_referrals }}</div>
+          <div class="delta">推荐用户增长</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">累计返利</div>
+          <div class="value">{{ statistics.total_rewards }}</div>
+          <div class="delta">积分奖励已累计</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">待发放</div>
+          <div class="value">{{ statistics.pending_rewards }}</div>
+          <div class="delta">预计尽快发放</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-row :gutter="20">
       <el-col :span="24">
         <el-card>
           <template #header>
@@ -30,9 +92,9 @@
           </el-descriptions>
         </el-card>
       </el-col>
-    </el-row>
+        </el-row>
 
-    <el-card style="margin-top: 20px">
+        <el-card style="margin-top: 20px">
       <template #header>
         <span>推广记录</span>
       </template>
@@ -83,7 +145,38 @@
         layout="total, prev, pager, next"
         @current-change="loadRecords"
       />
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">推广建议</h3>
+          <p class="panel-subtitle">分享链接可获取积分奖励</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-title">分享渠道</div>
+              <div class="info-desc">社群、朋友圈与公众号效果更佳。</div>
+            </div>
+            <div class="info-item">
+              <div class="info-title">激励引导</div>
+              <div class="info-desc">强调新用户可享受创作福利。</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">当前链接</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-title">推荐码</div>
+              <div class="info-desc">{{ statistics.referral_code || '-' }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-title">推广链接</div>
+              <div class="info-desc">{{ referralLink }}</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
   </div>
 </template>
 
@@ -157,6 +250,9 @@ onMounted(() => {
 <style scoped>
 .referral-management {
   padding: 20px;
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 }
 
 .el-pagination {
@@ -164,3 +260,4 @@ onMounted(() => {
   justify-content: center;
 }
 </style>
+

@@ -1,11 +1,35 @@
-<template>
-  <div class="ppt-generation">
-    <el-card class="header-card">
-      <h2>AI PPT生成</h2>
-      <p class="subtitle">使用AI技术，快速生成专业PPT演示文稿</p>
-    </el-card>
+﻿<template>
+  <div class="ppt-generation flagship-page page-shell">
+    <section class="page-hero ppt-hero">
+      <el-card class="header-card">
+        <h2>AI PPT生成</h2>
+        <p class="subtitle">使用AI技术，快速生成专业PPT演示文稿</p>
+      </el-card>
+    </section>
 
-    <el-row :gutter="20">
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">生成方式</div>
+          <div class="value">{{ activeTab === 'theme' ? '主题生成' : '大纲生成' }}</div>
+          <div class="delta">快速构建演示结构</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">计划页数</div>
+          <div class="value">{{ activeTab === 'theme' ? themeForm.pages : '自定义' }}</div>
+          <div class="delta">适配不同演示节奏</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">任务状态</div>
+          <div class="value">{{ currentPPT ? currentPPT.status : '待生成' }}</div>
+          <div class="delta">生成完成即可下载预览</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-row :gutter="20">
       <el-col :xs="24" :lg="12">
         <el-card>
           <template #header>
@@ -119,7 +143,48 @@
           </div>
         </el-card>
       </el-col>
-    </el-row>
+        </el-row>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">演示建议</h3>
+          <p class="panel-subtitle">明确结构与受众可提升PPT效果</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Document /></el-icon></div>
+              <div>
+                <div class="info-title">聚焦主题</div>
+                <div class="info-desc">用一句话概括PPT核心价值。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><View /></el-icon></div>
+              <div>
+                <div class="info-title">控制页数</div>
+                <div class="info-desc">突出重点信息，保持节奏紧凑。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">参数摘要</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">AI模式</div>
+                <div class="info-desc">{{ aiMode }}（{{ aiMode === 'Cookie' ? selectedPlatform : '消耗积分' }}）</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">当前风格</div>
+                <div class="info-desc">{{ activeTab === 'theme' ? themeForm.style : '自定义' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
   </div>
 </template>
 
@@ -248,6 +313,9 @@ onUnmounted(() => {
 .ppt-generation {
   padding: 20px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(139, 92, 246, 0.18);
+  --page-accent: #4f46e5;
 
   :deep(.el-card) {
     border-radius: 14px;
@@ -318,3 +386,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

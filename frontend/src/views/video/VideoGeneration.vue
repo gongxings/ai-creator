@@ -1,15 +1,41 @@
-<template>
-  <div class="video-generation">
-    <el-card class="header-card">
+﻿<template>
+  <div class="video-generation flagship-page page-shell">
+    <section class="page-hero video-hero">
+      <el-card class="header-card">
       <div class="header-content">
         <div class="header-left">
           <h2>AI视频生成</h2>
           <p class="subtitle">使用AI技术，将文字或图片转换为精彩视频</p>
         </div>
       </div>
-    </el-card>
+      </el-card>
+    </section>
 
-    <el-row :gutter="[16, 16]">
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">当前模式</div>
+          <div class="value">{{ activeTab === 'text' ? '文本生成' : '图片生成' }}</div>
+          <div class="delta">支持多种风格与比例</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">历史任务</div>
+          <div class="value">{{ historyList.length }}</div>
+          <div class="delta">随时回看生成结果</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">任务状态</div>
+          <div class="value">
+            {{ currentTask ? (currentTask.status === 'processing' ? '生成中' : currentTask.status === 'completed' ? '已完成' : '失败') : '空闲' }}
+          </div>
+          <div class="delta">平均等待约 1-3 分钟</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-row :gutter="[16, 16]">
       <!-- 左侧：输入区域 -->
       <el-col :xs="24" :sm="24" :md="24" :lg="12">
         <el-card class="input-card">
@@ -237,7 +263,55 @@
           <el-empty v-else description="请选择生成方式并点击生成视频" />
         </el-card>
       </el-col>
-    </el-row>
+        </el-row>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">视频策略</h3>
+          <p class="panel-subtitle">丰富描述能提升镜头表现与细节</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><VideoCamera /></el-icon></div>
+              <div>
+                <div class="info-title">明确主体</div>
+                <div class="info-desc">描述主角、动作与环境，帮助模型理解场景。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><UploadFilled /></el-icon></div>
+              <div>
+                <div class="info-title">补充运镜</div>
+                <div class="info-desc">加入推进、环绕或慢镜头效果描述。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 class="panel-title">参数摘要</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">AI模式</div>
+                <div class="info-desc">{{ aiMode }}（{{ aiMode === 'Cookie' ? selectedPlatform : '消耗积分' }}）</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">视频时长</div>
+                <div class="info-desc">{{ activeTab === 'text' ? textForm.duration : imageForm.duration }} 秒</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">画面比例</div>
+                <div class="info-desc">{{ activeTab === 'text' ? textForm.aspect_ratio : '图片转视频' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
   </div>
 </template>
 
@@ -514,6 +588,9 @@ $transition: all 0.3s ease-out;
   padding: 20px;
   background: linear-gradient(180deg, $bg-color 0%, #ffffff 40%);
   min-height: 100vh;
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 
   :deep(.el-card) {
     border-radius: $border-radius-lg;
@@ -1266,3 +1343,4 @@ $transition: all 0.3s ease-out;
   }
 }
 </style>
+

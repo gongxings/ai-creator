@@ -61,6 +61,35 @@ def init_platforms():
                 "is_enabled": True,
             },
             {
+                "platform_id": "chatqwen",
+                "platform_name": "通义千问(新版)",
+                "platform_icon": "https://img.alicdn.com/imgextra/i1/O1CN01Z5paLz1O0zuCC7osS_!!6000000001644-55-tps-83-82.svg",
+                "priority": 1,
+                "oauth_config": {
+                    "auth_url": "https://chat.qwen.ai/",
+                    "login_selectors": {
+                        "login_button": "button:has-text('登录')",
+                        "scan_qr": ".qrcode-container",
+                    },
+                    "cookie_names": ["login_aliyunid_ticket", "t"],
+                },
+                "litellm_config": {
+                    "provider": "qwen_web",
+                    "api_base": "https://chat.qwen.ai/api/chat",
+                    "default_model": "qwen-turbo",
+                    "available_models": [
+                        "qwen-turbo",
+                        "qwen-plus",
+                        "qwen-max",
+                    ],
+                },
+                "quota_config": {
+                    "daily_limit": 1000000,
+                    "rate_limit": 60,
+                },
+                "is_enabled": True,
+            },
+            {
                 "platform_id": "openai",
                 "platform_name": "ChatGPT",
                 "platform_icon": "https://cdn.oaistatic.com/_next/static/media/apple-touch-icon.59f2e898.png",

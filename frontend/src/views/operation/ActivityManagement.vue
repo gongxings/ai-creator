@@ -1,6 +1,68 @@
-<template>
-  <div class="activity-management">
-    <el-card>
+﻿<template>
+  <div class="activity-management flagship-page page-shell">
+    <section class="page-hero activity-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">Campaigns</span>
+          <h1 class="hero-title">活动管理</h1>
+          <p class="hero-subtitle">创建与管理运营活动，提升用户活跃度。</p>
+          <div class="hero-actions">
+            <el-button type="primary" @click="showCreateDialog">创建活动</el-button>
+            <el-button @click="loadActivities">刷新列表</el-button>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">活动概览</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ pagination.total }}</div>
+              <div class="hero-stat-label">活动数量</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ activities.length }}</div>
+              <div class="hero-stat-label">当前列表</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ searchForm.activity_type || '全部' }}</div>
+              <div class="hero-stat-label">类型筛选</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ searchForm.status || '全部' }}</div>
+              <div class="hero-stat-label">状态筛选</div>
+            </div>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag">积分赠送</span>
+            <span class="hero-tag">充值优惠</span>
+            <span class="hero-tag">会员优惠</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">活动总量</div>
+          <div class="value">{{ pagination.total }}</div>
+          <div class="delta">支持多种活动类型</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">筛选类型</div>
+          <div class="value">{{ searchForm.activity_type || '全部' }}</div>
+          <div class="delta">按需筛选活动</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">筛选状态</div>
+          <div class="value">{{ searchForm.status || '全部' }}</div>
+          <div class="delta">实时查看活动进展</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-card>
       <template #header>
         <div class="card-header">
           <span>活动管理</span>
@@ -63,7 +125,38 @@
         layout="total, prev, pager, next"
         @current-change="loadActivities"
       />
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">运营建议</h3>
+          <p class="panel-subtitle">活动规则清晰可提升参与率</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-title">活动类型</div>
+              <div class="info-desc">针对不同用户群设置不同激励。</div>
+            </div>
+            <div class="info-item">
+              <div class="info-title">奖励设置</div>
+              <div class="info-desc">奖励需与目标行为匹配。</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">筛选状态</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-title">类型</div>
+              <div class="info-desc">{{ searchForm.activity_type || '全部' }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-title">状态</div>
+              <div class="info-desc">{{ searchForm.status || '全部' }}</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
 
     <!-- 创建/编辑活动对话框 -->
     <el-dialog
@@ -242,6 +335,9 @@ onMounted(() => {
 <style scoped>
 .activity-management {
   padding: 20px;
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 }
 
 .card-header {
@@ -255,3 +351,4 @@ onMounted(() => {
   justify-content: center;
 }
 </style>
+

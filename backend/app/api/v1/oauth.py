@@ -283,6 +283,8 @@ async def validate_cookies_page(request: Request, platform: str, db: Session = D
     platform_names = {
         "doubao": "豆包",
         "qwen": "通义千问",
+        "chatqwen": "通义千问(新版)",
+        "qianwen": "通义千问(qianwen.com)",
         "openai": "OpenAI",
         "baidu": "百度文心一言",
         "zhipu": "智谱清言",

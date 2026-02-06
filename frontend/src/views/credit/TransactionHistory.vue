@@ -1,6 +1,68 @@
-<template>
-  <div class="transaction-history">
-    <el-card>
+﻿<template>
+  <div class="transaction-history flagship-page page-shell">
+    <section class="page-hero transaction-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">Credits</span>
+          <h1 class="hero-title">交易记录</h1>
+          <p class="hero-subtitle">跟踪你的积分变化与交易明细。</p>
+          <div class="hero-actions">
+            <el-button type="primary" @click="loadTransactions">刷新记录</el-button>
+            <el-button @click="filters.type = ''">清除筛选</el-button>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">记录概览</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ pagination.total }}</div>
+              <div class="hero-stat-label">累计记录</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ transactions.length }}</div>
+              <div class="hero-stat-label">当前页</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ filters.type || '全部' }}</div>
+              <div class="hero-stat-label">筛选类型</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ pagination.page }}</div>
+              <div class="hero-stat-label">当前页码</div>
+            </div>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag">充值</span>
+            <span class="hero-tag">消费</span>
+            <span class="hero-tag">奖励</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">累计记录</div>
+          <div class="value">{{ pagination.total }}</div>
+          <div class="delta">积分变动全量记录</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">筛选类型</div>
+          <div class="value">{{ filters.type || '全部' }}</div>
+          <div class="delta">支持多维度筛选</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">当前页</div>
+          <div class="value">{{ pagination.page }}</div>
+          <div class="delta">每页 {{ pagination.size }} 条</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-card>
       <template #header>
         <div class="card-header">
           <span>交易记录</span>
@@ -71,7 +133,38 @@
           @current-change="loadTransactions"
         />
       </div>
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">交易提示</h3>
+          <p class="panel-subtitle">记录支持筛选与分页查看</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-title">筛选类型</div>
+              <div class="info-desc">可查看充值、消费或奖励记录。</div>
+            </div>
+            <div class="info-item">
+              <div class="info-title">数据安全</div>
+              <div class="info-desc">所有交易记录均可追溯。</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">当前筛选</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-title">类型</div>
+              <div class="info-desc">{{ filters.type || '全部' }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-title">页码</div>
+              <div class="info-desc">{{ pagination.page }} / {{ Math.ceil(pagination.total / pagination.size) || 1 }}</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
   </div>
 </template>
 
@@ -159,6 +252,9 @@ onMounted(() => {
 <style scoped>
 .transaction-history {
   padding: 20px;
+  --hero-from: rgba(16, 185, 129, 0.18);
+  --hero-to: rgba(34, 197, 94, 0.18);
+  --page-accent: #16a34a;
 }
 
 .card-header {
@@ -191,3 +287,4 @@ onMounted(() => {
   justify-content: flex-end;
 }
 </style>
+

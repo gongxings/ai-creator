@@ -1,6 +1,68 @@
-<template>
-  <div class="coupon-management">
-    <el-card>
+﻿<template>
+  <div class="coupon-management flagship-page page-shell">
+    <section class="page-hero coupon-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">Coupons</span>
+          <h1 class="hero-title">优惠券管理</h1>
+          <p class="hero-subtitle">创建与管理优惠券，提升转化效果。</p>
+          <div class="hero-actions">
+            <el-button type="primary" @click="showCreateDialog">创建优惠券</el-button>
+            <el-button @click="loadCoupons">刷新列表</el-button>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">优惠概览</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ pagination.total }}</div>
+              <div class="hero-stat-label">优惠券数量</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ coupons.length }}</div>
+              <div class="hero-stat-label">当前列表</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ searchForm.coupon_type || '全部' }}</div>
+              <div class="hero-stat-label">类型筛选</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ searchForm.is_active === '' ? '全部' : (searchForm.is_active ? '启用' : '禁用') }}</div>
+              <div class="hero-stat-label">状态筛选</div>
+            </div>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag">充值优惠</span>
+            <span class="hero-tag">会员优惠</span>
+            <span class="hero-tag">定向投放</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">优惠券总量</div>
+          <div class="value">{{ pagination.total }}</div>
+          <div class="delta">支持多类型优惠</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">启用状态</div>
+          <div class="value">{{ searchForm.is_active === '' ? '全部' : (searchForm.is_active ? '启用' : '禁用') }}</div>
+          <div class="delta">筛选后实时更新</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">当前页</div>
+          <div class="value">{{ pagination.page }}</div>
+          <div class="delta">每页 {{ pagination.pageSize }} 条</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-card>
       <template #header>
         <div class="card-header">
           <span>优惠券管理</span>
@@ -69,7 +131,38 @@
         layout="total, prev, pager, next"
         @current-change="loadCoupons"
       />
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">运营建议</h3>
+          <p class="panel-subtitle">合理设置优惠提升转化</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-title">优惠类型</div>
+              <div class="info-desc">针对充值或会员设置不同激励。</div>
+            </div>
+            <div class="info-item">
+              <div class="info-title">使用门槛</div>
+              <div class="info-desc">设置最低消费避免无效优惠。</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">筛选状态</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-title">类型</div>
+              <div class="info-desc">{{ searchForm.coupon_type || '全部' }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-title">状态</div>
+              <div class="info-desc">{{ searchForm.is_active === '' ? '全部' : (searchForm.is_active ? '启用' : '禁用') }}</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
 
     <!-- 创建/编辑优惠券对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
@@ -259,6 +352,9 @@ onMounted(() => {
 <style scoped>
 .coupon-management {
   padding: 20px;
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 }
 
 .card-header {
@@ -272,3 +368,4 @@ onMounted(() => {
   justify-content: center;
 }
 </style>
+

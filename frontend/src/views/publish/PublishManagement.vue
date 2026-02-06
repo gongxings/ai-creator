@@ -1,6 +1,7 @@
-<template>
-  <div class="publish-management">
-    <el-card class="header-card">
+﻿<template>
+  <div class="publish-management flagship-page page-shell">
+    <section class="page-hero publish-hero">
+      <el-card class="header-card">
       <div class="header-content">
         <div class="header-left">
           <h2>发布管理</h2>
@@ -11,10 +12,33 @@
           新建发布
         </el-button>
       </div>
-    </el-card>
+      </el-card>
+    </section>
 
-    <!-- 平台账号管理 -->
-    <el-card class="platforms-card">
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">已绑定平台</div>
+          <div class="value">{{ platformAccounts.length }}</div>
+          <div class="delta">支持多平台一键发布</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">发布历史</div>
+          <div class="value">{{ publishHistory.length }}</div>
+          <div class="delta">内容沉淀可追溯</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">发布状态</div>
+          <div class="value">{{ publishing ? '发布中' : '就绪' }}</div>
+          <div class="delta">支持定时与立即发布</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <!-- 平台账号管理 -->
+        <el-card class="platforms-card">
       <template #header>
         <div class="card-header">
           <span>平台账号</span>
@@ -215,7 +239,55 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">发布流程</h3>
+          <p class="panel-subtitle">绑定账号后可快速推送到多平台</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Plus /></el-icon></div>
+              <div>
+                <div class="info-title">绑定账号</div>
+                <div class="info-desc">完成授权后即可使用平台发布能力。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Upload /></el-icon></div>
+              <div>
+                <div class="info-title">选择内容</div>
+                <div class="info-desc">支持文章、图片、视频等多类型内容。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Clock /></el-icon></div>
+              <div>
+                <div class="info-title">设置发布</div>
+                <div class="info-desc">可立即发布或设定时间。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">账号状态</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">可用账号</div>
+                <div class="info-desc">{{ platformAccounts.length }} 个平台账号</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">最近发布</div>
+                <div class="info-desc">{{ publishHistory[0]?.published_at ? formatDate(publishHistory[0].published_at) : '暂无记录' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
 
     <!-- 发布对话框 -->
     <el-dialog
@@ -1093,6 +1165,9 @@ onUnmounted(() => {
 .publish-management {
   padding: 20px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 
   :deep(.el-card) {
     border-radius: 14px;
@@ -1377,3 +1452,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

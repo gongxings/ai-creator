@@ -1,98 +1,190 @@
-<template>
-  <div class="writing-tools">
-    <div class="page-header">
-      <h1>AI写作工具</h1>
-      <p>选择适合你的写作场景，一键生成高质量内容</p>
-    </div>
-
-    <!-- 搜索和筛选 -->
-    <div class="tools-filter">
-      <el-input
-        v-model="searchQuery"
-        placeholder="搜索工具..."
-        prefix-icon="Search"
-        class="search-box"
-        clearable
-      />
-      <el-segmented
-        v-model="activeCategory"
-        :options="categories"
-        block
-      />
-    </div>
-
-    <!-- 最近使用 -->
-    <div v-if="recentTools.length > 0" class="recent-section">
-      <div class="section-header">
-        <h3>最近使用</h3>
-        <el-button type="text" @click="clearRecent">清空</el-button>
-      </div>
-      <div class="tools-grid">
-        <el-card
-          v-for="tool in recentTools"
-          :key="tool.type"
-          class="tool-card recent-card"
-          shadow="hover"
-          @click="goToEditor(tool.type)"
-        >
-          <div class="badge">最近</div>
-          <div class="tool-icon" :style="{ '--tool-color': tool.color }">
-            <el-icon :size="30">
-              <component :is="tool.icon" />
-            </el-icon>
+﻿<template>
+  <div class="writing-tools flagship-page page-shell">
+    <section class="page-hero writing-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">Writing Lab</span>
+          <h1 class="hero-title">AI写作工具</h1>
+          <p class="hero-subtitle">选择适合你的写作场景，一键生成高质量内容。</p>
+          <div class="hero-actions">
+            <el-button type="primary" @click="resetFilter">重置筛选</el-button>
+            <el-button :disabled="recentTools.length === 0" @click="clearRecent">清空最近</el-button>
           </div>
-          <h3>{{ tool.name }}</h3>
-          <p>{{ tool.description }}</p>
-        </el-card>
-      </div>
-    </div>
-
-    <!-- 推荐工具 -->
-    <div v-if="filteredTools.length > 0" class="tools-section">
-      <div class="section-header">
-        <h3>{{ getCategoryTitle(activeCategory) }}</h3>
-        <span class="count">共 {{ filteredTools.length }} 个工具</span>
-      </div>
-      <div class="tools-grid">
-        <el-card
-          v-for="tool in filteredTools"
-          :key="tool.type"
-          class="tool-card"
-          :class="{ 'hot-tool': tool.isHot }"
-          shadow="hover"
-          @click="goToEditor(tool.type)"
-        >
-          <div v-if="tool.isHot" class="badge hot">热门</div>
-          <div class="tool-icon" :style="{ '--tool-color': tool.color }">
-            <el-icon :size="30">
-              <component :is="tool.icon" />
-            </el-icon>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">工具概览</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ writingTools.length }}</div>
+              <div class="hero-stat-label">工具数量</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ filteredTools.length }}</div>
+              <div class="hero-stat-label">当前结果</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ recentTools.length }}</div>
+              <div class="hero-stat-label">最近使用</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ categories.length - 1 }}</div>
+              <div class="hero-stat-label">内容场景</div>
+            </div>
           </div>
-          <h3>{{ tool.name }}</h3>
-          <p>{{ tool.description }}</p>
-          <div class="tool-tags">
-            <el-tag
-              v-for="tag in tool.tags"
-              :key="tag"
-              size="small"
-              type="info"
-              effect="plain"
+          <div class="hero-tags">
+            <span v-for="item in categories" :key="item.value" class="hero-tag">{{ item.label }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">当前分类</div>
+          <div class="value">{{ getCategoryTitle(activeCategory) }}</div>
+          <div class="delta">快速定位最匹配场景</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">匹配工具</div>
+          <div class="value">{{ filteredTools.length }}</div>
+          <div class="delta">按热度自动排序</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">热门标签</div>
+          <div class="value">转化 / SEO</div>
+          <div class="delta">更贴近需求表达</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <div class="panel tools-filter-panel">
+          <div class="tools-filter">
+            <el-input
+              v-model="searchQuery"
+              placeholder="搜索工具..."
+              prefix-icon="Search"
+              class="search-box"
+              clearable
+            />
+            <el-segmented
+              v-model="activeCategory"
+              :options="categories"
+              block
+            />
+          </div>
+        </div>
+
+        <div v-if="recentTools.length > 0" class="panel recent-section">
+          <div class="section-header">
+            <h3>最近使用</h3>
+            <el-button type="text" @click="clearRecent">清空</el-button>
+          </div>
+          <div class="tools-grid">
+            <el-card
+              v-for="tool in recentTools"
+              :key="tool.type"
+              class="tool-card recent-card"
+              shadow="hover"
+              @click="goToEditor(tool.type)"
             >
-              {{ tag }}
-            </el-tag>
+              <div class="badge">最近</div>
+              <div class="tool-icon" :style="{ '--tool-color': tool.color }">
+                <el-icon :size="30">
+                  <component :is="tool.icon" />
+                </el-icon>
+              </div>
+              <h3>{{ tool.name }}</h3>
+              <p>{{ tool.description }}</p>
+            </el-card>
           </div>
-          <div class="tool-usage">
-            <span class="usage-count">{{ tool.usageCount }} 次使用</span>
-          </div>
-        </el-card>
-      </div>
-    </div>
+        </div>
 
-    <!-- 空状态 -->
-    <div v-else class="empty-state">
-      <el-empty description="未找到匹配的工具" />
-      <el-button type="primary" @click="resetFilter">重置筛选</el-button>
-    </div>
+        <div v-if="filteredTools.length > 0" class="panel tools-section">
+          <div class="section-header">
+            <h3>{{ getCategoryTitle(activeCategory) }}</h3>
+            <span class="count">共 {{ filteredTools.length }} 个工具</span>
+          </div>
+          <div class="tools-grid">
+            <el-card
+              v-for="tool in filteredTools"
+              :key="tool.type"
+              class="tool-card"
+              :class="{ 'hot-tool': tool.isHot }"
+              shadow="hover"
+              @click="goToEditor(tool.type)"
+            >
+              <div v-if="tool.isHot" class="badge hot">热门</div>
+              <div class="tool-icon" :style="{ '--tool-color': tool.color }">
+                <el-icon :size="30">
+                  <component :is="tool.icon" />
+                </el-icon>
+              </div>
+              <h3>{{ tool.name }}</h3>
+              <p>{{ tool.description }}</p>
+              <div class="tool-tags">
+                <el-tag
+                  v-for="tag in tool.tags"
+                  :key="tag"
+                  size="small"
+                  type="info"
+                  effect="plain"
+                >
+                  {{ tag }}
+                </el-tag>
+              </div>
+              <div class="tool-usage">
+                <span class="usage-count">{{ tool.usageCount }} 次使用</span>
+              </div>
+            </el-card>
+          </div>
+        </div>
+
+        <div v-else class="panel empty-state">
+          <el-empty description="未找到匹配的工具" />
+          <el-button type="primary" @click="resetFilter">重置筛选</el-button>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">写作加速器</h3>
+          <p class="panel-subtitle">三步进入高效创作流程</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Document /></el-icon></div>
+              <div>
+                <div class="info-title">明确主题</div>
+                <div class="info-desc">聚焦你的受众与场景，快速锁定方向。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Edit /></el-icon></div>
+              <div>
+                <div class="info-title">补充关键词</div>
+                <div class="info-desc">关键卖点与语气决定内容质感。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Promotion /></el-icon></div>
+              <div>
+                <div class="info-title">一键发布</div>
+                <div class="info-desc">生成后可直接进入发布管理。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 class="panel-title">热门场景</h3>
+          <div class="hero-tags">
+            <span v-for="tool in writingTools.slice(0, 6)" :key="tool.type" class="hero-tag">{{ tool.name }}</span>
+          </div>
+        </div>
+      </aside>
+    </section>
   </div>
 </template>
 
@@ -346,31 +438,17 @@ const clearRecent = () => {
 <style scoped lang="scss">
 .writing-tools {
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 36%);
+  --hero-from: rgba(14, 165, 233, 0.18);
+  --hero-to: rgba(99, 102, 241, 0.18);
+  --page-accent: #0ea5e9;
 
-  .page-header {
-    margin-bottom: 24px;
-    padding: 24px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
-
-    h1 {
-      font-size: 30px;
-      font-weight: 600;
-      color: #111827;
-      margin-bottom: 8px;
-    }
-
-    p {
-      font-size: 14px;
-      color: #64748b;
-      margin: 0;
-    }
+  .tools-filter-panel {
+    padding: 16px 18px;
   }
 
   .tools-filter {
     display: flex;
     gap: 16px;
-    margin-bottom: 28px;
     align-items: center;
     flex-wrap: wrap;
 
@@ -386,8 +464,6 @@ const clearRecent = () => {
 
   .recent-section,
   .tools-section {
-    margin-bottom: 32px;
-
     .section-header {
       display: flex;
       justify-content: space-between;
@@ -509,7 +585,7 @@ const clearRecent = () => {
 
   .empty-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 40px 20px;
 
     :deep(.el-empty__image) {
       height: 180px;
@@ -523,14 +599,6 @@ const clearRecent = () => {
 
 @media (max-width: 768px) {
   .writing-tools {
-    .page-header {
-      padding: 18px;
-
-      h1 {
-        font-size: 24px;
-      }
-    }
-
     .tools-filter {
       flex-direction: column;
 
@@ -549,4 +617,3 @@ const clearRecent = () => {
   }
 }
 </style>
-

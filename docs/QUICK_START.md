@@ -55,7 +55,19 @@ cp backend/.env.example backend/.env
 ```bash
 # 运行数据库初始化脚本
 python backend/scripts/init_db.py
+
+# 创建管理员账号
+python backend/scripts/create_admin.py
 ```
+
+**管理员账号信息：**
+- 用户名: `admin`
+- 密码: `admin123456`
+- 角色: 管理员
+- 积分: 1000
+- 会员状态: 已开通（有效期1年）
+
+⚠️ **重要提示：** 请在生产环境中立即修改默认密码！
 
 ### 4. 启动服务
 ```bash

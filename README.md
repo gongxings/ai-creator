@@ -66,6 +66,8 @@ pip install -r requirements.txt
 cp .env.example .env
 # 编辑.env文件，配置数据库和API密钥
 python scripts/init_db.py
+# 创建管理员账号（用户名: admin, 密码: admin123456）
+python scripts/create_admin.py
 ```
 
 3. **前端设置**

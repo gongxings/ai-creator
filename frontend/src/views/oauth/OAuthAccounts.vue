@@ -1,22 +1,46 @@
-<template>
-  <div class="oauth-accounts">
-    <el-card class="header-card">
-      <div class="header">
-        <div class="header-left">
-          <h2>OAuth账号管理</h2>
-          <p class="description">
-            绑定AI平台账号，使用平台免费额度进行创作，无需消耗积分
-          </p>
+﻿<template>
+  <div class="oauth-accounts flagship-page page-shell">
+    <section class="page-hero oauth-hero">
+      <el-card class="header-card">
+        <div class="header">
+          <div class="header-left">
+            <h2>OAuth账号管理</h2>
+            <p class="description">
+              绑定AI平台账号，使用平台免费额度进行创作，无需消耗积分
+            </p>
+          </div>
+          <el-button type="primary" @click="showAddDialog = true">
+            <el-icon><Plus /></el-icon>
+            添加账号
+          </el-button>
         </div>
-        <el-button type="primary" @click="showAddDialog = true">
-          <el-icon><Plus /></el-icon>
-          添加账号
-        </el-button>
-      </div>
-    </el-card>
+      </el-card>
+    </section>
 
-    <!-- 首次使用引导 -->
-    <el-card v-if="accounts.length === 0 && !loading" class="guide-card">
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">已绑定账号</div>
+          <div class="value">{{ accounts.length }}</div>
+          <div class="delta">覆盖多个AI平台</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">可用平台</div>
+          <div class="value">{{ platforms.length }}</div>
+          <div class="delta">支持多平台授权</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">账号状态</div>
+          <div class="value">{{ accounts.filter((item) => item.is_active).length }}</div>
+          <div class="delta">可用账号数量</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <!-- 首次使用引导 -->
+        <el-card v-if="accounts.length === 0 && !loading" class="guide-card">
       <div class="guide-content">
         <el-icon class="guide-icon"><Key /></el-icon>
         <h3>欢迎使用OAuth账号管理</h3>
@@ -222,7 +246,55 @@
       </div>
 
       <el-empty v-else description="暂无账号" />
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">授权流程</h3>
+          <p class="panel-subtitle">三步完成平台账号绑定</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Plus /></el-icon></div>
+              <div>
+                <div class="info-title">选择平台</div>
+                <div class="info-desc">挑选要授权的AI平台账号。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Key /></el-icon></div>
+              <div>
+                <div class="info-title">完成登录</div>
+                <div class="info-desc">在弹窗中完成登录授权。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Star /></el-icon></div>
+              <div>
+                <div class="info-title">开始使用</div>
+                <div class="info-desc">授权成功即可使用免费额度。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">配额提醒</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">最近使用</div>
+                <div class="info-desc">{{ accounts[0]?.last_used_at ? formatDate(accounts[0].last_used_at) : '暂无记录' }}</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">额度状态</div>
+                <div class="info-desc">关注配额进度，及时补充。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
 
      <!-- 添加账号对话框 -->
      <el-dialog
@@ -776,6 +848,9 @@ onUnmounted(() => {
 .oauth-accounts {
   padding: 20px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 
   :deep(.el-card) {
     border-radius: 14px;
@@ -1084,3 +1159,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

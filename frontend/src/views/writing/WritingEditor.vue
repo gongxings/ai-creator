@@ -1,120 +1,230 @@
-<template>
-  <div class="writing-editor">
-    <div class="editor-hero">
-      <h1>{{ toolInfo.name }}</h1>
-      <p>{{ toolInfo.description }}</p>
-    </div>
-
-    <el-card class="editor-card">
-      <template #header>
-        <div class="card-header">
-          <div class="header-left">
-            <el-button type="text" :icon="ArrowLeft" @click="router.back()">返回</el-button>
-            <el-divider direction="vertical" />
-            <h2>{{ toolInfo.name }}</h2>
-          </div>
-          <div class="header-right">
-            <el-button v-if="currentCreation" type="primary" :icon="Upload" @click="showPublishDialog = true">发布</el-button>
+﻿<template>
+  <div class="writing-editor flagship-page page-shell">
+    <section class="page-hero editor-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">Writing Studio</span>
+          <h1 class="hero-title">{{ toolInfo.name }}</h1>
+          <p class="hero-subtitle">{{ toolInfo.description }}</p>
+          <div class="hero-actions">
+            <el-button type="primary" :loading="generating" @click="handleGenerate">
+              {{ generating ? '生成中...' : '一键生成' }}
+            </el-button>
+            <el-button v-if="currentCreation" @click="showOptimizeDialog = true">内容优化</el-button>
+            <el-button v-if="currentCreation" @click="showPublishDialog = true">发布内容</el-button>
           </div>
         </div>
-      </template>
-
-      <el-row :gutter="24">
-        <el-col :xs="24" :lg="10">
-          <div class="input-section">
-            <h3>输入信息</h3>
-            <el-form ref="formRef" :model="formData" label-position="top">
-              <el-form-item label="主题" prop="topic">
-                <el-input v-model="formData.topic" placeholder="请输入创作主题" />
-              </el-form-item>
-              <el-form-item label="关键词">
-                <el-input v-model="formData.keywords" placeholder="多个关键词用逗号分隔" />
-              </el-form-item>
-              <el-form-item label="风格">
-                <el-select v-model="formData.style" placeholder="选择风格" style="width: 100%">
-                  <el-option label="专业严谨" value="professional" />
-                  <el-option label="轻松幽默" value="humorous" />
-                  <el-option label="情感共鸣" value="emotional" />
-                </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" :loading="generating" @click="handleGenerate" style="width: 100%">
-                  <el-icon v-if="!generating"><MagicStick /></el-icon>
-                  {{ generating ? '生成中...' : '一键生成' }}
-                </el-button>
-              </el-form-item>
-            </el-form>
-
-            <el-card shadow="never" class="model-card">
-              <template #header><span>AI服务</span></template>
-              
-              <!-- 选择模式 -->
-              <el-form-item label="使用模式" prop="aiMode">
-                <el-segmented v-model="aiMode" :options="['API Key', 'Cookie']" block />
-              </el-form-item>
-              
-              <!-- API Key 模式 -->
-              <template v-if="aiMode === 'API Key'">
-                <el-form-item label="选择模型" prop="selectedModel">
-                  <el-select v-model="selectedModel" placeholder="选择AI模型" style="width: 100%">
-                    <el-option v-for="model in aiModels" :key="model.id" :label="`${model.name} (${model.provider})`" :value="model.id" />
-                  </el-select>
-                </el-form-item>
-                <el-alert type="info" title="API Key模式说明" :closable="false" style="margin-bottom: 12px">
-                  <p>使用配置的API Key调用官方API，需要消耗积分</p>
-                </el-alert>
-              </template>
-              
-              <!-- Cookie 模式 -->
-              <template v-else>
-                <el-form-item label="选择平台" prop="selectedPlatform">
-                  <el-select v-model="selectedPlatform" placeholder="选择AI平台" style="width: 100%">
-                    <el-option label="豆包 (Doubao)" value="doubao" />
-                    <el-option label="通义千问 (Qwen)" value="qwen" />
-                    <el-option label="Claude" value="claude" />
-                  </el-select>
-                </el-form-item>
-                <el-alert type="success" title="Cookie模式说明" :closable="false" style="margin-bottom: 12px">
-                  <p>使用你已授权的账号免费额度，无需消耗积分</p>
-                </el-alert>
-              </template>
-            </el-card>
-
-            <div class="tips-card">
-              <h4>创作建议</h4>
-              <ul>
-                <li>主题尽量具体，能提升生成质量。</li>
-                <li>关键词建议 3~6 个，帮助模型聚焦。</li>
-                <li>完成后可用"优化"进一步提升可读性。</li>
-              </ul>
+        <div class="hero-panel">
+          <div class="hero-panel-title">内容指标</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ contentStats.wordCount }}</div>
+              <div class="hero-stat-label">当前字数</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ contentStats.readingMinutes }}</div>
+              <div class="hero-stat-label">阅读分钟</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ aiMode }}</div>
+              <div class="hero-stat-label">AI模式</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ currentCreation ? '已生成' : '待生成' }}</div>
+              <div class="hero-stat-label">当前状态</div>
             </div>
           </div>
-        </el-col>
+          <div class="hero-tags">
+            <span class="hero-tag">结构化大纲</span>
+            <span class="hero-tag">SEO优化</span>
+            <span class="hero-tag">多平台发布</span>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        <el-col :xs="24" :lg="14">
-          <div class="preview-section">
-            <div class="preview-header">
-              <h3>内容预览</h3>
-              <div class="preview-meta" v-if="currentCreation">
-                <el-tag size="small" effect="plain">字数：{{ contentStats.wordCount }}</el-tag>
-                <el-tag size="small" effect="plain">预计阅读：{{ contentStats.readingMinutes }} 分钟</el-tag>
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">选定模型</div>
+          <div class="value">{{ selectedModel ? `#${selectedModel}` : '自动选择' }}</div>
+          <div class="delta">模型由 AI 服务决定</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">发布准备</div>
+          <div class="value">{{ currentCreation ? '可发布' : '待生成' }}</div>
+          <div class="delta">支持多平台同步</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">内容节奏</div>
+          <div class="value">可视化编辑</div>
+          <div class="delta">支持导出与优化</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-card class="editor-card">
+          <template #header>
+            <div class="card-header">
+              <div class="header-left">
+                <el-button type="text" :icon="ArrowLeft" @click="router.back()">返回</el-button>
+                <el-divider direction="vertical" />
+                <h2>{{ toolInfo.name }}</h2>
               </div>
-              <div class="preview-actions">
-                <el-button v-if="currentCreation" :icon="RefreshRight" @click="handleRegenerate" :loading="generating">重新生成</el-button>
-                <el-button v-if="currentCreation" :icon="MagicStick" @click="showOptimizeDialog = true">优化</el-button>
-                <el-button v-if="currentCreation" :icon="Download" @click="handleExport">导出</el-button>
+              <div class="header-right">
+                <el-button v-if="currentCreation" type="primary" :icon="Upload" @click="showPublishDialog = true">发布</el-button>
               </div>
             </div>
-            <div v-if="!currentCreation" class="empty-preview">
-              <el-empty description="请填写信息并点击生成按钮" />
+          </template>
+
+          <el-row :gutter="24">
+            <el-col :xs="24" :lg="10">
+              <div class="input-section">
+                <h3>输入信息</h3>
+                <el-form ref="formRef" :model="formData" label-position="top">
+                  <el-form-item label="主题" prop="topic">
+                    <el-input v-model="formData.topic" placeholder="请输入创作主题" />
+                  </el-form-item>
+                  <el-form-item label="关键词">
+                    <el-input v-model="formData.keywords" placeholder="多个关键词用逗号分隔" />
+                  </el-form-item>
+                  <el-form-item label="风格">
+                    <el-select v-model="formData.style" placeholder="选择风格" style="width: 100%">
+                      <el-option label="专业严谨" value="professional" />
+                      <el-option label="轻松幽默" value="humorous" />
+                      <el-option label="情感共鸣" value="emotional" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" :loading="generating" @click="handleGenerate" style="width: 100%">
+                      <el-icon v-if="!generating"><MagicStick /></el-icon>
+                      {{ generating ? '生成中...' : '一键生成' }}
+                    </el-button>
+                  </el-form-item>
+                </el-form>
+
+                <el-card shadow="never" class="model-card">
+                  <template #header><span>AI服务</span></template>
+                  
+                  <!-- 选择模式 -->
+                  <el-form-item label="使用模式" prop="aiMode">
+                    <el-segmented v-model="aiMode" :options="['API Key', 'Cookie']" block />
+                  </el-form-item>
+                  
+                  <!-- API Key 模式 -->
+                  <template v-if="aiMode === 'API Key'">
+                    <el-form-item label="选择模型" prop="selectedModel">
+                      <el-select v-model="selectedModel" placeholder="选择AI模型" style="width: 100%">
+                        <el-option v-for="model in aiModels" :key="model.id" :label="`${model.name} (${model.provider})`" :value="model.id" />
+                      </el-select>
+                    </el-form-item>
+                    <el-alert type="info" title="API Key模式说明" :closable="false" style="margin-bottom: 12px">
+                      <p>使用配置的API Key调用官方API，需要消耗积分</p>
+                    </el-alert>
+                  </template>
+                  
+                  <!-- Cookie 模式 -->
+                  <template v-else>
+                    <el-form-item label="选择平台" prop="selectedPlatform">
+                      <el-select v-model="selectedPlatform" placeholder="选择AI平台" style="width: 100%">
+                        <el-option label="豆包 (Doubao)" value="doubao" />
+                        <el-option label="通义千问 (Qwen)" value="qwen" />
+                        <el-option label="Claude" value="claude" />
+                      </el-select>
+                    </el-form-item>
+                    <el-alert type="success" title="Cookie模式说明" :closable="false" style="margin-bottom: 12px">
+                      <p>使用你已授权的账号免费额度，无需消耗积分</p>
+                    </el-alert>
+                  </template>
+                </el-card>
+
+                <div class="tips-card">
+                  <h4>创作建议</h4>
+                  <ul>
+                    <li>主题尽量具体，能提升生成质量。</li>
+                    <li>关键词建议 3~6 个，帮助模型聚焦。</li>
+                    <li>完成后可用"优化"进一步提升可读性。</li>
+                  </ul>
+                </div>
+              </div>
+            </el-col>
+
+            <el-col :xs="24" :lg="14">
+              <div class="preview-section">
+                <div class="preview-header">
+                  <h3>内容预览</h3>
+                  <div class="preview-meta" v-if="currentCreation">
+                    <el-tag size="small" effect="plain">字数：{{ contentStats.wordCount }}</el-tag>
+                    <el-tag size="small" effect="plain">预计阅读：{{ contentStats.readingMinutes }} 分钟</el-tag>
+                  </div>
+                  <div class="preview-actions">
+                    <el-button v-if="currentCreation" :icon="RefreshRight" @click="handleRegenerate" :loading="generating">重新生成</el-button>
+                    <el-button v-if="currentCreation" :icon="MagicStick" @click="showOptimizeDialog = true">优化</el-button>
+                    <el-button v-if="currentCreation" :icon="Download" @click="handleExport">导出</el-button>
+                  </div>
+                </div>
+                <div v-if="!currentCreation" class="empty-preview">
+                  <el-empty description="请填写信息并点击生成按钮" />
+                </div>
+                <div v-else class="content-preview">
+                  <div ref="editorRef" class="editor-container"></div>
+                </div>
+              </div>
+            </el-col>
+          </el-row>
+        </el-card>
+      </div>
+
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">操作路径</h3>
+          <p class="panel-subtitle">输入关键信息后即可生成内容草稿</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Edit /></el-icon></div>
+              <div>
+                <div class="info-title">输入主题</div>
+                <div class="info-desc">越清晰越能提高生成结果的准确度。</div>
+              </div>
             </div>
-            <div v-else class="content-preview">
-              <div ref="editorRef" class="editor-container"></div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><MagicStick /></el-icon></div>
+              <div>
+                <div class="info-title">一键生成</div>
+                <div class="info-desc">生成后可继续优化、导出或发布。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Upload /></el-icon></div>
+              <div>
+                <div class="info-title">同步发布</div>
+                <div class="info-desc">发布管理中可选择多平台同步。</div>
+              </div>
             </div>
           </div>
-        </el-col>
-      </el-row>
-    </el-card>
+        </div>
+
+        <div class="panel">
+          <h3 class="panel-title">当前状态</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">AI模式</div>
+                <div class="info-desc">{{ aiMode }}</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">选定平台</div>
+                <div class="info-desc">{{ aiMode === 'Cookie' ? selectedPlatform : 'API Key 模式' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
 
     <el-dialog v-model="showOptimizeDialog" title="内容优化" width="500px">
       <el-form label-position="top">
@@ -155,7 +265,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Upload, RefreshRight, MagicStick, Download } from '@element-plus/icons-vue'
+import { ArrowLeft, Upload, RefreshRight, MagicStick, Download, Edit } from '@element-plus/icons-vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { generateContent, regenerateContent, optimizeContent } from '@/api/writing'
@@ -351,27 +461,10 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .writing-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 36%);
-
-  .editor-hero {
-    padding: 22px 24px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
-
-    h1 {
-      margin: 0 0 8px;
-      font-size: 26px;
-      color: #1f2937;
-    }
-
-    p {
-      margin: 0;
-      color: #64748b;
-    }
-  }
+  --hero-from: rgba(14, 165, 233, 0.18);
+  --hero-to: rgba(59, 130, 246, 0.2);
+  --page-accent: #0284c7;
 
   :deep(.el-card) {
     border-radius: 14px;
@@ -506,14 +599,6 @@ onMounted(() => {
 
 @media (max-width: 992px) {
   .writing-editor {
-    .editor-hero {
-      padding: 18px;
-
-      h1 {
-        font-size: 22px;
-      }
-    }
-
     .input-section {
       margin-bottom: 24px;
     }

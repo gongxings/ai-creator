@@ -1,15 +1,15 @@
 """
-通义千问网页版适配器
+通义千问 qianwen.com 适配器
 """
 from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
 
 
-class QwenAdapter(PlatformAdapter):
-    """通义千问网页版适配器"""
+class QianwenAdapter(PlatformAdapter):
+    """通义千问 qianwen.com 适配器"""
     
     def get_oauth_url(self) -> str:
-        """获取OAuth授权URL - 网页聊天版本"""
+        """获取OAuth授权URL"""
         return "https://www.qianwen.com/"
     
     def get_success_pattern(self) -> str:
@@ -17,7 +17,7 @@ class QwenAdapter(PlatformAdapter):
         return "**/qianwen.com/**"
     
     def get_cookie_names(self) -> list:
-        """获取需要提取的Cookie名称"""
+        """获取需要提取的Cookie名称 - qianwen.com 使用 tongyi_sso_ticket"""
         return [
             "tongyi_sso_ticket",
         ]
@@ -48,7 +48,7 @@ class QwenAdapter(PlatformAdapter):
         """
         构建LiteLLM配置 - 用于网页版API调用
         
-        通义千问网页版使用Cookie认证，需要构建特殊的配置
+        qianwen.com 使用 tongyi_sso_ticket 认证
         """
         cookies = credentials.get("cookies", {})
         
@@ -89,7 +89,7 @@ class QwenAdapter(PlatformAdapter):
     
     async def send_message(self, message: str, cookies: Dict[str, str], conversation_id: str = None) -> Dict[str, Any]:
         """
-        发送消息到通义千问网页版
+        发送消息到通义千问 qianwen.com
         
         Args:
             message: 用户消息
@@ -110,7 +110,7 @@ class QwenAdapter(PlatformAdapter):
             "Content-Type": "application/json",
         }
 
-        # 构建请求体
+        # 构建请求体（根据实际API格式）
         payload = {
             "model": "qwen-turbo",
             "messages": [

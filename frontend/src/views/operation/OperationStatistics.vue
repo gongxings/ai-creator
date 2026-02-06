@@ -1,19 +1,22 @@
-<template>
-  <div class="operation-statistics">
-    <el-card class="header-card">
-      <h2>数据统计</h2>
-      <el-date-picker
-        v-model="dateRange"
-        type="daterange"
-        range-separator="至"
-        start-placeholder="开始日期"
-        end-placeholder="结束日期"
-        @change="loadStatistics"
-      />
-    </el-card>
+﻿<template>
+  <div class="operation-statistics flagship-page page-shell">
+    <section class="page-hero stats-hero">
+      <el-card class="header-card">
+        <h2>数据统计</h2>
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          @change="loadStatistics"
+        />
+      </el-card>
+    </section>
 
-    <!-- 核心指标 -->
-    <el-row :gutter="20" class="metrics-row">
+    <section class="page-dashboard">
+      <!-- 核心指标 -->
+      <el-row :gutter="20" class="metrics-row">
       <el-col :span="6">
         <el-card class="metric-card">
           <div class="metric-icon revenue">
@@ -78,10 +81,13 @@
           </div>
         </el-card>
       </el-col>
-    </el-row>
+      </el-row>
+    </section>
 
-    <!-- 图表区域 -->
-    <el-row :gutter="20" class="charts-row">
+    <section class="page-body">
+      <div class="main-panel">
+        <!-- 图表区域 -->
+        <el-row :gutter="20" class="charts-row">
       <el-col :span="12">
         <el-card>
           <template #header>
@@ -166,7 +172,48 @@
           </el-table>
         </el-tab-pane>
       </el-tabs>
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">统计说明</h3>
+          <p class="panel-subtitle">选择时间范围查看经营趋势</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Money /></el-icon></div>
+              <div>
+                <div class="info-title">收入趋势</div>
+                <div class="info-desc">关注收入与用户增长的协同变化。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><User /></el-icon></div>
+              <div>
+                <div class="info-title">用户结构</div>
+                <div class="info-desc">分析会员与活跃用户占比。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">重点指标</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">总收入</div>
+                <div class="info-desc">¥{{ statistics.totalRevenue.toFixed(2) }}</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">创作数</div>
+                <div class="info-desc">{{ statistics.totalCreations }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
   </div>
 </template>
 
@@ -320,6 +367,9 @@ onMounted(() => {
 <style scoped lang="scss">
 .operation-statistics {
   padding: 20px;
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 
   .header-card {
     margin-bottom: 20px;
@@ -419,3 +469,4 @@ onMounted(() => {
   }
 }
 </style>
+

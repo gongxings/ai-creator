@@ -4,6 +4,8 @@ OAuth平台适配器
 from typing import Dict, Any, Optional
 from .base import PlatformAdapter
 from .qwen import QwenAdapter
+from .chatqwen import ChatQwenAdapter
+from .qianwen import QianwenAdapter
 from .openai import OpenAIAdapter
 from .baidu import BaiduAdapter
 from .zhipu import ZhipuAdapter
@@ -18,6 +20,8 @@ BasePlatformAdapter = PlatformAdapter
 # 平台适配器映射
 ADAPTER_MAP = {
     'qwen': QwenAdapter,
+    'chatqwen': ChatQwenAdapter,  # 新版通义千问 (chat.qwen.ai)
+    'qianwen': QianwenAdapter,  # 通义千问 (www.qianwen.com)
     'openai': OpenAIAdapter,
     'baidu': BaiduAdapter,
     'zhipu': ZhipuAdapter,
@@ -62,6 +66,8 @@ __all__ = [
     'PlatformAdapter',
     'BasePlatformAdapter',
     'QwenAdapter',
+    'ChatQwenAdapter',
+    'QianwenAdapter',
     'OpenAIAdapter',
     'BaiduAdapter',
     'ZhipuAdapter',

@@ -1,15 +1,39 @@
-<template>
-  <div class="membership-purchase">
-    <el-card class="header-card">
-      <div class="header-content">
-        <div class="header-left">
-          <h2>开通会员</h2>
-          <p class="subtitle">畅享所有AI创作工具，无限制使用</p>
+﻿<template>
+  <div class="membership-purchase flagship-page page-shell">
+    <section class="page-hero membership-hero">
+      <el-card class="header-card">
+        <div class="header-content">
+          <div class="header-left">
+            <h2>开通会员</h2>
+            <p class="subtitle">畅享所有AI创作工具，无限制使用</p>
+          </div>
+        </div>
+      </el-card>
+    </section>
+
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">会员状态</div>
+          <div class="value">{{ balance.is_member ? '会员' : '普通用户' }}</div>
+          <div class="delta">升级解锁更多权益</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">当前积分</div>
+          <div class="value">{{ balance.credits }}</div>
+          <div class="delta">会员期间不消耗积分</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">选中套餐</div>
+          <div class="value">{{ selectedPrice ? getMembershipTypeName(selectedPrice.membership_type) : '未选择' }}</div>
+          <div class="delta">推荐年费更划算</div>
         </div>
       </div>
-    </el-card>
+    </section>
 
-    <el-card class="status-card">
+    <section class="page-body">
+      <div class="main-panel">
+        <el-card class="status-card">
       <div class="status-info">
         <div class="status-item main">
           <div class="label">当前状态</div>
@@ -31,9 +55,9 @@
           <div class="value">{{ balance.credits }}</div>
         </div>
       </div>
-    </el-card>
+        </el-card>
 
-    <el-card class="benefits-card">
+        <el-card class="benefits-card">
       <template #header>
         <div class="card-header">
           <span>会员专属权益</span>
@@ -69,9 +93,9 @@
           </div>
         </div>
       </div>
-    </el-card>
+        </el-card>
 
-    <el-card class="price-card">
+        <el-card class="price-card">
       <template #header>
         <div class="card-header">
           <span>选择套餐</span>
@@ -103,9 +127,9 @@
           </div>
         </div>
       </div>
-    </el-card>
+        </el-card>
 
-    <el-card v-if="selectedPrice" class="payment-card">
+        <el-card v-if="selectedPrice" class="payment-card">
       <template #header>
         <div class="card-header">
           <span>支付方式</span>
@@ -234,7 +258,48 @@
       </div>
 
       <el-empty v-else description="暂无购买记录" />
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">会员价值</h3>
+          <p class="panel-subtitle">解锁所有AI工具与优先支持</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Check /></el-icon></div>
+              <div>
+                <div class="info-title">无限次数</div>
+                <div class="info-desc">会员期间不限次数使用工具。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Check /></el-icon></div>
+              <div>
+                <div class="info-title">专属支持</div>
+                <div class="info-desc">客服优先响应解决问题。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">到期信息</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">当前到期</div>
+                <div class="info-desc">{{ balance.is_member && balance.member_expired_at ? formatDate(balance.member_expired_at) : '未开通' }}</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">推荐方案</div>
+                <div class="info-desc">年费会员性价比最高</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
   </div>
 </template>
 
@@ -360,6 +425,9 @@ onMounted(() => {
   margin: 0 auto;
   padding: 20px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 
   :deep(.el-card) {
     border-radius: 14px;
@@ -694,3 +762,4 @@ onMounted(() => {
   }
 }
 </style>
+

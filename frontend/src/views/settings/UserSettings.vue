@@ -1,6 +1,70 @@
 ﻿<template>
-  <div class="user-settings">
-    <el-card class="settings-card">
+  <div class="user-settings flagship-page page-shell">
+    <section class="page-hero settings-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">Settings</span>
+          <h1 class="hero-title">用户设置</h1>
+          <p class="hero-subtitle">管理个人信息、账号授权与模型配置。</p>
+          <div class="hero-actions">
+            <el-button v-if="activeTab === 'profile'" type="primary" @click="updateProfile">保存资料</el-button>
+            <el-button v-if="activeTab === 'password'" type="primary" @click="changePasswordHandler">修改密码</el-button>
+            <el-button v-if="activeTab === 'oauth'" type="primary" @click="showAddOAuthDialog">添加账号</el-button>
+            <el-button v-if="activeTab === 'models'" type="primary" @click="showAddModelDialog">添加模型</el-button>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">配置概览</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ oauthAccounts.length }}</div>
+              <div class="hero-stat-label">OAuth账号</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ models.length }}</div>
+              <div class="hero-stat-label">AI模型</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ activeTab }}</div>
+              <div class="hero-stat-label">当前标签</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ profileForm.username || '-' }}</div>
+              <div class="hero-stat-label">账号昵称</div>
+            </div>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag">账号安全</span>
+            <span class="hero-tag">模型管理</span>
+            <span class="hero-tag">授权同步</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">当前标签</div>
+          <div class="value">{{ activeTab }}</div>
+          <div class="delta">支持多维度配置</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">OAuth账号</div>
+          <div class="value">{{ oauthAccounts.length }}</div>
+          <div class="delta">免费额度授权</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">模型配置</div>
+          <div class="value">{{ models.length }}</div>
+          <div class="delta">自定义模型可用</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-card class="settings-card">
       <template #header>
         <div class="card-header">
           <el-icon><Setting /></el-icon>
@@ -123,7 +187,48 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">设置指南</h3>
+          <p class="panel-subtitle">维护资料与账号安全</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Setting /></el-icon></div>
+              <div>
+                <div class="info-title">保持更新</div>
+                <div class="info-desc">及时更新邮箱与手机号。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Plus /></el-icon></div>
+              <div>
+                <div class="info-title">授权管理</div>
+                <div class="info-desc">为多平台账号设置独立授权。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">账号状态</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">OAuth账号</div>
+                <div class="info-desc">{{ oauthAccounts.length }} 个</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">模型数量</div>
+                <div class="info-desc">{{ models.length }} 个</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
 
     <!-- 添加OAuth账号对话框 -->
     <el-dialog
@@ -695,6 +800,9 @@ onMounted(() => {
 <style scoped lang="scss">
 .user-settings {
   padding: 20px;
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
 
   .settings-card {
     max-width: 1200px;
@@ -742,3 +850,4 @@ onMounted(() => {
   }
 }
 </style>
+

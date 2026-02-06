@@ -1,8 +1,68 @@
-<template>
-  <div class="creation-history">
-    <el-page-header content="创作历史" />
+﻿<template>
+  <div class="creation-history flagship-page page-shell">
+    <section class="page-hero history-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">History</span>
+          <h1 class="hero-title">创作历史</h1>
+          <p class="hero-subtitle">追踪你的内容创作与发布进度，随时回看与复用。</p>
+          <div class="hero-actions">
+            <el-button type="primary" @click="handleSearch">刷新筛选</el-button>
+            <el-button @click="handleReset">重置条件</el-button>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">历史概览</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ pagination.total }}</div>
+              <div class="hero-stat-label">累计记录</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ creationList.length }}</div>
+              <div class="hero-stat-label">当前列表</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ filterForm.toolType || '全部' }}</div>
+              <div class="hero-stat-label">筛选类型</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ filterForm.keyword ? '已筛选' : '未筛选' }}</div>
+              <div class="hero-stat-label">关键词</div>
+            </div>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag">可编辑</span>
+            <span class="hero-tag">可复制</span>
+            <span class="hero-tag">多平台发布</span>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <div class="history-container">
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">累计记录</div>
+          <div class="value">{{ pagination.total }}</div>
+          <div class="delta">内容沉淀可追溯</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">当前页数</div>
+          <div class="value">{{ pagination.page }}</div>
+          <div class="delta">支持多条件筛选</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">筛选状态</div>
+          <div class="value">{{ filterForm.keyword ? '已筛选' : '全部' }}</div>
+          <div class="delta">快速定位目标内容</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <div class="history-container">
       <!-- 筛选栏 -->
       <el-card class="filter-card">
         <el-form :inline="true" :model="filterForm">
@@ -122,7 +182,55 @@
           />
         </div>
       </el-card>
-    </div>
+        </div>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">历史使用指南</h3>
+          <p class="panel-subtitle">支持查看、编辑与复制内容</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Document /></el-icon></div>
+              <div>
+                <div class="info-title">快速筛选</div>
+                <div class="info-desc">按时间或关键词定位目标内容。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Edit /></el-icon></div>
+              <div>
+                <div class="info-title">再次编辑</div>
+                <div class="info-desc">点击编辑继续优化内容质量。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Search /></el-icon></div>
+              <div>
+                <div class="info-title">复用内容</div>
+                <div class="info-desc">复制并快速生成新版本。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">筛选状态</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">工具类型</div>
+                <div class="info-desc">{{ filterForm.toolType || '全部' }}</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">关键词</div>
+                <div class="info-desc">{{ filterForm.keyword || '未填写' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
 
     <!-- 查看详情对话框 -->
     <el-dialog
@@ -437,6 +545,9 @@ onMounted(() => {
 <style scoped lang="scss">
 .creation-history {
   padding: 20px;
+  --hero-from: rgba(99, 102, 241, 0.18);
+  --hero-to: rgba(59, 130, 246, 0.18);
+  --page-accent: #4f46e5;
 
   .history-container {
     margin-top: 20px;
@@ -601,3 +712,4 @@ onMounted(() => {
   }
 }
 </style>
+

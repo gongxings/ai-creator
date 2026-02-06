@@ -13,7 +13,7 @@ from app.models.platform_config import PlatformConfig
 from app.services.oauth.encryption import encrypt_credentials, decrypt_credentials
 from app.services.oauth.playwright_service import playwright_service
 from app.services.oauth.adapters import (
-    QwenAdapter, OpenAIAdapter, BaiduAdapter, ZhipuAdapter,
+    QwenAdapter, ChatQwenAdapter, QianwenAdapter, OpenAIAdapter, BaiduAdapter, ZhipuAdapter,
     SparkAdapter, ClaudeAdapter, GeminiAdapter, DoubaoAdapter
 )
 
@@ -21,6 +21,8 @@ from app.services.oauth.adapters import (
 # 平台适配器映射
 PLATFORM_ADAPTERS = {
     'qwen': QwenAdapter,
+    'chatqwen': ChatQwenAdapter,
+    'qianwen': QianwenAdapter,
     'openai': OpenAIAdapter,
     'baidu': BaiduAdapter,
     'zhipu': ZhipuAdapter,

@@ -1,6 +1,71 @@
-<template>
-  <div class="api-keys-page">
-    <el-card>
+﻿<template>
+  <div class="api-keys-page flagship-page page-shell">
+    <section class="page-hero api-keys-hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <span class="hero-eyebrow">API Hub</span>
+          <h1 class="hero-title">API Key 管理</h1>
+          <p class="hero-subtitle">管理你的 API Key 与使用统计，支持多模型调用。</p>
+          <div class="hero-actions">
+            <el-button type="primary" @click="showCreateDialog = true">
+              <el-icon><Plus /></el-icon>
+              创建 API Key
+            </el-button>
+            <el-button @click="loadAPIKeys">刷新列表</el-button>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">当前概览</div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ apiKeys.length }}</div>
+              <div class="hero-stat-label">API Key 数量</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ availableModels.length }}</div>
+              <div class="hero-stat-label">可用模型</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ loading ? '加载中' : '就绪' }}</div>
+              <div class="hero-stat-label">列表状态</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-value">{{ stats ? stats.total_requests : 0 }}</div>
+              <div class="hero-stat-label">累计请求</div>
+            </div>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag">OpenAI 兼容</span>
+            <span class="hero-tag">速率限制</span>
+            <span class="hero-tag">使用统计</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="label">API Key 数量</div>
+          <div class="value">{{ apiKeys.length }}</div>
+          <div class="delta">支持多项目调用</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">可用模型</div>
+          <div class="value">{{ availableModels.length }}</div>
+          <div class="delta">覆盖多种场景</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">请求总量</div>
+          <div class="value">{{ stats ? formatNumber(stats.total_requests) : 0 }}</div>
+          <div class="delta">可查看详细统计</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-body">
+      <div class="main-panel">
+        <el-card>
       <template #header>
         <div class="card-header">
           <span>API Key 管理</span>
@@ -71,7 +136,48 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+        </el-card>
+      </div>
+      <aside class="side-panel">
+        <div class="panel">
+          <h3 class="panel-title">使用建议</h3>
+          <p class="panel-subtitle">合理规划 Key 提升调用效率</p>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><el-icon><Plus /></el-icon></div>
+              <div>
+                <div class="info-title">分场景管理</div>
+                <div class="info-desc">按项目或团队创建独立 Key。</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><el-icon><CopyDocument /></el-icon></div>
+              <div>
+                <div class="info-title">及时保存</div>
+                <div class="info-desc">Key 仅显示一次，请妥善保存。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title">调用状态</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div>
+                <div class="info-title">总请求</div>
+                <div class="info-desc">{{ stats ? formatNumber(stats.total_requests) : 0 }}</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div>
+                <div class="info-title">总 Token</div>
+                <div class="info-desc">{{ stats ? formatNumber(stats.total_tokens) : 0 }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
 
     <!-- 创建 API Key 对话框 -->
     <el-dialog v-model="showCreateDialog" title="创建 API Key" width="600px" @close="resetForm">
@@ -330,6 +436,9 @@ onMounted(() => {
 <style scoped lang="scss">
 .api-keys-page {
   padding: 20px;
+  --hero-from: rgba(59, 130, 246, 0.18);
+  --hero-to: rgba(14, 165, 233, 0.18);
+  --page-accent: #2563eb;
   
   .card-header {
     display: flex;
@@ -343,3 +452,4 @@ onMounted(() => {
   }
 }
 </style>
+

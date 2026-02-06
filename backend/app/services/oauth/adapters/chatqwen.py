@@ -1,25 +1,27 @@
 """
-通义千问网页版适配器
+通义千问新版网页适配器 (chat.qwen.ai)
 """
 from typing import Dict, Any, Optional
 from app.services.oauth.adapters.base import PlatformAdapter
 
 
-class QwenAdapter(PlatformAdapter):
-    """通义千问网页版适配器"""
+class ChatQwenAdapter(PlatformAdapter):
+    """通义千问新版网页适配器 (chat.qwen.ai)"""
     
     def get_oauth_url(self) -> str:
-        """获取OAuth授权URL - 网页聊天版本"""
-        return "https://www.qianwen.com/"
+        """获取OAuth授权URL - 新版网页聊天"""
+        return "https://chat.qwen.ai/"
     
     def get_success_pattern(self) -> str:
         """获取登录成功的URL模式"""
-        return "**/qianwen.com/**"
+        return "**/chat.qwen.ai/**"
     
     def get_cookie_names(self) -> list:
         """获取需要提取的Cookie名称"""
+        # 新版 chat.qwen.ai 使用的 Cookie
         return [
-            "tongyi_sso_ticket",
+            "login_aliyunid_ticket",
+            "t",
         ]
     
     def get_optional_cookie_names(self) -> list:
@@ -27,28 +29,29 @@ class QwenAdapter(PlatformAdapter):
         return [
             "cna",
             "isg",
+            "aliyun_choice",
+            "aliyun_lang",
+            "login_aliyunid_csrf",
+            "login_aliyunid_pk",
             "tfstk",
-            "xlly_s",
-            "UM_distinctid",
-            "_qk_bx_um_v1",
-            "_qk_bx_ck_v1",
-            "_ON_EXT_DVIDN",
+            "_samesite_flag_",
+            "cookie2",
             "XSRF-TOKEN",
         ]
     
     def get_cookie_domain(self) -> str:
         """获取Cookie域名"""
-        return ".qianwen.com"
+        return ".qwen.ai"
     
     def get_check_url(self) -> str:
         """获取凭证验证URL"""
-        return "https://www.qianwen.com/"
+        return "https://chat.qwen.ai/"
     
     def build_litellm_config(self, credentials: Dict[str, Any]) -> Dict[str, Any]:
         """
         构建LiteLLM配置 - 用于网页版API调用
         
-        通义千问网页版使用Cookie认证，需要构建特殊的配置
+        通义千问新版网页使用Cookie认证，需要构建特殊的配置
         """
         cookies = credentials.get("cookies", {})
         
@@ -57,21 +60,19 @@ class QwenAdapter(PlatformAdapter):
         
         return {
             "model": "qwen_web/qwen-turbo",
-            "api_base": "https://www.qianwen.com/api/chat",
+            "api_base": "https://chat.qwen.ai/api/chat",
             "custom_llm_provider": "qwen_web",
             "extra_headers": {
                 "Cookie": cookie_str,
                 "User-Agent": credentials.get("user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"),
-                "Referer": "https://www.qianwen.com/",
-                "Origin": "https://www.qianwen.com",
+                "Referer": "https://chat.qwen.ai/",
+                "Origin": "https://chat.qwen.ai",
             },
             # 通义千问网页版的免费模型
             "available_models": [
                 "qwen-turbo",
                 "qwen-plus",
                 "qwen-max",
-                "qwen-vl-max",
-                "qwen2.5-72b",
             ],
         }
     
@@ -89,7 +90,7 @@ class QwenAdapter(PlatformAdapter):
     
     async def send_message(self, message: str, cookies: Dict[str, str], conversation_id: str = None) -> Dict[str, Any]:
         """
-        发送消息到通义千问网页版
+        发送消息到通义千问新版网页
         
         Args:
             message: 用户消息
@@ -105,12 +106,12 @@ class QwenAdapter(PlatformAdapter):
         headers = {
             "Cookie": "; ".join([f"{k}={v}" for k, v in cookies.items()]),
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Referer": "https://www.qianwen.com/",
-            "Origin": "https://www.qianwen.com",
+            "Referer": "https://chat.qwen.ai/",
+            "Origin": "https://chat.qwen.ai",
             "Content-Type": "application/json",
         }
 
-        # 构建请求体
+        # 构建请求体（根据实际API格式调整）
         payload = {
             "model": "qwen-turbo",
             "messages": [
@@ -127,7 +128,7 @@ class QwenAdapter(PlatformAdapter):
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                "https://www.qianwen.com/api/chat",
+                "https://chat.qwen.ai/api/chat",
                 headers=headers,
                 json=payload,
                 timeout=60.0,
