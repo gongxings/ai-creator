@@ -57,6 +57,37 @@
               </el-form>
             </el-tab-pane>
           </el-tabs>
+
+          <!-- AI服务选择卡片 -->
+          <el-card shadow="never" class="model-card" style="margin-top: 20px">
+            <template #header><span>AI服务</span></template>
+            
+            <!-- 选择模式 -->
+            <el-form-item label="使用模式" prop="aiMode">
+              <el-segmented v-model="aiMode" :options="['API Key', 'Cookie']" block />
+            </el-form-item>
+            
+            <!-- API Key 模式 -->
+            <template v-if="aiMode === 'API Key'">
+              <el-alert type="info" title="API Key模式说明" :closable="false" style="margin-bottom: 12px">
+                <p>使用配置的API Key调用官方API，需要消耗积分</p>
+              </el-alert>
+            </template>
+            
+            <!-- Cookie 模式 -->
+            <template v-else>
+              <el-form-item label="选择平台" prop="selectedPlatform">
+                <el-select v-model="selectedPlatform" placeholder="选择AI平台" style="width: 100%">
+                  <el-option label="豆包 (Doubao)" value="doubao" />
+                  <el-option label="通义千问 (Qwen)" value="qwen" />
+                  <el-option label="Claude" value="claude" />
+                </el-select>
+              </el-form-item>
+              <el-alert type="success" title="Cookie模式说明" :closable="false" style="margin-bottom: 12px">
+                <p>使用你已授权的账号免费额度，无需消耗积分</p>
+              </el-alert>
+            </template>
+          </el-card>
         </el-card>
       </el-col>
 
@@ -102,6 +133,10 @@ const activeTab = ref('theme')
 const generating = ref(false)
 const currentPPT = ref<any>(null)
 
+// AI模式和平台选择
+const aiMode = ref('API Key')  // 'API Key' 或 'Cookie'
+const selectedPlatform = ref('doubao')  // 选中的平台
+
 const themeForm = reactive({
   theme: '',
   pages: 10,
@@ -125,6 +160,12 @@ const generatePPT = async () => {
     return
   }
 
+  // Cookie模式需要选择平台
+  if (aiMode.value === 'Cookie' && !selectedPlatform.value) {
+    ElMessage.warning('请选择AI平台')
+    return
+  }
+
   generating.value = true
   try {
     let result
@@ -133,10 +174,12 @@ const generatePPT = async () => {
         topic: themeForm.theme,
         slides_count: themeForm.pages,
         style: themeForm.style,
+        platform: aiMode.value === 'Cookie' ? selectedPlatform.value : undefined,
       })
     } else {
       result = await request.post('/v1/ppt/from-outline', {
         outline: outlineForm.outline,
+        platform: aiMode.value === 'Cookie' ? selectedPlatform.value : undefined,
       })
     }
     const task = result.data
@@ -234,6 +277,10 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .model-card {
+    margin-top: 20px;
   }
 
   :deep(.el-tabs__item.is-active) {

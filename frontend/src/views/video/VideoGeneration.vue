@@ -19,6 +19,8 @@
             </div>
           </template>
 
+          <el-form label-position="top">
+
           <el-tabs v-model="activeTab">
             <!-- 文本生成视频 -->
             <el-tab-pane label="文本生成视频" name="text">
@@ -105,40 +107,73 @@
               </el-form>
             </el-tab-pane>
           </el-tabs>
-        </el-card>
 
-        <!-- 生成历史 -->
-        <el-card class="history-card" style="margin-top: 20px">
-          <template #header>
-            <span>生成历史</span>
-          </template>
-          <el-empty v-if="historyList.length === 0" description="暂无历史记录" />
-          <div v-else class="history-list">
-            <div
-              v-for="item in historyList"
-              :key="item.id"
-              class="history-item"
-              @click="viewVideo(item)"
-            >
-              <div class="history-thumbnail">
-                <el-icon><VideoCamera /></el-icon>
-              </div>
-              <div class="history-info">
-                <div class="history-title">{{ item.title }}</div>
-                <div class="history-status">
-                  <el-tag v-if="item.status === 'completed'" type="success" size="small">
-                    已完成
-                  </el-tag>
-                  <el-tag v-else-if="item.status === 'processing'" type="warning" size="small">
-                    生成中
-                  </el-tag>
-                  <el-tag v-else type="danger" size="small">失败</el-tag>
-                </div>
-                <div class="history-time">{{ formatTime(item.created_at) }}</div>
-              </div>
-            </div>
+          <!-- AI服务选择卡片 -->
+          <el-card shadow="never" class="model-card" style="margin-top: 20px">
+            <template #header><span>AI服务</span></template>
+            
+            <!-- 选择模式 -->
+            <el-form-item label="使用模式" prop="aiMode">
+              <el-segmented v-model="aiMode" :options="['API Key', 'Cookie']" block />
+            </el-form-item>
+            
+            <!-- API Key 模式 -->
+            <template v-if="aiMode === 'API Key'">
+              <el-alert type="info" title="API Key模式说明" :closable="false" style="margin-bottom: 12px">
+                <p>使用配置的API Key调用官方API，需要消耗积分</p>
+              </el-alert>
+            </template>
+            
+            <!-- Cookie 模式 -->
+            <template v-else>
+              <el-form-item label="选择平台" prop="selectedPlatform">
+                <el-select v-model="selectedPlatform" placeholder="选择AI平台" style="width: 100%">
+                  <el-option label="豆包 (Doubao)" value="doubao" />
+                  <el-option label="通义千问 (Qwen)" value="qwen" />
+                  <el-option label="Claude" value="claude" />
+                </el-select>
+              </el-form-item>
+              <el-alert type="success" title="Cookie模式说明" :closable="false" style="margin-bottom: 12px">
+                <p>使用你已授权的账号免费额度，无需消耗积分</p>
+              </el-alert>
+            </template>
+          </el-card>
+        </el-form>
+      </div>
+    </el-card>
+
+    <!-- 生成历史 -->
+    <el-card class="history-card" style="margin-top: 20px">
+      <template #header>
+        <span>生成历史</span>
+      </template>
+      <el-empty v-if="historyList.length === 0" description="暂无历史记录" />
+      <div v-else class="history-list">
+        <div
+          v-for="item in historyList"
+          :key="item.id"
+          class="history-item"
+          @click="viewVideo(item)"
+        >
+          <div class="history-thumbnail">
+            <el-icon><VideoCamera /></el-icon>
           </div>
-        </el-card>
+          <div class="history-info">
+            <div class="history-title">{{ item.title }}</div>
+            <div class="history-status">
+              <el-tag v-if="item.status === 'completed'" type="success" size="small">
+                已完成
+              </el-tag>
+              <el-tag v-else-if="item.status === 'processing'" type="warning" size="small">
+                生成中
+              </el-tag>
+              <el-tag v-else type="danger" size="small">失败</el-tag>
+            </div>
+            <div class="history-time">{{ formatTime(item.created_at) }}</div>
+          </div>
+        </div>
+      </div>
+    </el-card>
       </el-col>
 
       <!-- 右侧：预览区域 -->
@@ -205,6 +240,7 @@ interface TextForm {
   duration: number
   aspect_ratio: string
   style: string
+  platform?: string
 }
 
 interface ImageForm {
@@ -212,6 +248,7 @@ interface ImageForm {
   motion_prompt: string
   duration: number
   image_data_url?: string
+  platform?: string
 }
 
 interface VideoTask {
@@ -236,6 +273,10 @@ const generating = ref(false)
 const currentTask = ref<VideoTask | null>(null)
 const historyList = ref<HistoryItem[]>([])
 let pollTimer: number | null = null
+
+// AI模式和平台选择
+const aiMode = ref('API Key')  // 'API Key' 或 'Cookie'
+const selectedPlatform = ref('doubao')  // 选中的平台
 
 const textForm = reactive<TextForm>({
   prompt: '',
@@ -270,6 +311,12 @@ const generateVideo = async () => {
     }
   }
 
+  // Cookie模式需要选择平台
+  if (aiMode.value === 'Cookie' && !selectedPlatform.value) {
+    ElMessage.warning('请选择AI平台')
+    return
+  }
+
   generating.value = true
   try {
     let response
@@ -278,6 +325,7 @@ const generateVideo = async () => {
         text: textForm.prompt,
         background_music: false,
         subtitle: true,
+        platform: aiMode.value === 'Cookie' ? selectedPlatform.value : undefined,
       })
     } else {
       const images = imageForm.image_data_url ? [imageForm.image_data_url] : []
@@ -285,6 +333,7 @@ const generateVideo = async () => {
         images,
         transition: 'fade',
         duration_per_image: imageForm.duration,
+        platform: aiMode.value === 'Cookie' ? selectedPlatform.value : undefined,
       })
     }
 
@@ -465,6 +514,12 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .input-card {
+    .model-card {
+      margin-top: 20px;
+    }
   }
 
   .progress-info {
