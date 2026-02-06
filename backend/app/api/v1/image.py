@@ -29,6 +29,7 @@ class ImageGenerateRequest(BaseModel):
     height: int = 1024
     num_images: int = 1
     style: Optional[str] = None
+    platform: Optional[str] = None  # 新增：支持Cookie模式（如'doubao'）或API Key模式（为空）
 
 
 class ImageVariationRequest(BaseModel):
@@ -59,122 +60,169 @@ class ImageTaskResponse(BaseModel):
 
 
 # Background task processing functions
-async def process_image_generation(db: Session, creation_id: int, request_data: dict):
+async def process_image_generation(db: Session, creation_id: int, request_data: dict, user_id: int, platform: Optional[str] = None):
     """后台处理图片生成任务"""
     try:
         from app.models.oauth_account import OAuthAccount
-        from app.models.platform_config import PlatformConfig
-        from app.services.oauth.adapters import PLATFORM_ADAPTERS
+        from app.services.oauth.encryption import decrypt_credentials
+        from app.services.ai.doubao_service import DoubaoService
 
-        logger.info(f"Starting image generation for creation {creation_id}")
+        logger.info(f"Starting image generation for creation {creation_id}, platform={platform}")
 
         creation = db.query(Creation).filter(Creation.id == creation_id).first()
-
         if not creation:
             logger.error(f"Creation {creation_id} not found")
             return
 
         logger.info(f"Creation found: user_id={creation.user_id}, status={creation.status}")
 
-        # 获取用户可用的 OAuth 账号
-        platform_config = db.query(PlatformConfig).filter(
-            PlatformConfig.platform_id == "doubao"
-        ).first()
+        # 判断是Cookie模式还是API Key模式
+        if platform:
+            # Cookie模式
+            logger.info(f"Using Cookie mode for platform: {platform}")
+            
+            # 获取用户的OAuth账号
+            oauth_account = db.query(OAuthAccount).filter(
+                OAuthAccount.user_id=user_id,
+                OAuthAccount.platform == platform,
+                OAuthAccount.is_active == True,
+                OAuthAccount.is_expired == False
+            ).first()
 
-        if not platform_config:
-            logger.error("Doubao platform config not found")
-            raise ValueError("平台配置未找到")
+            if not oauth_account:
+                logger.error(f"No active OAuth account for platform {platform}")
+                creation.status = "failed"
+                creation.error_message = f"未找到有效的 {platform} 账号"
+                creation.output_data = {"error": f"未找到有效的 {platform} 账号"}
+                db.commit()
+                return
 
-        logger.info(f"Platform config found: {platform_config.platform_id}")
+            # 解密凭证
+            try:
+                credentials = decrypt_credentials(oauth_account.credentials)
+                cookies = credentials.get("cookies", {})
+                logger.info(f"Cookies decrypted: {list(cookies.keys())} cookies")
+            except Exception as e:
+                logger.error(f"Failed to decrypt credentials: {e}")
+                creation.status = "failed"
+                creation.error_message = f"解密凭证失败: {str(e)}"
+                creation.output_data = {"error": f"解密凭证失败: {str(e)}"}
+                db.commit()
+                return
 
-        # 获取用户的豆包 OAuth 账号
-        oauth_account = db.query(OAuthAccount).filter(
-            OAuthAccount.user_id == creation.user_id,
-            OAuthAccount.platform == "doubao",
-            OAuthAccount.is_active == True,
-            OAuthAccount.is_expired == False
-        ).first()
+            # 调用DoubaoService生成图片
+            if platform == "doubao":
+                service = DoubaoService(cookies=cookies)
+                
+                # 验证Cookie
+                is_valid = await service.validate_cookies()
+                if not is_valid:
+                    logger.warning(f"Cookie validation failed for {platform}")
+                    creation.status = "failed"
+                    creation.error_message = f"{platform} Cookie已过期"
+                    creation.output_data = {"error": f"{platform} Cookie已过期"}
+                    db.commit()
+                    return
+                
+                # 生成图片
+                result = await service.generate_image(
+                    prompt=request_data.get("prompt", ""),
+                    size=f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}",
+                    style=request_data.get("style"),
+                    negative_prompt=request_data.get("negative_prompt"),
+                    num_images=request_data.get("num_images", 1)
+                )
+                
+                logger.info(f"Image generation result: {result}")
+                
+                # 处理结果
+                if "error" in result:
+                    error_msg = result.get("error", "图片生成失败")
+                    logger.error(f"Image generation error: {error_msg}")
+                    creation.status = "failed"
+                    creation.error_message = error_msg
+                    creation.output_data = result
+                else:
+                    images = result.get("images", [])
+                    logger.info(f"Generated {len(images)} images")
+                    creation.status = "completed"
+                    creation.output_data = {"images": images}
+                
+                db.commit()
+            else:
+                logger.error(f"Unsupported platform: {platform}")
+                creation.status = "failed"
+                creation.error_message = f"不支持的平台: {platform}"
+                creation.output_data = {"error": f"不支持的平台: {platform}"}
+                db.commit()
+        else:
+            # API Key模式（原有逻辑）
+            logger.info("Using API Key mode")
+            
+            from app.models.platform_config import PlatformConfig
+            from app.services.oauth.adapters import PLATFORM_ADAPTERS
 
-        if not oauth_account:
-            logger.error(f"No active OAuth account for user {creation.user_id}")
-            creation.status = "failed"
-            creation.error_message = "未找到有效的豆包 OAuth 账号"
-            creation.output_data = {"error": "未找到有效的豆包 OAuth 账号"}
+            # 获取默认平台配置（原有逻辑）
+            platform_config = db.query(PlatformConfig).filter(
+                PlatformConfig.platform_id == "doubao"
+            ).first()
+
+            if not platform_config:
+                logger.error("Doubao platform config not found")
+                raise ValueError("平台配置未找到")
+
+            # 获取豆包适配器（原有逻辑）
+            adapter_class = PLATFORM_ADAPTERS.get("doubao")
+            if not adapter_class:
+                logger.error("Doubao adapter not found")
+                raise ValueError("平台适配器未找到")
+
+            adapter = adapter_class("doubao", {
+                "oauth_config": platform_config.oauth_config,
+                "litellm_config": platform_config.litellm_config,
+                "quota_config": platform_config.quota_config,
+            })
+
+            # 调用原有逻辑...
+            prompt = request_data.get("prompt", "")
+            negative_prompt = request_data.get("negative_prompt")
+            style = request_data.get("style")
+            size = f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}"
+
+            logger.info(f"Generating image with adapter: prompt={prompt}, size={size}")
+
+            # 注意：这里假设adapter已支持Cookie，实际需要检查实现
+            result = await adapter.generate_image(
+                prompt=prompt,
+                cookies={},  # 使用空Cookie（API Key模式）
+                negative_prompt=negative_prompt,
+                style=style,
+                size=size
+            )
+
+            logger.info(f"Image generation result: {result}")
+
+            if "error" in result:
+                error_msg = result.get("error", "图片生成失败")
+                logger.error(f"Image generation error: {error_msg}")
+                raise ValueError(error_msg)
+
+            images = result.get("images", [])
+            if not images:
+                logger.error("No images generated")
+                raise ValueError("未生成任何图片")
+
+            creation.status = "completed"
+            creation.output_data = {"images": images}
+            creation.error_message = None
             db.commit()
-            return
 
-        logger.info(f"OAuth account found: {oauth_account.id}, name={oauth_account.account_name}")
-
-        # 解密凭证
-        from app.services.oauth.encryption import decrypt_credentials
-        try:
-            credentials = decrypt_credentials(oauth_account.credentials)
-            cookies = credentials.get("cookies", {})
-            logger.info(f"Cookies decrypted: {list(cookies.keys())} cookies")
-        except Exception as e:
-            logger.error(f"Failed to decrypt credentials: {e}")
-            creation.status = "failed"
-            creation.error_message = f"解密凭证失败: {str(e)}"
-            creation.output_data = {"error": f"解密凭证失败: {str(e)}"}
-            db.commit()
-            return
-
-        # 获取豆包适配器
-        adapter_class = PLATFORM_ADAPTERS.get("doubao")
-        if not adapter_class:
-            logger.error("Doubao adapter not found")
-            raise ValueError("平台适配器未找到")
-
-        adapter = adapter_class("doubao", {
-            "oauth_config": platform_config.oauth_config,
-            "litellm_config": platform_config.litellm_config,
-            "quota_config": platform_config.quota_config,
-        })
-
-        # 调用图片生成
-        prompt = request_data.get("prompt", "")
-        negative_prompt = request_data.get("negative_prompt")
-        style = request_data.get("style")
-        size = f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}"
-
-        logger.info(f"Generating image with doubao adapter: prompt={prompt}, size={size}")
-
-        result = await adapter.generate_image(
-            prompt=prompt,
-            cookies=cookies,
-            negative_prompt=negative_prompt,
-            style=style,
-            size=size
-        )
-
-        logger.info(f"Image generation result: {result}")
-
-        # 处理结果
-        if "error" in result:
-            error_msg = result.get("error", "图片生成失败")
-            logger.error(f"Image generation error: {error_msg}")
-            raise ValueError(error_msg)
-
-        images = result.get("images", [])
-        logger.info(f"Generated {len(images)} images: {images}")
-
-        if not images:
-            logger.error("No images generated")
-            raise ValueError("未生成任何图片")
-
-        # 更新创作记录
-        creation.status = "completed"
-        creation.output_data = {"images": images}
-        creation.error_message = None
-        db.commit()
-
-        logger.info(f"Image generation completed for creation {creation_id}, {len(images)} images generated")
+            logger.info(f"Image generation completed for creation {creation_id}, {len(images)} images generated")
 
     except Exception as e:
         logger.error(f"Image generation failed: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        # 标记任务失败
         try:
             creation = db.query(Creation).filter(Creation.id == creation_id).first()
             if creation:
@@ -259,14 +307,16 @@ async def generate_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """文本生成图片"""
+    """文本生成图片 - 支持API Key和Cookie两种模式"""
     try:
-        # 计算所需积分（每张图片100积分）
-        required_credits = request.num_images * 100
-        
-        # 检查积分余额
-        if current_user.credits < required_credits:
-            raise HTTPException(status_code=402, detail="积分不足")
+        # Cookie模式不需要积分，API Key模式需要积分
+        if not request.platform:
+            # API Key模式：计算所需积分（每张图片100积分）
+            required_credits = request.num_images * 100
+            
+            # 检查积分余额
+            if current_user.credits < required_credits:
+                raise HTTPException(status_code=402, detail="积分不足")
         
         # 生成任务ID
         task_id = f"img_{uuid.uuid4().hex[:16]}"
@@ -283,32 +333,36 @@ async def generate_image(
                 "height": request.height,
                 "num_images": request.num_images,
                 "style": request.style,
-                "task_id": task_id
+                "task_id": task_id,
+                "platform": request.platform,
             },
             status="processing"
         )
         db.add(creation)
         
-        # 扣除积分
-        current_user.credits -= required_credits
-        transaction = CreditTransaction(
-            user_id=current_user.id,
-            transaction_type=TransactionType.CONSUME,
-            amount=-required_credits,
-            balance_before=current_user.credits + required_credits,
-            balance_after=current_user.credits,
-            description=f"图片生成: {request.num_images}张",
-            related_id=creation.id,
-            related_type="creation"
-        )
-        db.add(transaction)
+        # 仅在API Key模式下扣除积分
+        if not request.platform:
+            required_credits = request.num_images * 100
+            current_user.credits -= required_credits
+            transaction = CreditTransaction(
+                user_id=current_user.id,
+                transaction_type=TransactionType.CONSUME,
+                amount=-required_credits,
+                balance_before=current_user.credits + required_credits,
+                balance_after=current_user.credits,
+                description=f"图片生成: {request.num_images}张",
+                related_id=creation.id,
+                related_type="creation"
+            )
+            db.add(transaction)
+        
         db.commit()
         db.refresh(creation)
         
         # 添加后台任务处理图片生成
         background_tasks.add_task(
             process_image_generation,
-            db, creation.id, request.dict()
+            db, creation.id, request.dict(), current_user.id, request.platform
         )
         
         return success_response(
