@@ -540,9 +540,9 @@ async def validate_cookies_page(request: Request, platform: str, db: Session = D
                 '5. 复制所有Cookie值（格式：name1=value1; name2=value2）'
             );
             
-            if (!cookieString) {{
-                throw new Error('未提供Cookie');
-            }
+             if (!cookieString) {{
+                 throw new Error('未提供Cookie');
+             }}
             
             const cookieObj = {{}};
             const cookiePairs = cookieString.split(';');
@@ -556,17 +556,17 @@ async def validate_cookies_page(request: Request, platform: str, db: Session = D
             return cookieObj;
         }}
         
-        // 监听来自父窗口的消息
-        window.addEventListener('message', (event) => {{
-            if (event.data && event.data.type === 'extract_cookies') {{
-                submitCookies();
-            }
+         // 监听来自父窗口的消息
+         window.addEventListener('message', (event) => {{
+             if (event.data && event.data.type === 'extract_cookies') {{
+                 submitCookies();
+             }}
         }});
         
          // 自动尝试提取（5秒后）
          setTimeout(() => {{
              // console.log('授权窗口已准备就绪');
-         }}}, 5000);
+         }}, 5000);
     </script>
 </body>
 </html>

@@ -106,8 +106,10 @@ class GeminiAdapter(PlatformAdapter):
         }
 
         # 构建请求体
+        # 注意：需要正确转义方括号和引号给Gemini API
+        escaped_message = message.replace('"', '\\"')
         payload = {
-            "f.req": f'[[null,"\[\\"{message}\\"]"]]',
+            "f.req": f'[[null,"[\\"{escaped_message}\\"]"]]',
             "at": cookies.get("__Secure-1PSID", ""),
         }
 
