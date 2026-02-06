@@ -134,6 +134,7 @@ interface ImageForm {
   n: number
   style: string
   quality: string
+  platform?: string  // 新增：支持Cookie模式
 }
 
 interface HistoryItem {
@@ -149,6 +150,7 @@ const form = reactive<ImageForm>({
   n: 1,
   style: 'vivid',
   quality: 'standard',
+  platform: undefined,  // 新增
 })
 
 const generating = ref(false)
@@ -173,6 +175,7 @@ const generateImage = async () => {
       height,
       num_images: form.n,
       style: form.style,
+      platform: form.platform,  // 新增：支持Cookie模式
     })
     const task = result.data
     currentTask.value = {
