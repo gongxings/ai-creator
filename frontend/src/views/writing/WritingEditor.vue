@@ -46,10 +46,38 @@
             </el-form>
 
             <el-card shadow="never" class="model-card">
-              <template #header><span>AI模型</span></template>
-              <el-select v-model="selectedModel" placeholder="选择AI模型" style="width: 100%">
-                <el-option v-for="model in aiModels" :key="model.id" :label="`${model.name} (${model.provider})`" :value="model.id" />
-              </el-select>
+              <template #header><span>AI服务</span></template>
+              
+              <!-- 选择模式 -->
+              <el-form-item label="使用模式" prop="aiMode">
+                <el-segmented v-model="aiMode" :options="['API Key', 'Cookie']" block />
+              </el-form-item>
+              
+              <!-- API Key 模式 -->
+              <template v-if="aiMode === 'API Key'">
+                <el-form-item label="选择模型" prop="selectedModel">
+                  <el-select v-model="selectedModel" placeholder="选择AI模型" style="width: 100%">
+                    <el-option v-for="model in aiModels" :key="model.id" :label="`${model.name} (${model.provider})`" :value="model.id" />
+                  </el-select>
+                </el-form-item>
+                <el-alert type="info" title="API Key模式说明" :closable="false" style="margin-bottom: 12px">
+                  <p>使用配置的API Key调用官方API，需要消耗积分</p>
+                </el-alert>
+              </template>
+              
+              <!-- Cookie 模式 -->
+              <template v-else>
+                <el-form-item label="选择平台" prop="selectedPlatform">
+                  <el-select v-model="selectedPlatform" placeholder="选择AI平台" style="width: 100%">
+                    <el-option label="豆包 (Doubao)" value="doubao" />
+                    <el-option label="通义千问 (Qwen)" value="qwen" />
+                    <el-option label="Claude" value="claude" />
+                  </el-select>
+                </el-form-item>
+                <el-alert type="success" title="Cookie模式说明" :closable="false" style="margin-bottom: 12px">
+                  <p>使用你已授权的账号免费额度，无需消耗积分</p>
+                </el-alert>
+              </template>
             </el-card>
 
             <div class="tips-card">
@@ -57,7 +85,7 @@
               <ul>
                 <li>主题尽量具体，能提升生成质量。</li>
                 <li>关键词建议 3~6 个，帮助模型聚焦。</li>
-                <li>完成后可用“优化”进一步提升可读性。</li>
+                <li>完成后可用"优化"进一步提升可读性。</li>
               </ul>
             </div>
           </div>
@@ -162,6 +190,8 @@ const formRef = ref()
 const formData = reactive({ topic: '', keywords: '', style: 'professional' })
 const aiModels = ref<AIModel[]>([])
 const selectedModel = ref<number>()
+const aiMode = ref('API Key')  // 'API Key' 或 'Cookie'
+const selectedPlatform = ref('doubao')  // 选中的平台
 const editorRef = ref<HTMLElement>()
 let quillEditor: Quill | null = null
 const currentCreation = ref<Creation>()
@@ -202,11 +232,19 @@ const handleGenerate = async () => {
     ElMessage.warning('请输入主题')
     return
   }
+  
+  // Cookie模式需要选择平台
+  if (aiMode.value === 'Cookie' && !selectedPlatform.value) {
+    ElMessage.warning('请选择AI平台')
+    return
+  }
+  
   generating.value = true
   try {
     const res = await generateContent(toolType.value, {
       ...formData,
-      model_id: selectedModel.value
+      model_id: aiMode.value === 'API Key' ? selectedModel.value : undefined,
+      platform: aiMode.value === 'Cookie' ? selectedPlatform.value : undefined
     })
     currentCreation.value = res
     if (quillEditor) {

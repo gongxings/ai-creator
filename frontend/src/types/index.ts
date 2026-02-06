@@ -99,6 +99,7 @@ export interface GenerateContentParams {
   tool_type: string
   params: Record<string, any>
   ai_model_id?: number
+  platform?: string  // 新增：Cookie模式的平台，如'doubao'、'qwen'等
 }
 
 export interface CreationVersion {

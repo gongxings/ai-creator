@@ -8,9 +8,11 @@ export function getWritingTools() {
 
 // 生成内容
 export function generateContent(data: GenerateContentParams) {
-  return request.post<Creation>(`/v1/writing/${data.tool_type}/generate`, {
-    params: data.params,
-    ai_model_id: data.ai_model_id
+  return request.post<Creation>(`/v1/writing/generate`, {
+    tool_type: data.tool_type,
+    parameters: data.params,
+    model_id: data.ai_model_id,
+    platform: data.platform  // 新增：支持Cookie模式
   })
 }
 
