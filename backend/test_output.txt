@@ -1,0 +1,101 @@
+============================================================
+豆包适配器测试
+============================================================
+
+✓ 适配器创建成功
+  Device ID: 7698069876089282560
+  Web ID: 7525865464772495360
+  User ID: 741b51491d104077bafb35a99fb818cc
+
+✓ msToken 生成成功
+  长度: 128 字符
+  示例: oOGiLG6LIbwaUd0LWGws...
+
+✓ a_bogus 生成成功
+  长度: 44 字符
+  格式: mf-bqYekySXQAkxYKsZ8OnalSHmBMvElMc5CG-EC8E1J
+
+✓ Cookie 构建成功
+  Cookie 片段: is_staff_user=false; store-region=cn-gd; store-region-src=uid; sid_guard=test_session_id_12345%7C177...
+  总长度: 501 字符
+
+✓ Cookie 字段检查:
+  ✓ is_staff_user
+  ✓ store-region
+  ✓ sid_guard
+  ✓ uid_tt
+  ✓ sessionid
+  ✓ sessionid_ss
+  ✓ msToken
+
+✓ 请求参数构建成功
+  API 端点: /samantha/chat/completion
+  aid: 497858
+  device_id: 7698069876089282560...
+  web_id: 7525865464772495360...
+  msToken: KjgG-XDt1UuPv4h7zMim...
+  a_bogus: mf-hzDAYblUlyGB4KNLgRWlYnqwmUyKjt3i4m-PICTxi
+
+✓ 请求头检查:
+  ✓ Cookie: is_staff_user=false; store-region=cn-gd; store-reg...
+  ✓ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb...
+  ✓ Referer: https://www.doubao.com/chat/
+  ✓ Origin: https://www.doubao.com
+  ✓ Sec-Ch-Ua: "Google Chrome";v="131", "Chromium";v="131", "Not_...
+  ✓ Agw-Js-Conv: str
+  ✓ X-Flow-Trace: 04-94685e13-d0dc-45a4-b02f-466acfbe2926-59f07e78-8...
+
+✓ 请求体构建成功
+  messages 数量: 1
+  conversation_id: 0
+  local_conversation_id: local_1640741154389066
+  local_message_id: 5034f291-6d02-4e87-86a8-9e183a171ff0
+
+============================================================
+完整请求示例
+============================================================
+
+POST https://www.doubao.com/samantha/chat/completion
+
+查询参数:
+  aid: 497858
+  device_id: 7698069876089282560
+  device_platform: web
+  language: zh
+  pkg_type: release_version
+  ... 共 15 个参数
+
+请求头:
+  Cookie: is_staff_user=false; store-region=cn-gd; store-reg...
+  User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb...
+  Content-Type: application/json
+  Referer: https://www.doubao.com/chat/
+  ... 共 19 个请求头
+
+请求体:
+  messages[0].content: {"text": "\u4f60\u597d\uff0c\u8c46\u5305\uff01"}...
+  completion_option.need_create_conversation: True
+
+============================================================
+测试完成！
+============================================================
+
+✅ 所有组件工作正常：
+  1. msToken 生成 - 128字符随机Token
+  2. a_bogus 生成 - 格式正确的签名
+  3. Cookie 构建 - 包含所有必要字段
+  4. 请求参数 - 符合 doubao-free-api 规范
+  5. 请求头 - 完整的浏览器指纹伪装
+  6. 请求体 - 正确的内部 API 格式
+
+⚠️ 重要提示：
+  - 这只是格式测试，未进行实际 API 调用
+  - 实际使用需要真实的 sessionid Cookie
+  - doubao-free-api 项目已归档，可能随时失效
+  - 建议仅用于个人测试，不要商用
+
+📝 下一步：
+  1. 使用真实 sessionid 测试实际 API 调用
+  2. 监控 API 响应和成功率
+  3. 观察是否触发风控机制
+  4. 长期建议迁移到火山引擎官方 API
