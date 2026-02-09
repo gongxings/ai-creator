@@ -165,7 +165,7 @@ async def generate_content(
     
     try:
         # 创建写作服务实例
-        writing_service = WritingService(db)
+        writing_service = WritingService()
         
         # 判断使用哪种模式
         if request.platform:
@@ -179,14 +179,19 @@ async def generate_content(
                 platform=request.platform,
             )
         else:
-            # API Key模式（原有方式）
+            # API Key模式（需要 AI model）
             logger.info(f"Using API Key mode with model_id: {request.model_id}")
-            result = await writing_service.generate_content(
-                db=db,
-                user_id=current_user.id,
-                tool_type=request.tool_type,
-                input_data=request.parameters or {},
-                ai_model_id=request.model_id,
+            # TODO: 获取 AI model 实例
+            # ai_model = db.query(AIModel).filter(AIModel.id == request.model_id).first()
+            # result = await writing_service.generate_content(
+            #     db=db,
+            #     tool_type=request.tool_type,
+            #     user_input=request.parameters or {},
+            #     ai_model=ai_model,
+            # )
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="API Key 模式暂未实现，请使用 Cookie 模式"
             )
         
         return result
@@ -391,16 +396,25 @@ async def regenerate_content(
             detail=str(e),
         )
     
-    writing_service = WritingService(db)
+    writing_service = WritingService()
     
     try:
-        # 使用原始输入数据重新生成
-        result = await writing_service.generate_content(
+        # 使用原始输入数据重新生成（仅支持 Cookie 模式）
+        if not creation.extra_data or "platform" not in creation.extra_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该创作不支持重新生成（缺少平台信息）"
+            )
+        
+        platform = creation.extra_data.get("platform")
+        user_input = creation.extra_data.get("input_data", {})
+        
+        result = await writing_service.generate_content_with_cookie(
             db=db,
             user_id=current_user.id,
             tool_type=creation.tool_type,
-            input_data=creation.extra_data.get("input_data", {}) if creation.extra_data else {},
-            ai_model_id=creation.ai_model_id,
+            user_input=user_input,
+            platform=platform,
         )
         
         return result
