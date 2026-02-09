@@ -124,8 +124,8 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
                     db.commit()
                     return
                 
-                # 生成图片
-                result = await service.generate_image(
+                # 生成图片（优先使用直接API）
+                result = await service.generate_image_direct(
                     prompt=request_data.get("prompt", ""),
                     size=f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}",
                     style=request_data.get("style"),

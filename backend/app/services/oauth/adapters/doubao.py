@@ -127,6 +127,21 @@ class DoubaoAdapter(PlatformAdapter):
         """获取凭证验证URL"""
         return "https://www.doubao.com/"
     
+    def get_supported_features(self) -> list:
+        """
+        获取豆包支持的功能列表
+        
+        Returns:
+            功能列表
+        """
+        return [
+            'chat',           # 文本对话
+            'article',        # 文章生成
+            'code',           # 代码辅助
+            'image',          # 图像生成 ✅
+            'video',          # 视频生成 ✅
+        ]
+    
     def get_auto_login_config(self) -> Dict[str, Any]:
         """获取自动登录配置"""
         return {

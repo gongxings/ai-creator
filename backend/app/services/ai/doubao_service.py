@@ -18,10 +18,9 @@ class DoubaoService(CookieBasedAIService):
     
     # 豆包网页版API端点
     BASE_URL = "https://www.doubao.com"
-    CHAT_API = f"{BASE_URL}/api/chat"
-    CHAT_STREAM_API = f"{BASE_URL}/api/chat/stream"
-    CHAT_COMPLETIONS_API = f"{BASE_URL}/api/chat/completions"
+    CHAT_COMPLETIONS_API = f"{BASE_URL}/samantha/chat/completion"
     IMAGE_API = f"{BASE_URL}/samantha/image/gen_image"
+    VIDEO_API = f"{BASE_URL}/samantha/video/gen_video"  # 视频生成API
     
     # 默认Bot ID
     DEFAULT_BOT_ID = "7358044466096914465"
@@ -387,10 +386,95 @@ class DoubaoService(CookieBasedAIService):
         **kwargs
     ) -> Dict[str, Any]:
         """
-        生成视频
+        生成视频（优先使用直接API）
+        """
+        # 先尝试直接API
+        result = await self.generate_video_direct(prompt, duration, **kwargs)
         
-        注意：豆包网页版可能不直接支持视频生成
-        这里通过聊天方式尝试生成
+        # 如果直接API失败，回退到聊天方式
+        if result.get("error") and "404" in str(result.get("error")):
+            return await self.generate_video_via_chat(prompt, duration, **kwargs)
+        
+        return result
+    
+    async def generate_video_direct(
+        self,
+        prompt: str,
+        duration: Optional[int] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        直接调用视频生成API
+        """
+        headers = self.get_headers()
+        
+        payload = {
+            "prompt": prompt,
+            "duration": duration or 5,  # 默认5秒
+        }
+        
+        logger.info(f"Doubao direct video generation - prompt: {prompt[:100]}...")
+        
+        try:
+            async with httpx.AsyncClient(follow_redirects=True, timeout=300.0) as client:
+                response = await client.post(
+                    self.VIDEO_API,
+                    headers=headers,
+                    json=payload,
+                )
+                
+                if response.status_code == 401:
+                    return {
+                        "video_url": None,
+                        "prompt": prompt,
+                        "error": "Cookie已过期，请重新登录授权"
+                    }
+                
+                if response.status_code == 404:
+                    # API不存在，回退到聊天方式
+                    logger.warning("Direct video API not available, falling back to chat method")
+                    return await self.generate_video_via_chat(prompt, duration)
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                video_url = None
+                if "video_url" in data:
+                    video_url = data["video_url"]
+                elif "data" in data and len(data["data"]) > 0:
+                    video_url = data["data"][0].get("url")
+                
+                return {
+                    "video_url": video_url,
+                    "prompt": prompt,
+                    "status": data.get("status", "completed"),
+                }
+                
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return await self.generate_video_via_chat(prompt, duration)
+            logger.error(f"Doubao direct video generation failed: {e}")
+            return {
+                "video_url": None,
+                "prompt": prompt,
+                "error": str(e)
+            }
+        except Exception as e:
+            logger.error(f"Doubao direct video generation failed: {e}")
+            return {
+                "video_url": None,
+                "prompt": prompt,
+                "error": str(e)
+            }
+    
+    async def generate_video_via_chat(
+        self,
+        prompt: str,
+        duration: Optional[int] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        通过聊天方式生成视频
         """
         headers = self.get_headers()
         
@@ -404,7 +488,7 @@ class DoubaoService(CookieBasedAIService):
             "stream": False,
         }
         
-        logger.info(f"Doubao video generation - prompt: {prompt[:100]}...")
+        logger.info(f"Doubao video generation via chat - prompt: {prompt[:100]}...")
         
         try:
             async with httpx.AsyncClient(follow_redirects=True, timeout=300.0) as client:
@@ -426,6 +510,7 @@ class DoubaoService(CookieBasedAIService):
                 
                 # 提取视频URL
                 video_url = None
+                content = ""
                 if "choices" in data and len(data["choices"]) > 0:
                     choice = data["choices"][0]
                     if "message" in choice and "content" in choice["message"]:
@@ -442,7 +527,7 @@ class DoubaoService(CookieBasedAIService):
                 }
                 
         except Exception as e:
-            logger.error(f"Doubao video generation failed: {e}")
+            logger.error(f"Doubao video generation via chat failed: {e}")
             return {
                 "video_url": None,
                 "prompt": prompt,
