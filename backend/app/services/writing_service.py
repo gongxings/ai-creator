@@ -241,6 +241,87 @@ class WritingService:
 请直接输出翻译内容。"""
     }
     
+    # 每个工具类型的默认参数
+    TOOL_DEFAULTS = {
+        "wechat_article": {
+            "topic": "未指定主题",
+            "keywords": "暂无关键词",
+            "target_audience": "广大读者",
+            "style": "轻松活泼"
+        },
+        "xiaohongshu_note": {
+            "topic": "未指定主题",
+            "keywords": "暂无关键词",
+            "note_type": "种草分享"
+        },
+        "official_document": {
+            "doc_type": "通知",
+            "topic": "未指定主题",
+            "issuer": "相关单位",
+            "receiver": "有关单位",
+            "content": "暂无内容"
+        },
+        "academic_paper": {
+            "title": "未命名论文",
+            "field": "未指定领域",
+            "method": "文献研究法",
+            "main_points": "暂无核心观点"
+        },
+        "marketing_copy": {
+            "product": "产品/服务",
+            "target_customer": "目标客户",
+            "selling_points": "核心优势",
+            "goal": "提升品牌认知"
+        },
+        "news_article": {
+            "topic": "未指定主题",
+            "news_type": "综合新闻",
+            "key_info": "暂无关键信息"
+        },
+        "video_script": {
+            "topic": "未指定主题",
+            "duration": "60秒",
+            "platform": "抖音",
+            "style": "轻松幽默"
+        },
+        "story_novel": {
+            "genre": "现实",
+            "theme": "未指定主题",
+            "characters": "主角",
+            "setting": "现代都市"
+        },
+        "business_plan": {
+            "project_name": "未命名项目",
+            "industry": "未指定行业",
+            "business_model": "待确定",
+            "target_market": "待分析"
+        },
+        "work_report": {
+            "report_type": "周报",
+            "period": "本周",
+            "main_work": "暂无内容",
+            "achievements": "暂无成果"
+        },
+        "resume": {
+            "name": "姓名",
+            "position": "应聘职位",
+            "experience": "暂无工作经验",
+            "education": "暂无教育背景",
+            "skills": "暂无技能"
+        },
+        "rewrite": {
+            "original_text": "待改写的文本",
+            "rewrite_type": "润色优化",
+            "target_style": "保持原风格"
+        },
+        "translation": {
+            "source_text": "待翻译的文本",
+            "source_lang": "中文",
+            "target_lang": "英文",
+            "style": "标准"
+        }
+    }
+    
     @staticmethod
     def get_ai_service(ai_model: AIModel):
         """根据AI模型配置获取对应的服务实例"""
@@ -272,11 +353,16 @@ class WritingService:
         
         prompt_template = cls.TOOL_PROMPTS[tool_type]
         
+        # 合并用户输入和默认值
+        defaults = cls.TOOL_DEFAULTS.get(tool_type, {})
+        merged_input = {**defaults, **user_input}  # 用户输入会覆盖默认值
+        
         # 填充提示词
         try:
-            prompt = prompt_template.format(**user_input)
+            prompt = prompt_template.format(**merged_input)
         except KeyError as e:
-            raise ValueError(f"缺少必需的输入参数: {str(e)}")
+            missing_param = str(e).strip("'")
+            raise ValueError(f"缺少必需的输入参数: {missing_param}。请在请求的 parameters 字段中提供该参数。")
         
         # 调用AI服务生成内容
         ai_service = cls.get_ai_service(ai_model)
@@ -343,11 +429,16 @@ class WritingService:
         
         prompt_template = cls.TOOL_PROMPTS[tool_type]
         
+        # 合并用户输入和默认值
+        defaults = cls.TOOL_DEFAULTS.get(tool_type, {})
+        merged_input = {**defaults, **user_input}  # 用户输入会覆盖默认值
+        
         # 填充提示词
         try:
-            prompt = prompt_template.format(**user_input)
+            prompt = prompt_template.format(**merged_input)
         except KeyError as e:
-            raise ValueError(f"缺少必需的输入参数: {str(e)}")
+            missing_param = str(e).strip("'")
+            raise ValueError(f"缺少必需的输入参数: {missing_param}。请在请求的 parameters 字段中提供该参数。")
         
         # 使用Cookie服务调用AI
         manager = CookieAIServiceManager(db)

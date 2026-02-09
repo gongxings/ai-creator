@@ -6,6 +6,10 @@ import httpx
 import json
 import re
 import logging
+import random
+import base64
+import secrets
+import time
 from typing import Dict, Any, Optional, List, AsyncGenerator
 
 from app.services.ai.cookie_based_service import CookieBasedAIService
@@ -24,6 +28,72 @@ class DoubaoService(CookieBasedAIService):
     
     # 默认Bot ID
     DEFAULT_BOT_ID = "7358044466096914465"
+    DEFAULT_ASSISTANT_ID = "497858"
+    VERSION_CODE = "20800"
+    
+    def __init__(self, cookies: Dict[str, str], user_agent: Optional[str] = None):
+        super().__init__(cookies, user_agent)
+        # 生成设备ID
+        self.device_id = str(int(random.random() * 999999999999999999 + 7000000000000000000))
+        self.web_id = str(int(random.random() * 999999999999999999 + 7000000000000000000))
+        # 生成用户ID
+        import uuid
+        self.user_id = str(uuid.uuid4()).replace('-', '')
+    
+    def build_complete_cookie(self, ms_token: str) -> str:
+        """
+        构建完整的 Cookie 字符串
+        参考 doubao-free-api 的实现
+        """
+        sessionid = self.cookies.get("sessionid", "")
+        sessionid_ss = self.cookies.get("sessionid_ss", sessionid)
+        
+        current_timestamp = int(time.time())
+        
+        cookie_parts = [
+            "is_staff_user=false",
+            "store-region=cn-gd",
+            "store-region-src=uid",
+            f"sid_guard={sessionid}%7C{current_timestamp}%7C5184000%7CSun%2C+02-Feb-2025+04%3A17%3A20+GMT",
+            f"uid_tt={self.user_id}",
+            f"uid_tt_ss={self.user_id}",
+            f"sid_tt={sessionid}",
+            f"sessionid={sessionid}",
+            f"sessionid_ss={sessionid_ss}",
+            f"msToken={ms_token}",
+        ]
+        
+        # 添加其他可选的 Cookie
+        if "s_v_web_id" in self.cookies:
+            cookie_parts.append(f"s_v_web_id={self.cookies['s_v_web_id']}")
+        if "tt_webid" in self.cookies:
+            cookie_parts.append(f"tt_webid={self.cookies['tt_webid']}")
+        
+        return "; ".join(cookie_parts)
+    
+    @staticmethod
+    def generate_fake_ms_token() -> str:
+        """生成伪造的 msToken (128字符)"""
+        random_bytes = secrets.token_bytes(96)
+        ms_token = base64.b64encode(random_bytes).decode('utf-8')
+        ms_token = ms_token.replace('+', '-').replace('/', '_').replace('=', '')
+        return ms_token
+    
+    @staticmethod
+    def generate_fake_a_bogus() -> str:
+        """生成伪造的 a_bogus 签名"""
+        import string
+        charset = string.ascii_letters + string.digits
+        part1 = ''.join(secrets.choice(charset) for _ in range(34))
+        part2 = ''.join(secrets.choice(charset) for _ in range(6))
+        return f"mf-{part1}-{part2}"
+    
+    @staticmethod
+    def generate_local_ids():
+        """生成本地会话ID和消息ID"""
+        local_conv_id = str(int(random.random() * 999999999999999999 + 7000000000000000000))
+        local_msg_id = str(int(random.random() * 999999999999999999 + 7000000000000000000))
+        return local_conv_id, local_msg_id
     
     def get_platform_name(self) -> str:
         return "doubao"
@@ -31,11 +101,17 @@ class DoubaoService(CookieBasedAIService):
     def get_check_url(self) -> str:
         return self.BASE_URL
     
-    def get_headers(self, referer: Optional[str] = None, content_type: str = "application/json") -> Dict[str, str]:
+    def get_headers(self, referer: Optional[str] = None, content_type: str = "application/json", ms_token: Optional[str] = None) -> Dict[str, str]:
         """
         构建豆包请求头
         """
-        cookie_str = "; ".join([f"{k}={v}" for k, v in self.cookies.items()])
+        # 如果提供了 ms_token，使用完整的 Cookie 构建
+        if ms_token:
+            cookie_str = self.build_complete_cookie(ms_token)
+        else:
+            # 否则使用简单拼接（用于验证等场景）
+            cookie_str = "; ".join([f"{k}={v}" for k, v in self.cookies.items()])
+        
         headers = {
             "Cookie": cookie_str,
             "User-Agent": self.user_agent,
@@ -104,47 +180,200 @@ class DoubaoService(CookieBasedAIService):
         Returns:
             生成的文本
         """
-        headers = self.get_headers()
+        # 生成本地ID - 参考 doubao-free-api 的格式
+        local_conv_id = f"local_16{''.join(str(random.randint(0, 9)) for _ in range(14))}"
+        local_msg_id = str(int(random.random() * 999999999999999999 + 7000000000000000000))
         
+        # 构建消息负载 - 使用 doubao-free-api 的格式
         payload = {
-            "conversation_id": conversation_id or "",
-            "bot_id": bot_id or self.DEFAULT_BOT_ID,
-            "user_input": prompt,
-            "stream": False,
+            "messages": [
+                {
+                    "content": json.dumps({"text": prompt}),
+                    "content_type": 2001,
+                    "attachments": [],
+                    "references": [],
+                }
+            ],
+            "completion_option": {
+                "is_regen": False,
+                "with_suggest": True,
+                "need_create_conversation": True,
+                "launch_stage": 1,
+                "is_replace": False,
+                "is_delete": False,
+                "message_from": 0,
+                "event_id": "0"
+            },
+            "conversation_id": "0",
+            "local_conversation_id": local_conv_id,
+            "local_message_id": local_msg_id
         }
+        
+        # 生成查询参数
+        ms_token = self.generate_fake_ms_token()
+        a_bogus = self.generate_fake_a_bogus()
+        
+        params = {
+            "aid": self.DEFAULT_ASSISTANT_ID,
+            "device_id": self.device_id,
+            "device_platform": "web",
+            "language": "zh",
+            "pkg_type": "release_version",
+            "real_aid": self.DEFAULT_ASSISTANT_ID,
+            "region": "CN",
+            "samantha_web": 1,
+            "sys_region": "CN",
+            "tea_uuid": self.web_id,
+            "use_olympus_account": 1,
+            "version_code": self.VERSION_CODE,
+            "web_id": self.web_id,
+            "msToken": ms_token,
+            "a_bogus": a_bogus,
+        }
+        
+        # 使用完整的 Cookie 构建请求头
+        headers = self.get_headers(ms_token=ms_token)
+        # 添加必需的请求头
+        headers["Referer"] = "https://www.doubao.com/chat/"
+        headers["Agw-Js-Conv"] = "str"
+        headers["X-Flow-Trace"] = f"04-{str(int(random.random() * 999999999999999999))}-{str(int(random.random() * 999999999999))}-01"
         
         logger.info(f"Doubao text generation - prompt length: {len(prompt)}")
         
         async with httpx.AsyncClient(follow_redirects=True, timeout=120.0) as client:
             response = await client.post(
                 self.CHAT_COMPLETIONS_API,
+                params=params,
                 headers=headers,
                 json=payload,
             )
+            
+            logger.info(f"Doubao response status: {response.status_code}")
+            logger.info(f"Doubao response content-type: {response.headers.get('content-type')}")
             
             if response.status_code == 401:
                 logger.error("Doubao API returned 401 - Cookie may be expired")
                 raise ValueError("Cookie已过期，请重新登录授权")
             
+            if response.status_code == 400:
+                # 记录详细的错误信息
+                response_text = response.text
+                logger.error(f"Doubao API returned 400")
+                logger.error(f"Response text length: {len(response_text)}")
+                logger.error(f"Response text: {response_text[:1000] if response_text else '(empty)'}")
+                
+                try:
+                    error_data = response.json()
+                    logger.error(f"Response JSON: {error_data}")
+                    error_msg = error_data.get("message") or error_data.get("error") or error_data.get("msg") or str(error_data)
+                    raise ValueError(f"豆包API请求错误: {error_msg}")
+                except Exception as parse_error:
+                    logger.error(f"Failed to parse error response as JSON: {parse_error}")
+                    if response_text:
+                        raise ValueError(f"豆包API请求错误 (400): {response_text[:200]}")
+                    else:
+                        raise ValueError(f"豆包API请求错误 (400): 未返回错误详情，请检查Cookie是否有效")
+            
             response.raise_for_status()
             
-            data = response.json()
+            # 检查响应类型
+            content_type = response.headers.get('content-type', '')
+            if 'text/event-stream' not in content_type:
+                logger.error(f"Invalid response content-type: {content_type}")
+                raise ValueError(f"豆包API返回了错误的内容类型: {content_type}")
             
-            # 提取返回的文本
-            if "choices" in data and len(data["choices"]) > 0:
-                choice = data["choices"][0]
-                if "message" in choice and "content" in choice["message"]:
-                    return choice["message"]["content"]
+            # 流式解析 SSE 响应
+            result_text = ""
+            event_count = 0
+            buffer = ""
             
-            # 尝试其他格式
-            if "text" in data:
-                return data["text"]
+            logger.info("Starting to process SSE stream...")
             
-            if "content" in data:
-                return data["content"]
+            # 逐块读取流式响应
+            async for chunk in response.aiter_text():
+                buffer += chunk
+                
+                # 按行处理
+                while '\n' in buffer:
+                    line, buffer = buffer.split('\n', 1)
+                    line = line.strip()
+                    
+                    if line.startswith("data:"):
+                        data_str = line[5:].strip()
+                        if data_str and data_str != "[DONE]":
+                            try:
+                                raw_result = json.loads(data_str)
+                                event_count += 1
+                                
+                                # 记录前几个事件用于调试
+                                if event_count <= 3:
+                                    logger.info(f"Event {event_count}: event_type={raw_result.get('event_type')}")
+                                    # 记录完整的事件数据用于调试未知事件类型
+                                    if raw_result.get('event_type') not in [2001, 2003]:
+                                        logger.info(f"  Unknown event_type, full data: {json.dumps(raw_result, ensure_ascii=False)[:500]}")
+                                
+                                # 检查错误
+                                if raw_result.get("code"):
+                                    error_msg = f"豆包API错误: {raw_result.get('code')}-{raw_result.get('message')}"
+                                    logger.error(error_msg)
+                                    raise ValueError(error_msg)
+                                
+                                # event_type == 2005 表示错误/警告
+                                if raw_result.get("event_type") == 2005:
+                                    event_data_str = raw_result.get("event_data", "{}")
+                                    try:
+                                        event_data = json.loads(event_data_str)
+                                        error_code = event_data.get("code")
+                                        error_message = event_data.get("message", "")
+                                        error_detail = event_data.get("error_detail", {})
+                                        detail_message = error_detail.get("message", "")
+                                        
+                                        error_msg = f"豆包API返回错误 (event_type=2005, code={error_code}): {error_message}"
+                                        if detail_message:
+                                            error_msg += f" - {detail_message}"
+                                        
+                                        logger.error(error_msg)
+                                        raise ValueError(error_msg)
+                                    except json.JSONDecodeError:
+                                        logger.error(f"Failed to parse error event_data: {event_data_str}")
+                                        raise ValueError("豆包API返回了错误事件但无法解析详情")
+                                
+                                # event_type == 2001 表示消息内容
+                                if raw_result.get("event_type") == 2001:
+                                    event_data_str = raw_result.get("event_data", "{}")
+                                    try:
+                                        event_data = json.loads(event_data_str)
+                                        message_data = event_data.get("message", {})
+                                        content_type = message_data.get("content_type")
+                                        
+                                        if content_type in [2001, 2008]:
+                                            content_str = message_data.get("content", "{}")
+                                            content_obj = json.loads(content_str)
+                                            if "text" in content_obj:
+                                                text_chunk = content_obj["text"]
+                                                result_text += text_chunk
+                                                if event_count <= 3:
+                                                    logger.info(f"  → Text chunk: {text_chunk[:50]}")
+                                    except json.JSONDecodeError as e:
+                                        logger.error(f"Failed to parse event_data: {e}")
+                                
+                                # event_type == 2003 表示结束
+                                elif raw_result.get("event_type") == 2003:
+                                    logger.info(f"Stream ended at event {event_count}")
+                                    break
+                                    
+                            except json.JSONDecodeError as e:
+                                logger.error(f"Failed to parse SSE data: {e}")
+                                continue
             
-            logger.warning(f"Unexpected response format: {data}")
-            return str(data)
+            logger.info(f"Total events processed: {event_count}")
+            logger.info(f"Result text length: {len(result_text)}")
+            
+            if result_text:
+                return result_text
+            
+            logger.warning("No text content found in response")
+            raise ValueError("豆包API返回的响应中没有文本内容")
     
     async def generate_text_stream(
         self,
