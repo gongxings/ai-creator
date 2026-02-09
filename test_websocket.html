@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 连接测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #log {
+            background: #f5f5f5;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-send { color: #0066cc; }
+        .log-receive { color: #009900; }
+        .log-error { color: #cc0000; }
+        input {
+            padding: 8px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket 连接测试</h1>
+    
+    <div>
+        <label>Token: <input type="text" id="token" placeholder="输入你的认证 token"></label>
+        <br><br>
+        <label>Platform: <input type="text" id="platform" value="doubao" placeholder="平台ID (如: doubao)"></label>
+        <br><br>
+        <button onclick="connectWS()">连接 WebSocket</button>
+        <button onclick="disconnectWS()">断开连接</button>
+        <button onclick="clearLog()">清空日志</button>
+    </div>
+
+    <div id="status" class="status info">未连接</div>
+
+    <h2>通信日志</h2>
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function connectWS() {
+            const token = document.getElementById('token').value;
+            const platform = document.getElementById('platform').value;
+
+            if (!token) {
+                alert('请输入 Token');
+                return;
+            }
+
+            if (!platform) {
+                alert('请输入平台ID');
+                return;
+            }
+
+            // 构建 WebSocket URL
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname + ':8000'; // 假设后端在 8000 端口
+            const wsUrl = `${protocol}//${host}/api/v1/remote-browser/ws/${platform}?token=${encodeURIComponent(token)}`;
+
+            log(`正在连接: ${wsUrl}`, 'info');
+            updateStatus('正在连接...', 'info');
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = (event) => {
+                    log('✓ WebSocket 连接已建立', 'receive');
+                    updateStatus('已连接', 'success');
+                };
+
+                ws.onmessage = (event) => {
+                    log(`← 收到消息: ${event.data}`, 'receive');
+                    
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'screenshot') {
+                            log(`  → 收到截图数据 (${data.data.length} 字符)`, 'receive');
+                        } else if (data.type === 'status') {
+                            log(`  → 状态变化: ${data.status}`, 'receive');
+                            updateStatus(`状态: ${data.status}`, 'info');
+                        } else if (data.type === 'credentials') {
+                            log(`  → 凭证获取成功`, 'receive');
+                            updateStatus('授权成功', 'success');
+                        } else if (data.type === 'error') {
+                            log(`  → 错误: ${data.data?.message}`, 'error');
+                            updateStatus(`错误: ${data.data?.message}`, 'error');
+                        }
+                    } catch (e) {
+                        log(`  → 解析消息失败: ${e.message}`, 'error');
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    log(`✗ WebSocket 错误: ${error}`, 'error');
+                    updateStatus('连接错误', 'error');
+                    console.error('WebSocket error:', error);
+                };
+
+                ws.onclose = (event) => {
+                    log(`✗ WebSocket 连接已关闭 (code: ${event.code}, reason: ${event.reason})`, 'info');
+                    updateStatus('连接已关闭', 'info');
+                    ws = null;
+                };
+
+            } catch (error) {
+                log(`✗ 创建 WebSocket 失败: ${error.message}`, 'error');
+                updateStatus('连接失败', 'error');
+            }
+        }
+
+        function disconnectWS() {
+            if (ws) {
+                log('正在关闭连接...', 'info');
+                ws.close();
+                ws = null;
+            } else {
+                log('未连接', 'info');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // 测试发送消息
+        function sendTestMessage() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('WebSocket 未连接', 'error');
+                return;
+            }
+
+            const msg = {
+                type: 'mouse',
+                event: 'click',
+                x: 0.5,
+                y: 0.5,
+                button: 'left'
+            };
+
+            log(`→ 发送消息: ${JSON.stringify(msg)}`, 'send');
+            ws.send(JSON.stringify(msg));
+        }
+    </script>
+</body>
+</html>

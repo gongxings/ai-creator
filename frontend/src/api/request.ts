@@ -100,7 +100,7 @@ service.interceptors.response.use(
     const res = response.data
     
     // 如果返回的状态码不是200，则认为是错误
-    if (res.code !== 200&&response.status !== 200) {
+    if (res.code !== 200 && response.status !== 200) {
       ElMessage.error(res.message || '请求失败')
       // 401: 未授权，跳转到登录页
       if (res.code === 401) {

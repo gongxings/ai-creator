@@ -11,7 +11,7 @@ import logging
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # 添加项目根目录到 Python 路径
-sys.path.insert(0, 'D:\\workspace\\openstudy\\ai-creator\\backend')
+sys.path.insert(0, '/backend')
 
 # 配置日志级别为 DEBUG
 logging.basicConfig(

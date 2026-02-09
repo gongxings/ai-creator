@@ -200,6 +200,6 @@ backend/
 ## 更多信息
 
 查看项目根目录的文档：
-- [快速开始](../docs/QUICK_START.md)
-- [API 参考](../docs/API_REFERENCE.md)
-- [部署指南](../docs/DEPLOYMENT.md)
+- [快速开始](QUICK_START.md)
+- [API 参考](API_REFERENCE.md)
+- [部署指南](DEPLOYMENT.md)

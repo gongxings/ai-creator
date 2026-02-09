@@ -11,7 +11,7 @@ import asyncio
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # 添加项目根目录到 Python 路径
-sys.path.insert(0, 'D:\\workspace\\openstudy\\ai-creator\\backend')
+sys.path.insert(0, '/backend')
 
 from app.services.ai.doubao_service import DoubaoService
 from app.core.database import SessionLocal
