@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="writing-editor flagship-page page-shell">
     <section class="page-hero editor-hero">
       <div class="hero-grid">
@@ -351,9 +351,10 @@ const handleGenerate = async () => {
   
   generating.value = true
   try {
-    const res = await generateContent(toolType.value, {
-      ...formData,
-      model_id: aiMode.value === 'API Key' ? selectedModel.value : undefined,
+    const res = await generateContent({
+      tool_type: toolType.value,
+      params: formData,
+      ai_model_id: aiMode.value === 'API Key' ? selectedModel.value : undefined,
       platform: aiMode.value === 'Cookie' ? selectedPlatform.value : undefined
     })
     currentCreation.value = res
