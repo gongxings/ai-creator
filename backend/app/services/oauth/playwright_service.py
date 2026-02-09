@@ -139,11 +139,23 @@ class PlaywrightService:
                 logger.info(f"localStorage keys: {list(local_storage.keys())}")
 
                 # 检查常见的登录相关键
-                login_keys = ['user_info', 'token', 'auth', 'session', 'user', 'userId', 'userInfo']
+                login_keys = [
+                    'user_info', 'token', 'auth', 'session', 'user', 'userId', 'userInfo',
+                    'flow_web_has_login',  # 即梦平台的登录标识
+                    'uid',  # 豆包等平台的用户ID
+                    'passport_user',  # 豆包的用户信息
+                ]
                 for key in login_keys:
-                    if key in local_storage and local_storage[key]:
-                        logger.info(f"Found login indicator in localStorage: {key}")
-                        return True
+                    if key in local_storage:
+                        value = local_storage[key]
+                        # 特殊处理 flow_web_has_login (值为 "true" 或 true)
+                        if key == 'flow_web_has_login':
+                            if value == 'true' or value == True or value == '1':
+                                logger.info(f"Found login indicator in localStorage: {key}={value}")
+                                return True
+                        elif value:
+                            logger.info(f"Found login indicator in localStorage: {key}")
+                            return True
             except Exception as e:
                 logger.warning(f"Failed to check localStorage: {e}")
 

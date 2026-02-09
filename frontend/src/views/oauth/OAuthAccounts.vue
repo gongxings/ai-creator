@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="oauth-accounts flagship-page page-shell">
     <section class="page-hero oauth-hero">
       <el-card class="header-card">
@@ -339,54 +339,76 @@
            />
          </el-form-item>
 
-         <div class="auth-method-section">
-           <div class="method-label">选择授权方式</div>
-           <el-radio-group v-model="authMethod" size="large" class="auth-methods">
-             <el-radio-button label="frontend">
-               <el-icon><Link /></el-icon>
-               前端授权（推荐）
-             </el-radio-button>
-             <el-radio-button label="backend">
-               <el-icon><Monitor /></el-icon>
-               后端授权
-             </el-radio-button>
-           </el-radio-group>
+          <div class="auth-method-section">
+            <div class="method-label">选择授权方式</div>
+            <el-radio-group v-model="authMethod" size="large" class="auth-methods">
+              <el-radio-button label="remote">
+                <el-icon><VideoCamera /></el-icon>
+                远程浏览器（推荐）
+              </el-radio-button>
+              <el-radio-button label="frontend">
+                <el-icon><Link /></el-icon>
+                前端授权
+              </el-radio-button>
+              <el-radio-button label="backend">
+                <el-icon><Monitor /></el-icon>
+                后端授权
+              </el-radio-button>
+            </el-radio-group>
 
-           <div class="method-tip">
-             <el-alert
-               v-if="authMethod === 'frontend'"
-               type="success"
-               :closable="false"
-             >
-               <template #title>
-                 <span>前端授权：在弹出窗口中登录，自动获取Cookie</span>
-               </template>
-             </el-alert>
-             <el-alert
-               v-else
-               type="info"
-               :closable="false"
-             >
-               <template #title>
-                 <span>后端授权：系统打开浏览器，在浏览器中扫码登录</span>
-               </template>
-             </el-alert>
-           </div>
-         </div>
+            <div class="method-tip">
+              <el-alert
+                v-if="authMethod === 'remote'"
+                type="success"
+                :closable="false"
+              >
+                <template #title>
+                  <span>远程浏览器：实时显示浏览器画面，支持鼠标操作，登录后自动获取Cookie</span>
+                </template>
+              </el-alert>
+              <el-alert
+                v-else-if="authMethod === 'frontend'"
+                type="info"
+                :closable="false"
+              >
+                <template #title>
+                  <span>前端授权：在弹出窗口中登录，需手动复制Cookie</span>
+                </template>
+              </el-alert>
+              <el-alert
+                v-else
+                type="info"
+                :closable="false"
+              >
+                <template #title>
+                  <span>后端授权：系统打开浏览器，在浏览器中扫码登录</span>
+                </template>
+              </el-alert>
+            </div>
+          </div>
        </div>
 
        <template #footer>
-         <el-button @click="showAddDialog = false">取消</el-button>
-         <el-button
-           type="primary"
-           @click="authMethod === 'frontend' ? handleFrontendAuth() : handleAdd()"
-           :loading="adding"
-           :disabled="!addForm.platform || !addForm.account_name"
-         >
-           {{ authMethod === 'frontend' ? '打开授权窗口' : '后端授权' }}
-         </el-button>
-       </template>
+          <el-button @click="showAddDialog = false">取消</el-button>
+          <el-button
+            type="primary"
+            @click="handleAuthByMethod"
+            :loading="adding"
+            :disabled="!addForm.platform || !addForm.account_name"
+          >
+            {{ authMethod === 'remote' ? '打开远程浏览器' : (authMethod === 'frontend' ? '打开授权窗口' : '后端授权') }}
+          </el-button>
+        </template>
      </el-dialog>
+
+    <!-- 远程浏览器授权对话框 -->
+    <RemoteBrowser
+      v-model="showRemoteBrowser"
+      :platform="addForm.platform"
+      :platform-name="getPlatformName(addForm.platform)"
+      @success="handleRemoteBrowserSuccess"
+      @cancel="handleRemoteBrowserCancel"
+    />
 
     <!-- 编辑账号对话框 -->
     <el-dialog
@@ -510,7 +532,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
-import { Plus, Key, Link, Monitor } from '@element-plus/icons-vue'
+import { Plus, Key, Link, Monitor, VideoCamera } from '@element-plus/icons-vue'
+import RemoteBrowser from '@/components/RemoteBrowser.vue'
 import {
   getPlatforms,
   getAccounts,
@@ -537,8 +560,11 @@ const adding = ref(false)
 const updating = ref(false)
 const checkingId = ref<number | null>(null)
 const activeTab = ref('all')
-const authMethod = ref('frontend')
+const authMethod = ref('remote')
 const authStep = ref(0)  // 授权步骤
+
+// 远程浏览器对话框
+const showRemoteBrowser = ref(false)
 
 // 授权窗口引用
 const authWindow = ref<Window | null>(null)
@@ -689,6 +715,52 @@ const handleFrontendAuth = async () => {
     ElMessage.error('打开授权窗口失败')
     adding.value = false
   }
+}
+
+// 根据授权方式选择处理函数
+const handleAuthByMethod = () => {
+  if (authMethod.value === 'remote') {
+    handleRemoteAuth()
+  } else if (authMethod.value === 'frontend') {
+    handleFrontendAuth()
+  } else {
+    handleAdd()
+  }
+}
+
+// 远程浏览器授权
+const handleRemoteAuth = () => {
+  if (!addForm.platform) {
+    ElMessage.warning('请选择平台')
+    return
+  }
+  
+  if (!addForm.account_name) {
+    ElMessage.warning('请输入账号名称')
+    return
+  }
+  
+  // 打开远程浏览器对话框
+  showRemoteBrowser.value = true
+  showAddDialog.value = false
+}
+
+// 远程浏览器授权成功
+const handleRemoteBrowserSuccess = (credentials: any) => {
+  ElMessage.success('授权成功！Cookie已自动保存')
+  loadAccounts()
+  addForm.value = { platform: '', account_name: '' }
+}
+
+// 远程浏览器授权取消
+const handleRemoteBrowserCancel = () => {
+  showAddDialog.value = true
+}
+
+// 获取平台名称
+const getPlatformName = (platformId: string): string => {
+  const platform = platforms.value.find(p => p.platform_id === platformId)
+  return platform?.platform_name || platformId
 }
 
 // 编辑账号

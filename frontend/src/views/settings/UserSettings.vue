@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="user-settings flagship-page page-shell">
     <section class="page-hero settings-hero">
       <div class="hero-grid">
@@ -9,17 +9,12 @@
           <div class="hero-actions">
             <el-button v-if="activeTab === 'profile'" type="primary" @click="updateProfile">保存资料</el-button>
             <el-button v-if="activeTab === 'password'" type="primary" @click="changePasswordHandler">修改密码</el-button>
-            <el-button v-if="activeTab === 'oauth'" type="primary" @click="showAddOAuthDialog">添加账号</el-button>
             <el-button v-if="activeTab === 'models'" type="primary" @click="showAddModelDialog">添加模型</el-button>
           </div>
         </div>
         <div class="hero-panel">
           <div class="hero-panel-title">配置概览</div>
           <div class="hero-stats">
-            <div class="hero-stat">
-              <div class="hero-stat-value">{{ oauthAccounts.length }}</div>
-              <div class="hero-stat-label">OAuth账号</div>
-            </div>
             <div class="hero-stat">
               <div class="hero-stat-value">{{ models.length }}</div>
               <div class="hero-stat-label">AI模型</div>
@@ -50,14 +45,16 @@
           <div class="delta">支持多维度配置</div>
         </div>
         <div class="dashboard-card">
-          <div class="label">OAuth账号</div>
-          <div class="value">{{ oauthAccounts.length }}</div>
-          <div class="delta">免费额度授权</div>
-        </div>
-        <div class="dashboard-card">
           <div class="label">模型配置</div>
           <div class="value">{{ models.length }}</div>
           <div class="delta">自定义模型可用</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="label">账号授权</div>
+          <div class="value">
+            <el-button size="small" @click="$router.push('/authorization')">管理授权</el-button>
+          </div>
+          <div class="delta">统一授权入口</div>
         </div>
       </div>
     </section>
@@ -107,52 +104,6 @@
               <el-button type="primary" @click="changePasswordHandler">修改密码</el-button>
             </el-form-item>
           </el-form>
-        </el-tab-pane>
-
-        <!-- OAuth账号管理 -->
-        <el-tab-pane label="OAuth账号" name="oauth">
-          <div class="oauth-section">
-            <div class="section-header">
-              <h3>OAuth账号管理</h3>
-              <el-button type="primary" @click="showAddOAuthDialog">
-                <el-icon><Plus /></el-icon>
-                添加账号
-              </el-button>
-            </div>
-
-            <el-table :data="oauthAccounts" style="width: 100%">
-              <el-table-column prop="platform_name" label="平台" />
-              <el-table-column prop="account_name" label="账号名称" />
-              <el-table-column label="配额使用">
-                <template #default="{ row }">
-                  <el-progress
-                    :percentage="row.quota_limit ? (row.quota_used / row.quota_limit * 100) : 0"
-                    :status="row.is_expired ? 'exception' : 'success'"
-                  />
-                  <span class="quota-text">
-                    {{ row.quota_used }} / {{ row.quota_limit || '无限制' }}
-                  </span>
-                </template>
-              </el-table-column>
-              <el-table-column label="状态">
-                <template #default="{ row }">
-                  <el-tag v-if="row.is_expired" type="danger">已过期</el-tag>
-                  <el-tag v-else-if="row.is_active" type="success">正常</el-tag>
-                  <el-tag v-else type="info">已禁用</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="updated_at" label="更新时间" width="180" />
-              <el-table-column label="操作" width="250">
-                <template #default="{ row }">
-                  <el-button link type="primary" @click="refreshOAuthAccount(row.id)">刷新</el-button>
-                  <el-button link type="warning" @click="toggleOAuthAccount(row)">
-                    {{ row.is_active ? '禁用' : '启用' }}
-                  </el-button>
-                  <el-button link type="danger" @click="deleteOAuthAccount(row.id)">删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
         </el-tab-pane>
 
         <!-- AI模型配置 -->
@@ -210,105 +161,24 @@
             </div>
           </div>
         </div>
+        
         <div class="panel">
-          <h3 class="panel-title">账号状态</h3>
+          <h3 class="panel-title">快捷操作</h3>
           <div class="info-list">
             <div class="info-item">
               <div>
-                <div class="info-title">OAuth账号</div>
-                <div class="info-desc">{{ oauthAccounts.length }} 个</div>
-              </div>
-            </div>
-            <div class="info-item">
-              <div>
-                <div class="info-title">模型数量</div>
-                <div class="info-desc">{{ models.length }} 个</div>
+                <div class="info-title">账号授权</div>
+                <div class="info-desc">
+                  <el-button size="small" @click="$router.push('/authorization')">
+                    前往授权中心
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </aside>
     </section>
-
-    <!-- 添加OAuth账号对话框 -->
-    <el-dialog
-      v-model="oauthDialogVisible"
-      title="添加OAuth账号"
-      width="600px"
-    >
-      <el-form :model="oauthForm" label-width="100px">
-        <el-form-item label="选择平台">
-          <el-select v-model="oauthForm.platform" placeholder="选择要授权的平台" style="width: 100%">
-            <el-option
-              v-for="platform in oauthPlatforms"
-              :key="platform.id"
-              :value="platform.id"
-            >
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <img 
-                  :src="platform.icon" 
-                  :alt="platform.name"
-                  style="width: 16px; height: 16px;"
-                  v-if="platform.icon && (platform.icon.startsWith('http') || platform.icon.startsWith('https'))"
-                />
-                <span>{{ platform.name }}</span>
-              </div>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="账号名称">
-          <el-input
-            v-model="oauthForm.account_name"
-            placeholder="为这个账号起个名字，方便识别"
-          />
-        </el-form-item>
-        <el-form-item label="Auth Mode">
-          <el-radio-group v-model="oauthForm.auth_mode">
-            <el-radio-button label="auto">Auto</el-radio-button>\n            <el-radio-button label="manual">Manual</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <template v-if="oauthForm.auth_mode === 'manual'">
-          <el-form-item label="Login URL">
-            <el-input :model-value="oauthLoginUrl" readonly>
-              <template #append>
-                <el-button @click="openOAuthLogin" :disabled="!oauthLoginUrl">Open</el-button>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item label="Cookies">
-            <el-input
-              v-model="oauthForm.cookie_text"
-              type="textarea"
-              :rows="6"
-              placeholder="Paste cookie JSON or key=value; key2=value2"
-            />
-          </el-form-item>
-          <el-form-item v-if="requiredCookieNames.length" label="Required">
-            <el-tag
-              v-for="name in requiredCookieNames"
-              :key="name"
-              size="small"
-              style="margin-right: 6px"
-            >
-              {{ name }}
-            </el-tag>
-          </el-form-item>
-        </template>
-        <el-alert
-          title="授权说明"
-          type="info"
-          :closable="false"
-          style="margin-top: 10px"
-        >
-          <p>点击"开始授权"后，将打开新窗口进行平台登录授权。</p>
-          <p>授权完成后，系统会自动获取您的免费额度。</p>
-        </el-alert>
-      </el-form>
-      <template #footer>
-        <el-button @click="oauthDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="addOAuthAccount">开始授权</el-button>
-      </template>
-    </el-dialog>
 
     <!-- 添加/编辑AI模型对话框 -->
     <el-dialog
@@ -352,18 +222,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
+import { Plus, Setting } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import { updateUserInfo, changePassword } from '@/api/auth'
 import { getAIModels, addAIModel, updateAIModel, deleteAIModel } from '@/api/models'
-import { 
-  getPlatforms,
-  authorizeAccount, 
-  createAccountManual,
-  getAccounts, 
-  updateAccount, 
-  deleteAccount, 
-  checkAccountValidity 
-} from '@/api/oauth'
 import type { AIModel } from '@/types'
 
 const userStore = useUserStore()
@@ -405,23 +267,8 @@ const passwordRules = {
   ],
 }
 
-// OAuth账号
-const oauthAccounts = ref<any[]>([])
-const oauthDialogVisible = ref(false)
-const oauthForm = reactive({
-  platform: '',
-  account_name: '',
-  auth_mode: 'auto',
-  cookie_text: '',
-})
-
-// OAuth平台列表（从后端获取）
-const oauthPlatforms = ref<any[]>([])
-const selectedOAuthPlatform = computed(() =>
-  oauthPlatforms.value.find((platform) => platform.id === oauthForm.platform)
-)
-const oauthLoginUrl = computed(() => selectedOAuthPlatform.value?.oauth_meta?.oauth_url || '')
-const requiredCookieNames = computed(() => selectedOAuthPlatform.value?.oauth_meta?.cookie_names || [])
+// OAuth账号（已移至账号授权页面）
+// const oauthAccounts = ref<any[]>([])
 
 // AI模型
 const models = ref<AIModel[]>([])
@@ -556,244 +403,12 @@ const deleteModel = async (id: number) => {
   }
 }
 
-// OAuth账号管理方法
-const showAddOAuthDialog = () => {
-  oauthForm.platform = ''
-  oauthForm.account_name = ''
-  oauthForm.auth_mode = 'auto'
-  oauthForm.cookie_text = ''
-  oauthDialogVisible.value = true
-}
-
-const openOAuthLogin = () => {
-  if (!oauthLoginUrl.value) {
-    ElMessage.warning('Login URL not available')
-    return
-  }
-  window.open(oauthLoginUrl.value, '_blank')
-}
-
-const parseCookies = (input: string): Record<string, string> => {
-  const text = input.trim()
-  if (!text) return {}
-
-  const cleaned = text.replace(/^cookie:\s*/i, '')
-
-  if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
-    try {
-      const data = JSON.parse(cleaned)
-      const result: Record<string, string> = {}
-      if (Array.isArray(data)) {
-        data.forEach((item) => {
-          if (item && item.name && typeof item.value !== 'undefined') {
-            result[item.name] = String(item.value)
-          }
-        })
-        return result
-      }
-      if (data && typeof data === 'object') {
-        Object.entries(data).forEach(([key, value]) => {
-          if (typeof value !== 'undefined') {
-            result[key] = String(value)
-          }
-        })
-        return result
-      }
-    } catch (error) {
-      // fall through to parse as cookie string
-    }
-  }
-
-  const result: Record<string, string> = {}
-  cleaned.split(';').forEach((part) => {
-    const trimmed = part.trim()
-    if (!trimmed) return
-    const [key, ...rest] = trimmed.split('=')
-    if (!key) return
-    result[key] = rest.join('=')
-  })
-  return result
-}
-
-const loadOAuthPlatforms = async () => {
-  try {
-    const data = await getPlatforms()
-    oauthPlatforms.value = data.map((platform: any) => ({
-      id: platform.platform_id,
-      name: platform.platform_name,
-      oauth_meta: platform.oauth_meta || platform.oauth_config || null,
-      icon: platform.platform_icon || '🤖',
-    }))
-  } catch (error) {
-    ElMessage.error('加载OAuth平台失败')
-  }
-}
-
-const loadOAuthAccounts = async () => {
-  try {
-    const data = await getAccounts()
-    oauthAccounts.value = data
-  } catch (error) {
-    ElMessage.error('加载OAuth账号失败')
-  }
-}
-
-const addOAuthAccount = async () => {
-  if (!oauthForm.platform || !oauthForm.account_name) {
-    ElMessage.warning('Please complete required fields')
-    return
-  }
-
-  try {
-    if (oauthForm.auth_mode === 'manual') {
-      const cookies = parseCookies(oauthForm.cookie_text)
-      if (!Object.keys(cookies).length) {
-        ElMessage.warning('Please paste valid cookies')
-        return
-      }
-
-      const loadingMessage = ElMessage({
-        message: 'Saving cookies...',
-        type: 'info',
-        duration: 0,
-        showClose: true,
-      })
-
-      oauthDialogVisible.value = false
-
-      await createAccountManual({
-        platform: oauthForm.platform,
-        account_name: oauthForm.account_name,
-        cookies,
-      })
-
-      loadingMessage.close()
-      ElMessage.success('OAuth account saved')
-      await loadOAuthAccounts()
-      return
-    }
-
-    const loadingMessage = ElMessage({
-      message: 'Starting authorization. Backend will open a browser window...',
-      type: 'info',
-      duration: 0,
-      showClose: true,
-    })
-
-    oauthDialogVisible.value = false
-
-    await authorizeAccount({
-      platform: oauthForm.platform,
-      account_name: oauthForm.account_name,
-    })
-
-    loadingMessage.close()
-    ElMessage.success('OAuth account authorized')
-    await loadOAuthAccounts()
-  } catch (error: any) {
-    console.error('OAuth error:', error)
-    ElMessage.error(error.response?.data?.detail || 'Authorization failed')
-  }
-}
-
-const addOAuthAccountLegacy = async () => {
-  if (!oauthForm.platform || !oauthForm.account_name) {
-    ElMessage.warning('请填写完整信息')
-    return
-  }
-  
-  try {
-    // 显示加载提示
-    const loadingMessage = ElMessage({
-      message: '正在启动授权流程，后端将打开浏览器窗口，请在浏览器中完成登录...',
-      type: 'info',
-      duration: 0, // 不自动关闭
-      showClose: true,
-    })
-    
-    // 关闭对话框
-    oauthDialogVisible.value = false
-    
-    // 调用授权API（这会在后端使用Playwright打开浏览器窗口）
-    console.log('发送OAuth授权请求:', {
-      platform: oauthForm.platform,
-      account_name: oauthForm.account_name
-    });
-    
-    await authorizeAccount({
-      platform: oauthForm.platform,
-      account_name: oauthForm.account_name,
-    })
-    
-    // 关闭加载提示
-    loadingMessage.close()
-    
-    // 显示成功消息
-    ElMessage.success('OAuth账号授权成功！')
-    
-    // 重新加载账号列表
-    await loadOAuthAccounts()
-    
-  } catch (error: any) {
-    console.error('OAuth授权错误:', error);
-    ElMessage.error(error.response?.data?.detail || '授权失败，请重试')
-  }
-}
-
-const refreshOAuthAccount = async (id: number) => {
-  try {
-    const loadingMessage = ElMessage({
-      message: '正在刷新账号，请稍候...',
-      type: 'info',
-      duration: 0,
-      showClose: true,
-    })
-    
-    await checkAccountValidity(id)
-    loadingMessage.close()
-    
-    ElMessage.success('刷新成功')
-    await loadOAuthAccounts()
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.detail || '刷新失败')
-  }
-}
-
-const toggleOAuthAccount = async (account: any) => {
-  try {
-    await updateAccount(account.id, {
-      is_active: !account.is_active
-    })
-    ElMessage.success(account.is_active ? '已禁用' : '已启用')
-    await loadOAuthAccounts()
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.detail || '操作失败')
-  }
-}
-
-const deleteOAuthAccount = async (id: number) => {
-  try {
-    await ElMessageBox.confirm('确定要删除这个OAuth账号吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
-    
-    await deleteAccount(id)
-    ElMessage.success('删除成功')
-    await loadOAuthAccounts()
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.response?.data?.detail || '删除失败')
-    }
-  }
-}
+// OAuth账号管理方法（已移至账号授权页面）
+// const loadOAuthAccounts = async () => { ... }
 
 onMounted(() => {
   loadUserInfo()
   loadModels()
-  loadOAuthPlatforms()
-  loadOAuthAccounts()
 })
 </script>
 

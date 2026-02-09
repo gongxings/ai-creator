@@ -19,7 +19,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, remote_browser, publish_remote_browser
 from app.api import openapi_proxy
 
 # 配置日志
@@ -207,7 +207,7 @@ app.include_router(
 
 app.include_router(
     operation.router,
-    prefix=f"{settings.API_V1_PREFIX}",
+    prefix=f"{settings.API_V1_PREFIX.rstrip('/')}",
     tags=["运营管理"]
 )
 
@@ -227,6 +227,18 @@ app.include_router(
     ai.router,
     prefix=f"{settings.API_V1_PREFIX}/ai",
     tags=["统一AI调用"]
+)
+
+app.include_router(
+    remote_browser.router,
+    prefix=f"{settings.API_V1_PREFIX}/remote-browser",
+    tags=["远程浏览器控制"]
+)
+
+app.include_router(
+    publish_remote_browser.router,
+    prefix=f"{settings.API_V1_PREFIX}/publish-remote-browser",
+    tags=["发布平台远程浏览器"]
 )
 
 # OpenAPI代理路由（兼容OpenAI格式）

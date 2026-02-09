@@ -65,6 +65,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
       },
       {
+        path: 'authorization',
+        name: 'AccountAuthorization',
+        component: () => import('@/views/authorization/AccountAuthorization.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: 'publish',
         name: 'PublishManagement',
         component: () => import('@/views/publish/PublishManagement.vue'),

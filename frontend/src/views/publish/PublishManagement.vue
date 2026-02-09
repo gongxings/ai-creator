@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="publish-management flagship-page page-shell">
     <section class="page-hero publish-hero">
       <el-card class="header-card">
@@ -18,11 +18,6 @@
     <section class="page-dashboard">
       <div class="dashboard-grid">
         <div class="dashboard-card">
-          <div class="label">已绑定平台</div>
-          <div class="value">{{ platformAccounts.length }}</div>
-          <div class="delta">支持多平台一键发布</div>
-        </div>
-        <div class="dashboard-card">
           <div class="label">发布历史</div>
           <div class="value">{{ publishHistory.length }}</div>
           <div class="delta">内容沉淀可追溯</div>
@@ -32,101 +27,32 @@
           <div class="value">{{ publishing ? '发布中' : '就绪' }}</div>
           <div class="delta">支持定时与立即发布</div>
         </div>
+        <div class="dashboard-card">
+          <div class="label">发布成功率</div>
+          <div class="value">{{ successRate }}%</div>
+          <div class="delta">持续优化中</div>
+        </div>
       </div>
     </section>
 
     <section class="page-body">
       <div class="main-panel">
-        <!-- 平台账号管理 -->
-        <el-card class="platforms-card">
-      <template #header>
-        <div class="card-header">
-          <span>平台账号</span>
-          <el-button text type="primary" @click="openBindDialog">
-            <el-icon><Plus /></el-icon>
-            绑定账号
-          </el-button>
-        </div>
+    <!-- 提示：去账号授权页面 -->
+    <el-alert
+      v-if="platformAccounts.length === 0"
+      title="还没有绑定发布平台账号"
+      type="warning"
+      :closable="false"
+      style="margin-bottom: 20px"
+    >
+      <template #default>
+        <p>请先前往账号授权页面绑定发布平台账号（如微信公众号、小红书等），然后再进行发布操作。</p>
+        <el-button type="primary" size="small" @click="router.push('/authorization')">
+          <el-icon><Key /></el-icon>
+          前往账号授权
+        </el-button>
       </template>
-
-      <!-- 桌面版表格 -->
-      <div class="table-view">
-        <el-table :data="platformAccounts" v-loading="loadingAccounts" style="width: 100%">
-          <el-table-column label="平台" width="160">
-            <template #default="{ row }">
-              {{ getPlatformName(row.platform) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="account_name" label="账号名称" min-width="180" />
-          <el-table-column label="Cookie状态" width="120">
-            <template #default="{ row }">
-              <el-tag :type="getCookieStatusType(row.cookies_valid)">
-                {{ getCookieStatusText(row.cookies_valid) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="Cookie更新时间" width="180">
-            <template #default="{ row }">
-              {{ row.cookies_updated_at ? formatDate(row.cookies_updated_at) : '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column label="账号状态" width="120">
-            <template #default="{ row }">
-              <el-tag :type="row.is_active === 'active' ? 'success' : 'info'">
-                {{ row.is_active === 'active' ? '启用' : '停用' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="240">
-            <template #default="{ row }">
-              <el-button size="small" type="primary" @click="handleAutoAuthorize(row)">自动获取</el-button>
-              <el-button size="small" @click="openCookieDialog(row)">更新Cookie</el-button>
-              <el-button size="small" @click="handleValidateCookies(row)">校验</el-button>
-              <el-button size="small" type="danger" @click="unbindPlatform(row.id)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-
-      <!-- 手机版卡片 -->
-      <div v-if="platformAccounts.length > 0" class="card-view">
-        <div v-for="account in platformAccounts" :key="account.id" class="platform-card">
-          <div class="card-header">
-            <div class="platform-info">
-              <el-tag>{{ getPlatformName(account.platform) }}</el-tag>
-              <span class="account-name">{{ account.account_name }}</span>
-            </div>
-            <el-tag :type="account.is_active === 'active' ? 'success' : 'info'" size="small">
-              {{ account.is_active === 'active' ? '启用' : '停用' }}
-            </el-tag>
-          </div>
-
-          <div class="card-body">
-            <div class="info-row">
-              <span class="label">Cookie状态：</span>
-              <el-tag :type="getCookieStatusType(account.cookies_valid)" size="small">
-                {{ getCookieStatusText(account.cookies_valid) }}
-              </el-tag>
-            </div>
-            <div class="info-row">
-              <span class="label">更新时间：</span>
-              <span>{{ account.cookies_updated_at ? formatDate(account.cookies_updated_at) : '-' }}</span>
-            </div>
-          </div>
-
-          <div class="card-actions">
-            <el-button type="primary" size="small" @click="handleAutoAuthorize(account)">授权</el-button>
-            <el-button size="small" @click="openCookieDialog(account)">Cookie</el-button>
-            <el-button size="small" @click="handleValidateCookies(account)">校验</el-button>
-            <el-button type="danger" size="small" plain @click="unbindPlatform(account.id)">删除</el-button>
-          </div>
-        </div>
-      </div>
-
-      <el-empty v-else-if="!loadingAccounts" description="暂无平台账号">
-        <el-button type="primary" @click="openBindDialog">绑定账号</el-button>
-      </el-empty>
-    </el-card>
+    </el-alert>
 
     <!-- 发布历史 -->
     <el-card class="history-card">
@@ -244,13 +170,15 @@
       <aside class="side-panel">
         <div class="panel">
           <h3 class="panel-title">发布流程</h3>
-          <p class="panel-subtitle">绑定账号后可快速推送到多平台</p>
+          <p class="panel-subtitle">快速推送到多平台</p>
           <div class="info-list">
             <div class="info-item">
-              <div class="info-icon"><el-icon><Plus /></el-icon></div>
+              <div class="info-icon"><el-icon><Key /></el-icon></div>
               <div>
                 <div class="info-title">绑定账号</div>
-                <div class="info-desc">完成授权后即可使用平台发布能力。</div>
+                <div class="info-desc">
+                  前往<el-link type="primary" @click="router.push('/authorization')">账号授权</el-link>页面绑定平台账号。
+                </div>
               </div>
             </div>
             <div class="info-item">
@@ -270,18 +198,17 @@
           </div>
         </div>
         <div class="panel">
-          <h3 class="panel-title">账号状态</h3>
+          <h3 class="panel-title">快捷操作</h3>
           <div class="info-list">
             <div class="info-item">
               <div>
-                <div class="info-title">可用账号</div>
-                <div class="info-desc">{{ platformAccounts.length }} 个平台账号</div>
-              </div>
-            </div>
-            <div class="info-item">
-              <div>
-                <div class="info-title">最近发布</div>
-                <div class="info-desc">{{ publishHistory[0]?.published_at ? formatDate(publishHistory[0].published_at) : '暂无记录' }}</div>
+                <div class="info-title">平台账号</div>
+                <div class="info-desc">
+                  <el-button size="small" @click="router.push('/authorization')">
+                    <el-icon><Key /></el-icon>
+                    管理账号
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -355,260 +282,39 @@
         </el-button>
       </template>
     </el-dialog>
-
-    <!-- 绑定平台对话框 -->
-    <el-dialog
-      v-model="showBindDialog"
-      title="绑定平台账号"
-      width="600px"
-      :close-on-click-modal="false"
-    >
-      <el-alert
-        title="授权方式说明"
-        type="info"
-        :closable="false"
-        style="margin-bottom: 20px"
-      >
-        <p><strong>方式1：前端授权（推荐）</strong></p>
-        <ul>
-          <li>点击"前端授权"按钮打开授权窗口</li>
-          <li>在授权窗口中完成登录</li>
-          <li>Cookie会自动获取和提交</li>
-          <li>无需手动操作</li>
-        </ul>
-        
-        <p><strong>方式2：后端授权</strong></p>
-        <ul>
-          <li>点击"后端授权"按钮</li>
-          <li>系统自动打开浏览器</li>
-          <li>在浏览器中扫码登录</li>
-          <li>系统自动提取Cookie</li>
-        </ul>
-      </el-alert>
-      
-      <el-tabs v-model="authMethod">
-        <el-tab-pane label="前端授权" name="frontend">
-          <div class="auth-frontend">
-            <el-form-item label="选择平台" prop="platformCode">
-              <el-select
-                v-model="bindForm.platformCode"
-                placeholder="请选择平台"
-                style="width: 100%"
-                @change="handlePlatformChange"
-              >
-                <el-option
-                  v-for="platform in platforms"
-                  :key="platform.platform"
-                  :label="platform.name"
-                  :value="platform.platform"
-                />
-              </el-select>
-            </el-form-item>
-            
-            <el-form-item label="账号名称" prop="accountName">
-              <el-input v-model="bindForm.accountName" placeholder="请输入账号名称（用于识别）" />
-            </el-form-item>
-          </div>
-          
-          <el-button
-            type="primary"
-            @click="handleFrontendAuth"
-            :loading="binding"
-            style="width: 100%; margin-top: 20px"
-            size="large"
-          >
-            前端授权
-          </el-button>
-        </el-tab-pane>
-        
-        <el-tab-pane label="后端授权" name="backend">
-          <el-form-item label="选择平台" prop="platformCode">
-            <el-select
-              v-model="bindForm.platformCode"
-              placeholder="选择要绑定的平台"
-              style="width: 100%"
-              @change="handlePlatformChange"
-            >
-              <el-option
-                v-for="platform in platforms"
-                :key="platform.platform"
-                :label="platform.name"
-                :value="platform.platform"
-              />
-            </el-select>
-          </el-form-item>
-          
-          <el-form-item label="账号名称" prop="accountName">
-            <el-input v-model="bindForm.accountName" placeholder="输入账号名称" />
-          </el-form-item>
-          
-          <el-form-item label="Auth Mode">
-            <el-radio-group v-model="bindForm.authMode">
-              <el-radio-button label="auto">Auto</el-radio-button>
-              <el-radio-button label="manual">Manual</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          
-          <el-alert
-            v-if="bindForm.authMode === 'auto'"
-            title="点击绑定后将自动打开浏览器登录并抓取Cookie"
-            type="info"
-            :closable="false"
-            show-icon
-          />
-          <el-form-item v-if="bindForm.authMode === 'manual'" label="Cookie" prop="cookies">
-            <el-input
-              v-model="bindForm.cookies"
-              type="textarea"
-              :rows="4"
-              placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}）"
-            />
-          </el-form-item>
-          <el-alert
-            v-if="loginInfo && bindForm.authMode === 'manual'"
-            :title="loginInfo.instructions"
-            type="info"
-            :closable="false"
-            show-icon
-          >
-            <template #default>
-              <div class="login-info">
-                <div>登录地址：<a :href="loginInfo.login_url" target="_blank">{{ loginInfo.login_url }}</a></div>
-                <div>完成登录后复制Cookie再提交</div>
-              </div>
-            </template>
-          </el-alert>
-          
-          <el-button
-            type="primary"
-            @click="handleBind"
-            :loading="binding"
-            style="width: 100%; margin-top: 20px"
-            size="large"
-          >
-            后端授权
-          </el-button>
-        </el-tab-pane>
-      </el-tabs>
-      
-      <template #footer>
-        <el-button @click="showBindDialog = false">取消</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 更新Cookie对话框 -->
-    <el-dialog
-      v-model="showCookieDialog"
-      title="更新Cookie"
-      width="600px"
-      :close-on-click-modal="false"
-    >
-      <el-form :model="cookieForm" :rules="cookieRules" ref="cookieFormRef" label-width="100px">
-        <el-form-item label="平台账号">
-          <span>{{ cookieForm.accountLabel }}</span>
-        </el-form-item>
-        <el-form-item v-if="bindForm.authMode === 'manual'" label="Cookie" prop="cookies">
-          <el-input
-            v-model="cookieForm.cookies"
-            type="textarea"
-            :rows="4"
-            placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}）"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showCookieDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleUpdateCookies" :loading="updatingCookies">
-          更新
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 详情对话框 -->
-    <el-dialog
-      v-model="showDetailDialog"
-      title="发布详情"
-      width="800px"
-    >
-      <el-descriptions :column="2" border v-if="currentRecord">
-        <el-descriptions-item label="标题">
-          {{ currentRecord.title }}
-        </el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(currentRecord.status)">
-            {{ getStatusText(currentRecord.status) }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="发布时间">
-          {{
-            currentRecord.status === 'scheduled' && currentRecord.scheduled_at
-              ? formatDate(currentRecord.scheduled_at)
-              : currentRecord.published_at
-              ? formatDate(currentRecord.published_at)
-              : '-'
-          }}
-        </el-descriptions-item>
-        <el-descriptions-item label="发布平台">
-          <el-tag size="small">
-            {{ getPlatformName(currentRecord.platform) }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="账号名称">
-          {{ currentRecord.account_name || '-' }}
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, Plus, Search } from '@element-plus/icons-vue'
+import { Upload, Search, Key, Clock } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { useRouter } from 'vue-router'
 import {
-  getPlatforms,
-  getPlatformLoginInfo,
-  createPlatformAccount,
-  authorizePlatformAccount,
-  updatePlatformCookies,
-  validatePlatformCookies,
   getPlatformAccounts,
-  deletePlatformAccount,
   publishContent,
   getPublishHistory,
   deletePublishRecord,
-  submitPublishCookies
 } from '@/api/publish'
 import { getCreations } from '@/api/creations'
+
+const router = useRouter()
 
 // 状态
 const loading = ref(false)
 const publishing = ref(false)
-const binding = ref(false)
-const updatingCookies = ref(false)
-const loadingAccounts = ref(false)
 const showPublishDialog = ref(false)
-const showBindDialog = ref(false)
-const showCookieDialog = ref(false)
 const showDetailDialog = ref(false)
 const searchKeyword = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const loginInfo = ref<{ platform: string; name: string; login_url: string; instructions: string } | null>(null)
-
-// 授权窗口引用
-const authWindow = ref<Window | null>(null)
-const authMethod = ref('frontend')
 
 // 表单引用
 const publishFormRef = ref<FormInstance>()
-const bindFormRef = ref<FormInstance>()
-const cookieFormRef = ref<FormInstance>()
 
-// 平台列表
-const platforms = ref<any[]>([])
+// 平台账号列表（只读，用于选择）
 const platformAccounts = ref<any[]>([])
 
 // 发布历史
@@ -633,21 +339,6 @@ const publishForm = reactive({
   scheduledAt: null as Date | null,
 })
 
-// 绑定表单
-const bindForm = reactive({
-  platformCode: '',
-  accountName: '',
-  cookies: '',
-  authMode: 'auto'
-})
-
-// Cookie表单
-const cookieForm = reactive({
-  accountId: 0,
-  accountLabel: '',
-  cookies: ''
-})
-
 // 表单验证规则
 const publishRules: FormRules = {
   creationId: [{ required: true, message: '请选择要发布的内容', trigger: 'change' }],
@@ -667,36 +358,16 @@ const publishRules: FormRules = {
   ],
 }
 
-const bindRules: FormRules = {
-  platformCode: [{ required: true, message: '请选择平台', trigger: 'change' }],
-  accountName: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
-  cookies: [
-    {
-      validator: (_rule, value, callback) => {
-        if (bindForm.authMode === 'manual' && !value) {
-          callback(new Error('请输入Cookie'))
-          return
-        }
-        callback()
-      },
-      trigger: 'blur',
-    },
-  ],
-}
-
-const cookieRules: FormRules = {
-  cookies: [{ required: true, message: '请输入Cookie', trigger: 'blur' }]
-}
-
 // 计算属性
 const activePlatformAccounts = computed(() =>
-  platformAccounts.value.filter((account: any) => account.is_active === 'active')
+  platformAccounts.value.filter((account: any) => account.is_active === 'active' && account.cookies_valid === 'valid')
 )
 
-const getPlatformName = (code: string) => {
-  const match = platforms.value.find((platform: any) => platform.platform === code)
-  return match?.name || code
-}
+const successRate = computed(() => {
+  if (publishHistory.value.length === 0) return 0
+  const successCount = publishHistory.value.filter((h: any) => h.status === 'success').length
+  return Math.round((successCount / publishHistory.value.length) * 100)
+})
 
 // 获取状态类型
 const getStatusType = (status: string) => {
@@ -728,18 +399,6 @@ const disabledDate = (time: Date) => {
   return time.getTime() < Date.now()
 }
 
-const getCookieStatusType = (status?: string | null) => {
-  if (status === 'valid') return 'success'
-  if (status === 'invalid') return 'danger'
-  return 'info'
-}
-
-const getCookieStatusText = (status?: string | null) => {
-  if (status === 'valid') return '有效'
-  if (status === 'invalid') return '失效'
-  return '未知'
-}
-
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr)
   return date.toLocaleString('zh-CN', {
@@ -751,413 +410,22 @@ const formatDate = (dateStr: string) => {
   })
 }
 
-// 加载平台列表
-const loadPlatforms = async () => {
-  try {
-    const response = await getPlatforms()
-    platforms.value = response || []
-  } catch (error: any) {
-    console.error('加载平台列表失败:', error)
-    ElMessage.error(error.message || '加载平台列表失败')
-  }
-}
 
-// 加载平台账号列表
+// 加载平台账号列表（只读）
 const loadPlatformAccounts = async () => {
-  loadingAccounts.value = true
   try {
     const response = await getPlatformAccounts()
     platformAccounts.value = response || []
   } catch (error: any) {
     console.error('加载平台账号失败:', error)
-    ElMessage.error(error.message || '加载平台账号失败')
-  } finally {
-    loadingAccounts.value = false
-  }
-}
-
-// 加载发布历史
-const loadPublishHistory = async () => {
-  loading.value = true
-  try {
-    const response = await getPublishHistory({
-      skip: (currentPage.value - 1) * pageSize.value,
-      limit: pageSize.value,
-    })
-    publishHistory.value = response.items
-    total.value = response.total
-  } catch (error: any) {
-    console.error('加载发布历史失败:', error)
-    ElMessage.error(error.message || '加载发布历史失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 加载创作列表
-const loadCreations = async () => {
-  try {
-    const response = await getCreations({ page: 1, page_size: 100 })
-    creations.value = response.items
-  } catch (error: any) {
-    console.error('加载创作列表失败:', error)
-    ElMessage.error(error.message || '加载创作列表失败')
-  }
-}
-
-// 搜索
-const handleSearch = () => {
-  currentPage.value = 1
-  loadPublishHistory()
-}
-
-// 分页
-const handleSizeChange = (size: number) => {
-  pageSize.value = size
-  loadPublishHistory()
-}
-
-const handleCurrentChange = (page: number) => {
-  currentPage.value = page
-  loadPublishHistory()
-}
-
-// 选择内容变化
-const handleCreationChange = (creationId: number) => {
-  const creation = creations.value.find((c: any) => c.id === creationId)
-  if (creation) {
-    selectedCreation.value = creation
-    contentPreview.value = creation.content
-    publishForm.contentType = creation.content_type
-  }
-}
-
-// 发布
-const handlePublish = async () => {
-  if (!publishFormRef.value) return
-  
-  await publishFormRef.value.validate(async (valid) => {
-    if (valid) {
-      publishing.value = true
-      try {
-        await publishContent({
-          account_id: publishForm.accountId!,
-          creation_id: publishForm.creationId!,
-          content_type: publishForm.contentType,
-          scheduled_at:
-            publishForm.publishType === 'scheduled' && publishForm.scheduledAt
-              ? publishForm.scheduledAt.toISOString()
-              : undefined,
-          title: selectedCreation.value?.title,
-          content: selectedCreation.value?.content,
-        })
-        
-        ElMessage.success('发布成功')
-        showPublishDialog.value = false
-        publishForm.publishType = 'immediate'
-        publishForm.scheduledAt = null
-        loadPublishHistory()
-      } catch (error: any) {
-        console.error('发布失败:', error)
-        ElMessage.error(error.message || '发布失败')
-      } finally {
-        publishing.value = false
-      }
-    }
-  })
-}
-
-const openBindDialog = () => {
-  bindForm.platformCode = ''
-  bindForm.accountName = ''
-  bindForm.cookies = ''
-  bindForm.authMode = 'auto'
-  loginInfo.value = null
-  authMethod.value = 'frontend'
-  showBindDialog.value = true
-}
-const handlePlatformChange = async (platformCode: string) => {
-  if (!platformCode) {
-    loginInfo.value = null
-    return
-  }
-  try {
-    const response = await getPlatformLoginInfo(platformCode)
-    loginInfo.value = response
-  } catch (error: any) {
-    loginInfo.value = null
-    ElMessage.error(error.message || '加载登录信息失败')
-  }
-}
-
-// 前端授权
-const handleFrontendAuth = async () => {
-  if (!bindForm.platformCode) {
-    ElMessage.warning('请选择平台')
-    return
-  }
-  
-  if (!bindForm.accountName) {
-    ElMessage.warning('请输入账号名称')
-    return
-  }
-  
-  binding.value = true
-  try {
-    // 打开授权窗口
-    const width = 800
-    const height = 600
-    const left = (window.innerWidth - width) / 2 + window.screenX
-    const top = (window.innerHeight - height) / 2 + window.screenY
-    
-    const authUrl = `${window.location.origin}/api/v1/publish/platforms/accounts/cookie-validate/${bindForm.platformCode}`
-    
-    authWindow.value = window.open(
-      authUrl,
-      `publish-${Date.now()}`,
-      `width=${width},height=${height},left=${left},top=${top}`
-    )
-    
-    // 监听来自授权窗口的消息
-    const handleAuthMessage = (event: MessageEvent) => {
-      // 验证消息来源
-      if (event.origin !== window.location.origin) {
-        return
-      }
-      
-      const { type, platform } = event.data
-      
-      if (type === 'publish_cookies_success') {
-        ElMessage.success('授权成功！')
-        
-        // 关闭授权窗口
-        if (authWindow.value && !authWindow.value.closed) {
-          authWindow.value.close()
-        }
-        
-        // 刷新账号列表
-        loadPlatformAccounts()
-        
-        // 关闭对话框
-        showBindDialog.value = false
-        bindForm.platformCode = ''
-        bindForm.accountName = ''
-        bindForm.cookies = ''
-        loginInfo.value = null
-      }
-    }
-    
-    window.addEventListener('message', handleAuthMessage)
-    
-    // 设置超时，5分钟后自动清理
-    setTimeout(() => {
-      window.removeEventListener('message', handleAuthMessage)
-      if (authWindow.value && !authWindow.value.closed) {
-        authWindow.value.close()
-      }
-      binding.value = false
-    }, 5 * 60 * 1000)
-    
-  } catch (error: any) {
-    console.error('打开授权窗口失败:', error)
-    ElMessage.error('打开授权窗口失败')
-    binding.value = false
-  }
-}
-
-// 处理绑定
-const handleBind = async () => {
-  if (authMethod.value === 'frontend') {
-    // 前端授权模式
-    handleFrontendAuth()
-    return
-  }
-  
-  // 后端授权模式或手动模式
-  if (!bindFormRef.value) return
-  
-  await bindFormRef.value.validate(async (valid) => {
-    if (valid) {
-      binding.value = true
-      try {
-        if (bindForm.authMode === 'auto') {
-          // 后端Playwright自动授权
-          await authorizePlatformAccount({
-            platform: bindForm.platformCode,
-            account_name: bindForm.accountName,
-          })
-          ElMessage.success('授权成功，已自动获取Cookie')
-        } else {
-          // 手动提交Cookie
-          let cookies: Record<string, string> = {}
-          try {
-            cookies = JSON.parse(bindForm.cookies)
-          } catch (e) {
-            ElMessage.error('Cookie格式错误，请输入有效的JSON')
-            binding.value = false
-            return
-          }
-          
-          const accountResponse = await createPlatformAccount({
-            platform: bindForm.platformCode,
-            account_name: bindForm.accountName,
-          })
-
-          const updateResponse = await updatePlatformCookies(accountResponse.id, cookies)
-          if (updateResponse.valid) {
-            ElMessage.success('绑定成功，Cookie有效')
-          } else {
-            ElMessage.warning(updateResponse.message || '绑定成功，但Cookie验证失败')
-          }
-        }
-
-        showBindDialog.value = false
-        bindForm.platformCode = ''
-        bindForm.accountName = ''
-        bindForm.cookies = ''
-        loginInfo.value = null
-        loadPlatformAccounts()
-      } catch (error: any) {
-        console.error('绑定失败:', error)
-        ElMessage.error(error.message || '绑定失败')
-      } finally {
-        binding.value = false
-      }
-    }
-  })
-}
-
-const handleAutoAuthorize = async (row: any) => {
-  try {
-    binding.value = true
-    await authorizePlatformAccount({
-      platform: row.platform,
-      account_name: row.account_name,
-    })
-    ElMessage.success('授权成功，已自动获取Cookie')
-    loadPlatformAccounts()
-  } catch (error: any) {
-    console.error('自动授权失败:', error)
-    ElMessage.error(error.response?.data?.detail || error.message || '自动授权失败')
-  } finally {
-    binding.value = false
-  }
-}
-const openCookieDialog = (row: any) => {
-  cookieForm.accountId = row.id
-  cookieForm.accountLabel = `${getPlatformName(row.platform)} - ${row.account_name}`
-  cookieForm.cookies = ''
-  showCookieDialog.value = true
-}
-
-const handleUpdateCookies = async () => {
-  if (!cookieFormRef.value) return
-  await cookieFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    updatingCookies.value = true
-    try {
-      let cookies: Record<string, string> = {}
-      try {
-        cookies = JSON.parse(cookieForm.cookies)
-      } catch (e) {
-        ElMessage.error('Cookie格式错误，请输入有效的JSON')
-        updatingCookies.value = false
-        return
-      }
-      const response = await updatePlatformCookies(cookieForm.accountId, cookies)
-      if (response.valid) {
-        ElMessage.success('Cookie更新成功')
-      } else {
-        ElMessage.warning(response.message || 'Cookie更新失败')
-      }
-      showCookieDialog.value = false
-      loadPlatformAccounts()
-    } catch (error: any) {
-      console.error('更新Cookie失败:', error)
-      ElMessage.error(error.message || '更新Cookie失败')
-    } finally {
-      updatingCookies.value = false
-    }
-  })
-}
-
-const handleValidateCookies = async (row: any) => {
-  try {
-    const response = await validatePlatformCookies(row.id)
-    if (response.valid) {
-      ElMessage.success('Cookie有效')
-    } else {
-      ElMessage.warning(response.message || 'Cookie已失效')
-    }
-    loadPlatformAccounts()
-  } catch (error: any) {
-    console.error('校验Cookie失败:', error)
-    ElMessage.error(error.message || '校验Cookie失败')
-  }
-}
-
-// 解绑平台
-const unbindPlatform = async (platformId: number) => {
-  try {
-    await ElMessageBox.confirm('确定要解绑该平台账号吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    await deletePlatformAccount(platformId)
-    
-    ElMessage.success('解绑成功')
-    loadPlatformAccounts()
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('解绑失败:', error)
-      ElMessage.error(error.message || '解绑失败')
-    }
-  }
-}
-
-// 查看详情
-const viewDetail = (record: any) => {
-  currentRecord.value = record
-  showDetailDialog.value = true
-}
-
-// 删除记录
-const deleteRecord = async (id: number) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该发布记录吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    await deletePublishRecord(id)
-    
-    ElMessage.success('删除成功')
-    loadPublishHistory()
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('删除失败:', error)
-      ElMessage.error(error.message || '删除失败')
-    }
   }
 }
 
 // 初始化
 onMounted(() => {
-  loadPlatforms()
   loadPlatformAccounts()
   loadPublishHistory()
   loadCreations()
-})
-
-onUnmounted(() => {
-  // 清理授权窗口引用
-  if (authWindow.value && !authWindow.value.closed) {
-    authWindow.value.close()
-  }
-  authWindow.value = null
 })
 </script>
 
@@ -1197,81 +465,6 @@ onUnmounted(() => {
           color: #64748b;
           font-size: 14px;
         }
-      }
-    }
-  }
-
-  .platforms-card,
-  .history-card {
-    margin-bottom: 20px;
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    // 桌面版表格
-    .table-view {
-      display: block;
-    }
-
-    // 手机版卡片
-    .card-view {
-      display: none;
-    }
-  }
-
-  .platforms-card {
-    .platform-card {
-      background: #fff;
-      border: 1px solid #edf2f7;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
-
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-
-        .platform-info {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-
-          .account-name {
-            font-weight: 600;
-            color: #1f2937;
-          }
-        }
-      }
-
-      .card-body {
-        margin-bottom: 12px;
-
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 13px;
-          margin-bottom: 8px;
-          color: #64748b;
-
-          .label {
-            color: #94a3b8;
-          }
-        }
-      }
-
-      .card-actions {
-        display: flex;
-        gap: 8px;
-        padding-top: 12px;
-        border-top: 1px solid #f1f5f9;
-        justify-content: flex-end;
       }
     }
   }
@@ -1332,6 +525,7 @@ onUnmounted(() => {
         border-top: 1px solid #f1f5f9;
         justify-content: flex-end;
       }
+      }
     }
   }
 
@@ -1363,17 +557,6 @@ onUnmounted(() => {
       font-family: 'Courier New', monospace;
     }
   }
-
-  .login-info {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-
-    a {
-      color: #409eff;
-    }
-  }
 }
 
 // 响应式适配
@@ -1394,7 +577,6 @@ onUnmounted(() => {
       }
     }
 
-    .platforms-card,
     .history-card {
       .card-header {
         flex-direction: column;
@@ -1420,33 +602,10 @@ onUnmounted(() => {
   .publish-management {
     padding: 8px;
 
-    .platforms-card {
-      .platform-card {
-        .card-actions {
-          flex-wrap: wrap;
-        }
-      }
-    }
-
     .history-card {
       .pagination {
         flex-wrap: wrap;
         justify-content: center;
-      }
-
-      .history-record-card {
-        .record-header {
-          flex-direction: column;
-
-          .record-title {
-            margin-right: 0;
-            margin-bottom: 8px;
-          }
-        }
-
-        .record-actions {
-          justify-content: space-between;
-        }
       }
     }
   }

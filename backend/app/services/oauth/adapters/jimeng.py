@@ -37,7 +37,8 @@ class JimengAdapter(PlatformAdapter):
     
     def get_success_pattern(self) -> str:
         """获取登录成功的URL模式"""
-        return "**/jimeng.jianying.com/**"
+        # 使用轮询模式检测登录状态（通过 localStorage.flow_web_has_login）
+        return "WAIT_FOR_LOGIN"
     
     def get_cookie_names(self) -> list:
         """获取需要提取的Cookie名称"""

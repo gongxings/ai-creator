@@ -36,6 +36,10 @@
                 <el-icon><Document /></el-icon>
                 <span>PPT生成</span>
               </el-menu-item>
+              <el-menu-item index="/authorization">
+                <el-icon><Key /></el-icon>
+                <span>账号授权</span>
+              </el-menu-item>
               <el-sub-menu v-if="userStore.isAdmin" index="/operation">
                 <template #title>
                   <el-icon><DataAnalysis /></el-icon>
@@ -147,6 +151,7 @@ import {
   CreditCard,
   Medal,
   DataAnalysis,
+  Key,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 
@@ -159,6 +164,7 @@ const activeMenu = computed(() => {
   if (path === '/') return '/'
   if (path.startsWith('/writing')) return '/writing'
   if (path.startsWith('/credit')) return '/credit'
+  if (path.startsWith('/authorization')) return '/authorization'
   if (path.startsWith('/operation') || path === '/history' || path === '/publish') return '/operation'
   return path
 })
