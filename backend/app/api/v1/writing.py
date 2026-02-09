@@ -20,6 +20,7 @@ from app.schemas.creation import (
 )
 from app.services.writing_service import WritingService
 from app.services.credit_service import CreditService
+from app.models.credit import TransactionType
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -147,13 +148,13 @@ async def generate_content(
     2. Cookie模式：提供platform（如'doubao'），系统使用用户授权的Cookie账号
     """
     # 检查并扣减积分（会员不扣积分）
-    credit_service = CreditService(db)
     credits_required = 10  # 每次生成需要10积分
     
     try:
-        await credit_service.check_and_consume_credits(
+        CreditService.check_and_consume_credits(
+            db=db,
             user_id=current_user.id,
-            credits=credits_required,
+            amount=credits_required,
             description=f"AI写作 - {request.tool_type}"
         )
     except ValueError as e:
@@ -194,10 +195,11 @@ async def generate_content(
         logger.error(f"Content generation failed: {e}", exc_info=True)
         # 生成失败，退还积分
         if not current_user.is_member:
-            await credit_service.add_credits(
+            CreditService.add_credits(
+                db=db,
                 user_id=current_user.id,
-                credits=credits_required,
-                transaction_type="REFUND",
+                amount=credits_required,
+                transaction_type=TransactionType.REFUND,
                 description=f"AI写作失败退款 - {request.tool_type}"
             )
         
@@ -374,13 +376,13 @@ async def regenerate_content(
         )
     
     # 检查并扣减积分（会员不扣积分）
-    credit_service = CreditService(db)
     credits_required = 10  # 每次生成需要10积分
     
     try:
-        await credit_service.check_and_consume_credits(
+        CreditService.check_and_consume_credits(
+            db=db,
             user_id=current_user.id,
-            credits=credits_required,
+            amount=credits_required,
             description=f"AI写作重新生成 - {creation.tool_type}"
         )
     except ValueError as e:
@@ -394,6 +396,7 @@ async def regenerate_content(
     try:
         # 使用原始输入数据重新生成
         result = await writing_service.generate_content(
+            db=db,
             user_id=current_user.id,
             tool_type=creation.tool_type,
             input_data=creation.extra_data.get("input_data", {}) if creation.extra_data else {},
@@ -405,10 +408,11 @@ async def regenerate_content(
     except Exception as e:
         # 生成失败，退还积分
         if not current_user.is_member:
-            await credit_service.add_credits(
+            CreditService.add_credits(
+                db=db,
                 user_id=current_user.id,
-                credits=credits_required,
-                transaction_type="REFUND",
+                amount=credits_required,
+                transaction_type=TransactionType.REFUND,
                 description=f"AI写作重新生成失败退款 - {creation.tool_type}"
             )
         
