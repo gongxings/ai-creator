@@ -102,6 +102,7 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
                 credentials = decrypt_credentials(oauth_account.credentials)
                 cookies = credentials.get("cookies", {})
                 logger.info(f"Cookies decrypted: {list(cookies.keys())} cookies")
+                logger.info(f"Credentials keys: {list(credentials.keys())}")
             except Exception as e:
                 logger.error(f"Failed to decrypt credentials: {e}")
                 creation.status = "failed"
@@ -110,28 +111,85 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
                 db.commit()
                 return
 
-            # 调用DoubaoService生成图片
+            # 调用DoubaoAdapter生成图片（使用新的samantha接口）
             if platform == "doubao":
-                service = DoubaoService(cookies=cookies)
-                
-                # 验证Cookie
-                is_valid = await service.validate_cookies()
-                if not is_valid:
-                    logger.warning(f"Cookie validation failed for {platform}")
-                    creation.status = "failed"
-                    creation.error_message = f"{platform} Cookie已过期"
-                    creation.output_data = {"error": f"{platform} Cookie已过期"}
-                    db.commit()
-                    return
-                
-                # 生成图片
-                result = await service.generate_image(
+                from app.services.oauth.adapters.doubao import DoubaoAdapter
+
+                adapter_config = {
+                    "cookies": cookies,
+                    "cookie_string": "; ".join([f"{k}={v}" for k, v in cookies.items()])
+                }
+
+                # 从credentials中提取额外配置
+                if credentials.get("referer"):
+                    adapter_config["referer"] = credentials.get("referer")
+                if credentials.get("extra_params"):
+                    adapter_config["extra_params"] = credentials.get("extra_params")
+                if credentials.get("extra_headers"):
+                    adapter_config["extra_headers"] = credentials.get("extra_headers")
+                if credentials.get("x_flow_trace"):
+                    adapter_config["x_flow_trace"] = credentials.get("x_flow_trace")
+
+                logger.info(f"Adapter config keys: {list(adapter_config.keys())}")
+
+                adapter = DoubaoAdapter("doubao", adapter_config)
+
+                # 尝试HTTP方式生成图片
+                http_result = await adapter.generate_image(
                     prompt=request_data.get("prompt", ""),
-                    size=f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}",
+                    cookies=cookies,
                     style=request_data.get("style"),
                     negative_prompt=request_data.get("negative_prompt"),
-                    num_images=request_data.get("num_images", 1)
+                    size=f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}"
                 )
+
+                # 检查HTTP方式是否成功
+                if "error" not in http_result and http_result.get("images"):
+                    logger.info(f"HTTP方式成功生成 {len(http_result['images'])} 张图片")
+                    result = http_result
+                else:
+                    # HTTP方式失败，尝试Playwright方式
+                    logger.warning(f"HTTP方式失败，尝试Playwright方式: {http_result.get('error', '未知错误')}")
+
+                    # 获取平台配置
+                    platform_config_db = db.query(PlatformConfig).filter(
+                        PlatformConfig.platform_id == platform
+                    ).first()
+
+                    if platform_config_db:
+                        try:
+                            from app.services.oauth.adapters import get_adapter
+                            platform_adapter = get_adapter(platform, {
+                                "oauth_config": platform_config_db.oauth_config,
+                                "litellm_config": platform_config_db.litellm_config,
+                                "quota_config": platform_config_db.quota_config,
+                            })
+
+                            if platform_adapter:
+                                platform_meta = platform_adapter.get_platform_config()
+
+                                # 使用Playwright生成图片
+                                from app.services.oauth.playwright_service import playwright_service
+
+                                pw_result = await playwright_service.generate_image_with_playwright(
+                                    platform_meta=platform_meta,
+                                    prompt=request_data.get("prompt", ""),
+                                    cookies=cookies
+                                )
+
+                                if pw_result and pw_result.get("images"):
+                                    logger.info(f"Playwright方式成功生成 {len(pw_result['images'])} 张图片")
+                                    result = pw_result
+                                else:
+                                    logger.error(f"Playwright方式也失败: {pw_result}")
+                                    result = {"error": "两种方式都无法生成图片，请尝试重新授权", "images": []}
+                            else:
+                                result = {"error": "无法生成图片：平台适配器不存在", "images": []}
+                        except Exception as pw_error:
+                            logger.error(f"Playwright方式异常: {pw_error}")
+                            result = {"error": f"图片生成失败: {str(pw_error)}", "images": []}
+                    else:
+                        result = {"error": "无法生成图片：平台配置不存在", "images": []}
                 
                 logger.info(f"Image generation result: {result}")
                 
@@ -161,6 +219,8 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
             
             from app.models.platform_config import PlatformConfig
             from app.services.oauth.adapters import PLATFORM_ADAPTERS
+            from app.models.oauth_account import OAuthAccount
+            from app.services.oauth.encryption import decrypt_credentials
 
             # 获取默认平台配置（原有逻辑）
             platform_config = db.query(PlatformConfig).filter(
@@ -191,10 +251,37 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
 
             logger.info(f"Generating image with adapter: prompt={prompt}, size={size}")
 
+            # 尝试从OAuth账号取cookies（即使在API Key模式）
+            cookies = {}
+            oauth_account = db.query(OAuthAccount).filter(
+                OAuthAccount.user_id == user_id,
+                OAuthAccount.platform == "doubao",
+                OAuthAccount.is_active == True,
+                OAuthAccount.is_expired == False
+            ).first()
+            if oauth_account:
+                try:
+                    credentials = decrypt_credentials(oauth_account.credentials)
+                    cookies = credentials.get("cookies", {}) or {}
+                    logger.info(f"Using cookies from OAuth account: {list(cookies.keys())} cookies")
+                    if isinstance(credentials, dict):
+                        # Merge per-account request metadata into adapter oauth_config
+                        adapter.oauth_config = adapter.oauth_config or {}
+                        if credentials.get("extra_params"):
+                            adapter.oauth_config["extra_params"] = credentials.get("extra_params")
+                        if credentials.get("extra_headers"):
+                            adapter.oauth_config["extra_headers"] = credentials.get("extra_headers")
+                        if credentials.get("referer"):
+                            adapter.oauth_config["referer"] = credentials.get("referer")
+                        if credentials.get("cookie_string"):
+                            adapter.oauth_config["cookie_string"] = credentials.get("cookie_string")
+                except Exception as e:
+                    logger.warning(f"Failed to decrypt OAuth credentials: {e}")
+
             # 注意：这里假设adapter已支持Cookie，实际需要检查实现
             result = await adapter.generate_image(
                 prompt=prompt,
-                cookies={},  # 使用空Cookie（API Key模式）
+                cookies=cookies,
                 negative_prompt=negative_prompt,
                 style=style,
                 size=size

@@ -55,13 +55,23 @@
                     <span>积分会员</span>
                   </template>
                   <el-menu-item index="/credit/recharge">积分充值</el-menu-item>
-                  <el-menu-item index="/credit/membership">会员购买</el-menu-item>
-                  <el-menu-item index="/credit/transactions">交易记录</el-menu-item>
+                  <el-menu-item index="/credit/membership"
+                    >会员购买</el-menu-item
+                  >
+                  <el-menu-item index="/credit/transactions"
+                    >交易记录</el-menu-item
+                  >
                 </el-sub-menu>
-                <el-menu-item index="/operation/activities">活动管理</el-menu-item>
+                <el-menu-item index="/operation/activities"
+                  >活动管理</el-menu-item
+                >
                 <el-menu-item index="/operation/coupons">优惠券</el-menu-item>
-                <el-menu-item index="/operation/referral">推广管理</el-menu-item>
-                <el-menu-item index="/operation/statistics">数据统计</el-menu-item>
+                <el-menu-item index="/operation/referral"
+                  >推广管理</el-menu-item
+                >
+                <el-menu-item index="/operation/statistics"
+                  >数据统计</el-menu-item
+                >
               </el-sub-menu>
             </el-menu>
           </div>
@@ -71,14 +81,17 @@
           <template v-if="userStore.isLoggedIn">
             <div class="right-shell">
               <div class="credit-info">
-                <el-tag v-if="userStore.user?.is_member" type="success" effect="dark">
+                <span
+                  v-if="userStore.user?.is_member"
+                  class="credit-tag member-tag"
+                >
                   <el-icon><Medal /></el-icon>
                   <span>会员</span>
-                </el-tag>
-                <el-tag type="warning" effect="plain">
+                </span>
+                <span class="credit-tag points-tag">
                   <el-icon><CreditCard /></el-icon>
                   <span>{{ userStore.user?.credits || 0 }} 积分</span>
-                </el-tag>
+                </span>
               </div>
 
               <el-dropdown @command="handleCommand">
@@ -108,7 +121,9 @@
             <div class="right-shell auth-shell">
               <div class="auth-actions">
                 <el-button @click="router.push('/login')">登录</el-button>
-                <el-button type="primary" @click="router.push('/register')">注册</el-button>
+                <el-button type="primary" @click="router.push('/register')"
+                  >注册</el-button
+                >
               </div>
             </div>
           </template>
@@ -128,9 +143,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
   HomeFilled,
   Edit,
@@ -147,43 +162,48 @@ import {
   CreditCard,
   Medal,
   DataAnalysis,
-} from '@element-plus/icons-vue'
-import { useUserStore } from '@/store/user'
+} from "@element-plus/icons-vue";
+import { useUserStore } from "@/store/user";
 
-const router = useRouter()
-const route = useRoute()
-const userStore = useUserStore()
+const router = useRouter();
+const route = useRoute();
+const userStore = useUserStore();
 
 const activeMenu = computed(() => {
-  const path = route.path
-  if (path === '/') return '/'
-  if (path.startsWith('/writing')) return '/writing'
-  if (path.startsWith('/credit')) return '/credit'
-  if (path.startsWith('/operation') || path === '/history' || path === '/publish') return '/operation'
-  return path
-})
+  const path = route.path;
+  if (path === "/") return "/";
+  if (path.startsWith("/writing")) return "/writing";
+  if (path.startsWith("/credit")) return "/credit";
+  if (
+    path.startsWith("/operation") ||
+    path === "/history" ||
+    path === "/publish"
+  )
+    return "/operation";
+  return path;
+});
 
 const handleCommand = async (command: string) => {
   switch (command) {
-    case 'settings':
-      router.push('/settings')
-      break
-    case 'logout':
+    case "settings":
+      router.push("/settings");
+      break;
+    case "logout":
       try {
-        await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning',
-        })
-        await userStore.logout()
-        ElMessage.success('已退出登录')
-        router.push('/')
+        await ElMessageBox.confirm("确定要退出登录吗？", "提示", {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning",
+        });
+        await userStore.logout();
+        ElMessage.success("已退出登录");
+        router.push("/");
       } catch (error) {
         // 用户取消
       }
-      break
+      break;
   }
-}
+};
 </script>
 
 <style scoped lang="scss">
@@ -272,15 +292,29 @@ const handleCommand = async (command: string) => {
 
     .nav-menu {
       flex: 1;
-      border: none;
-      background: transparent;
+      border: none !important;
+      background: transparent !important;
       min-width: max-content;
+      display: flex !important;
+      align-items: center !important;
+
+      :deep(.el-menu) {
+        border: none !important;
+        background: transparent !important;
+        display: flex !important;
+        align-items: center !important;
+      }
 
       :deep(.el-menu--horizontal) {
-        border-bottom: none;
-        display: flex;
-        align-items: center;
-        height: 40px;
+        border-bottom: none !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+
+      :deep(.el-menu-item),
+      :deep(.el-sub-menu__title) {
+        display: flex !important;
+        align-items: center !important;
       }
 
       :deep(.el-menu-item),
@@ -294,14 +328,14 @@ const handleCommand = async (command: string) => {
         font-weight: 600;
         color: #334155;
         transition: all 0.25s ease;
-        
+
         &:hover {
           background-color: rgba(37, 99, 235, 0.12);
           color: #1d4ed8;
         }
 
         &.is-active {
-          color: #ffffff;
+          color: #ffffff !important;
           background: linear-gradient(135deg, #2563eb, #6366f1);
           box-shadow: 0 8px 16px rgba(37, 99, 235, 0.28);
         }
@@ -323,33 +357,50 @@ const handleCommand = async (command: string) => {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 4px 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(37, 99, 235, 0.14);
-      background: rgba(15, 23, 42, 0.04);
-      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.8);
     }
 
     .credit-info {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
 
-      :deep(.el-tag) {
+      .credit-tag {
         display: inline-flex;
+        flex-direction: row;
         align-items: center;
+        justify-content: center;
         gap: 4px;
-        height: 28px;
-        line-height: 28px;
-        padding: 0 12px;
+        height: 26px;
+        padding: 0 10px;
         border-radius: 999px;
+        font-size: 12px;
+        white-space: nowrap;
+        vertical-align: middle;
+
+        .el-icon {
+          font-size: 14px;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        > span {
+          display: inline-block;
+          vertical-align: middle;
+        }
+      }
+
+      .member-tag {
         border: 1px solid rgba(37, 99, 235, 0.18);
         background: rgba(37, 99, 235, 0.08);
         color: #1d4ed8;
+      }
 
-        &:hover {
-          opacity: 0.8;
-        }
+      .points-tag {
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
       }
     }
 
@@ -361,9 +412,15 @@ const handleCommand = async (command: string) => {
       cursor: pointer;
       border-radius: 999px;
       transition: background 0.2s ease;
+      outline: none !important;
 
       &:hover {
         background: rgba(37, 99, 235, 0.12);
+      }
+
+      &:focus {
+        outline: none !important;
+        box-shadow: none !important;
       }
 
       .username {
@@ -411,7 +468,7 @@ const handleCommand = async (command: string) => {
         :deep(.el-menu-item),
         :deep(.el-sub-menu__title) {
           padding: 0 12px;
-          
+
           span {
             display: none;
           }

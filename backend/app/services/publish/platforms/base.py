@@ -15,11 +15,25 @@ from app.core.config import settings
 
 class BasePlatformPublisher(ABC):
     """平台发布器基类"""
-    
+
+    _cipher = None
+
+    @classmethod
+    def _get_cipher(cls):
+        if cls._cipher is None:
+            from cryptography.fernet import Fernet
+            from app.core.config import settings
+            key_str = settings.OAUTH_ENCRYPTION_KEY
+            if key_str == "your-oauth-encryption-key-change-in-production":
+                key = Fernet.generate_key()
+            else:
+                key = key_str.encode()
+            cls._cipher = Fernet(key)
+        return cls._cipher
+
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
-        # 使用配置中的加密密钥
-        self.cipher = Fernet(settings.SECRET_KEY.encode()[:32].ljust(32, b'0'))
+        self.cipher = self._get_cipher()
     
     @abstractmethod
     async def create_draft(

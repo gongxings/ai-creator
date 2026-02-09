@@ -84,6 +84,10 @@ export function submitOAuthCookies(data: {
   account_name?: string
   cookies: Record<string, string>
   user_agent?: string
+  extra_params?: Record<string, string>
+  extra_headers?: Record<string, string>
+  referer?: string
+  cookie_string?: string
 }) {
   return request.post<OAuthAccount>('/v1/oauth/accounts/cookie-submit', data)
 }
@@ -97,6 +101,10 @@ export function createAccountManual(data: {
   cookies?: Record<string, string>
   tokens?: Record<string, string>
   user_agent?: string
+  extra_params?: Record<string, string>
+  extra_headers?: Record<string, string>
+  referer?: string
+  cookie_string?: string
 }) {
   return request.post<OAuthAccount>('/v1/oauth/accounts/manual', data)
 }

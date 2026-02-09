@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openai/gpt-3.5-turbo",
+  "cache": {
+    "enabled": true,
+    "maxSize": "100MB",
+    "maxAge": "24h"
+  },
+  "plugin": [],
+  "lsp": {
+    "enabled": true,
+    "servers": {
+      "typescript": true,
+      "python": true
+    }
+  }
+}

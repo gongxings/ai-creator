@@ -515,6 +515,7 @@ import {
   getPlatforms,
   getAccounts,
   authorizeAccount,
+  submitOAuthCookies,
   updateAccount,
   deleteAccount,
   checkAccountValidity,
@@ -648,7 +649,7 @@ const handleFrontendAuth = async () => {
     )
     
     // 监听来自授权窗口的消息
-    const handleAuthMessage = (event: MessageEvent) => {
+    const handleAuthMessage = async (event: MessageEvent) => {
       // 验证消息来源
       if (event.origin !== window.location.origin) {
         return
@@ -670,6 +671,23 @@ const handleFrontendAuth = async () => {
         // 关闭对话框
         showAddDialog.value = false
         addForm.value = { platform: '', account_name: '' }
+      }
+
+      if (type === 'oauth_cookies') {
+        try {
+          await submitOAuthCookies({
+            platform: platform || addForm.value.platform,
+            account_name: addForm.value.account_name,
+            cookies: data?.cookies || {},
+            user_agent: data?.user_agent || navigator.userAgent,
+          })
+          ElMessage.success('Cookie提交成功')
+          loadAccounts()
+          showAddDialog.value = false
+          addForm.value = { platform: '', account_name: '' }
+        } catch (error: any) {
+          ElMessage.error(error.response?.data?.detail || 'Cookie提交失败')
+        }
       }
     }
     

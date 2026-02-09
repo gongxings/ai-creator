@@ -162,6 +162,10 @@ class OAuthCookieSubmit(BaseModel):
     cookies: Dict[str, str]
     account_name: Optional[str] = None
     user_agent: Optional[str] = None
+    extra_params: Optional[Dict[str, str]] = None
+    extra_headers: Optional[Dict[str, str]] = None
+    referer: Optional[str] = None
+    cookie_string: Optional[str] = None
 
 
 @router.post("/accounts/cookie-submit")
@@ -202,6 +206,10 @@ async def submit_oauth_cookies(
         credentials = {
             "cookies": data.cookies,
             "user_agent": data.user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "extra_params": data.extra_params or {},
+            "extra_headers": data.extra_headers or {},
+            "referer": data.referer,
+            "cookie_string": data.cookie_string,
         }
         
         if not adapter.validate_credentials(credentials):
@@ -753,6 +761,10 @@ async def create_account_manual(
             "cookies": data.cookies,
             "tokens": data.tokens or {},
             "user_agent": data.user_agent or "",
+            "extra_params": data.extra_params or {},
+            "extra_headers": data.extra_headers or {},
+            "referer": data.referer,
+            "cookie_string": data.cookie_string,
         }
         account = oauth_service.create_or_update_account_with_credentials(
             db=db,

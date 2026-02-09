@@ -124,11 +124,17 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/operation/ReferralManagement.vue'),
         meta: { requiresAdmin: true },
       },
-      {
+{
         path: 'operation/statistics',
         name: 'OperationStatistics',
         component: () => import('@/views/operation/OperationStatistics.vue'),
         meta: { requiresAdmin: true },
+      },
+      {
+        path: 'playwright/:platform',
+        name: 'PlaywrightViewer',
+        component: () => import('@/views/playwright/PlaywrightViewer.vue'),
+        meta: { requiresAuth: true },
       },
     ],
   },

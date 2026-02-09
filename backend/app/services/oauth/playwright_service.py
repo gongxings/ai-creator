@@ -1,11 +1,14 @@
 """
 Playwright自动化服务
-用于OAuth授权流程
+用于OAuth授权流程，支持WebSocket实时推送截图和日志
 """
 import os
 import asyncio
-from typing import Optional, Dict, Any, Callable
-from playwright.async_api import async_playwright, Browser, Page, BrowserContext
+import time
+import base64
+from typing import Optional, Dict, Any, Callable, Awaitable, List
+from datetime import datetime
+from playwright.async_api import async_playwright, Browser, Page, BrowserContext, TimeoutError as PlaywrightTimeoutError
 from loguru import logger
 
 
@@ -181,7 +184,19 @@ class PlaywrightService:
                 raise
             logger.warning(f"Failed to check login status: {e}")
             return False
-    
+
+    async def _emit_progress(
+        self,
+        on_progress: Optional[Callable[[str, Any], Any]],
+        status: str,
+        payload: Any,
+    ):
+        if not on_progress:
+            return
+        result = on_progress(status, payload)
+        if asyncio.iscoroutine(result):
+            await result
+
     async def _auto_login(
         self,
         page: Page,
@@ -278,7 +293,54 @@ class PlaywrightService:
                     continue
             
             # 等待登录完成
-            await page.wait_for_timeout(3000)
+        await page.wait_for_timeout(3000)
+
+    async def _trigger_doubao_image_request(self, page: Page, prompt: str = "自动捕获参数"):
+        """
+        触发豆包图片生成的请求，以便捕获动态参数
+        """
+        selectors = [
+            "textarea",
+            "div[contenteditable='true']",
+            "[role='textbox']",
+            ".input-area textarea",
+            ".chat-input textarea",
+        ]
+        for selector in selectors:
+            try:
+                element = await page.query_selector(selector)
+                if not element:
+                    continue
+                await element.focus()
+                tag_name = await element.evaluate("(el) => el.tagName.toLowerCase()")
+                if tag_name in ("textarea", "input"):
+                    await element.fill(prompt)
+                else:
+                    await element.evaluate(
+                        "(el, text) => { el.textContent = text; el.dispatchEvent(new Event('input', { bubbles: true })); }",
+                        prompt,
+                    )
+                await page.keyboard.press("Enter")
+                await page.wait_for_timeout(1200)
+                # 尝试点击“发送”按钮以确保请求发出
+                send_selectors = [
+                    "button:has-text('发送')",
+                    "button:has-text('生成')",
+                    ".send-button",
+                    ".submit-button",
+                ]
+                for send_selector in send_selectors:
+                    try:
+                        await page.click(send_selector)
+                        await page.wait_for_timeout(600)
+                        break
+                    except:
+                        continue
+                return True
+            except Exception:
+                continue
+        logger.warning("未找到可用于触发豆包图片请求的输入元素")
+        return False
     
     async def authorize_platform(
         self,
@@ -300,7 +362,7 @@ class PlaywrightService:
             try:
                 # 发送进度：开始授权
                 if on_progress:
-                    on_progress("starting", {"message": "正在启动浏览器..."})
+                    await self._emit_progress(on_progress, "starting", {"message": "正在启动浏览器..."})
                 
                 # 创建浏览器上下文
                 context = await self.create_context()
@@ -311,9 +373,47 @@ class PlaywrightService:
                 
                 # 发送进度：打开登录页
                 if on_progress:
-                    on_progress("navigating", {"message": "正在打开登录页面..."})
+                    await self._emit_progress(on_progress, "navigating", {"message": "正在打开登录页面..."})
                 
                 # 导航到OAuth URL
+                # ??????????????????
+                capture_event = asyncio.Event()
+                captured = {
+                    "extra_params": {},
+                    "extra_headers": {},
+                    "referer": None,
+                }
+
+                def _maybe_capture(request):
+                    try:
+                        url = request.url
+                        if "/samantha/chat/completion" in url:
+                        try:
+                            from urllib.parse import urlparse, parse_qs
+                            qs = parse_qs(urlparse(url).query)
+                                captured["extra_params"] = {k: v[0] if isinstance(v, list) and v else "" for k, v in qs.items()}
+                            except Exception:
+                                pass
+                            try:
+                                headers = request.headers
+                                extra_headers = {}
+                                for key in ["x-flow-trace", "agw-js-conv", "referer"]:
+                                    if key in headers:
+                                        extra_headers[key] = headers.get(key)
+                                captured["extra_headers"] = extra_headers
+                                captured["referer"] = headers.get("referer")
+                            except Exception:
+                                pass
+                            capture_event.set()
+                            if hasattr(request, "post_data") and request.post_data:
+                                captured["body"] = request.post_data
+                            elif hasattr(request, "post_data_buffer") and request.post_data_buffer:
+                                captured["body"] = request.post_data_buffer.decode("utf-8", errors="ignore")
+                    except Exception:
+                        pass
+
+                page.on("request", _maybe_capture)
+
                 oauth_url = platform_config.get("oauth_url")
                 if not oauth_url:
                     raise ValueError("oauth_url not found in platform config")
@@ -340,7 +440,7 @@ class PlaywrightService:
                 
                 # 发送进度：等待用户登录
                 if on_progress:
-                    on_progress("waiting_login", {
+                    await self._emit_progress(on_progress, "waiting_login", {
                         "message": "请在浏览器中完成登录...",
                         "url": oauth_url
                     })
@@ -402,7 +502,45 @@ class PlaywrightService:
 
                 # 提取Cookie（无论浏览器是否关闭）
                 if on_progress:
-                    on_progress("extracting", {"message": "正在提取凭证..."})
+                    await self._emit_progress(on_progress, "extracting", {"message": "正在提取凭证..."})
+                # ??????????????
+                if platform_config.get("platform_id") == "doubao":
+                    if on_progress:
+                        await self._emit_progress(on_progress, "waiting_capture", {
+                            "message": "请在浏览器中打开豆包聊天并触发一次图片生成请求，以便自动抓取参数",
+                        })
+                    try:
+                        await page.goto("https://www.doubao.com/chat/", timeout=30000)
+                        await page.wait_for_timeout(1000)
+                    except Exception:
+                        pass
+                    try:
+                        triggered = await self._trigger_doubao_image_request(page)
+                        if triggered:
+                            logger.info("豆包图片请求已自动触发")
+                    except Exception as e:
+                        logger.warning(f"自动触发豆包图片请求失败: {e}")
+
+                    capture_timeout = platform_config.get("capture_timeout", 120)
+                    capture_interval = platform_config.get("capture_interval", 5)
+                    start_wait = time.monotonic()
+                    while not capture_event.is_set():
+                        elapsed = time.monotonic() - start_wait
+                        remaining = capture_timeout - elapsed
+                        if remaining <= 0:
+                            break
+                        wait_time = min(remaining, capture_interval)
+                        try:
+                            await asyncio.wait_for(capture_event.wait(), timeout=wait_time)
+                        except asyncio.TimeoutError:
+                            logger.info("Still waiting for doubao request capture; user may need to trigger generation in the browser")
+
+                    if capture_event.is_set():
+                        logger.info("Captured doubao request params/headers")
+                    else:
+                        logger.error("No doubao request captured within timeout")
+                        raise ValueError("未在规定时间内捕获豆包请求参数，请在浏览器中手动触发一次图片生成后重试")
+
 
                 # 检查 context 是否可用
                 if context and not context.pages:
@@ -426,7 +564,9 @@ class PlaywrightService:
                 # 过滤需要的Cookie
                 cookie_names = platform_config.get("cookie_names", [])
                 filtered_cookies = {}
-                
+                if cookies:
+                    logger.debug(f"Available cookies: {[cookie.get('name') for cookie in cookies]}")
+
                 if cookies:
                     if cookie_names:
                         for cookie in cookies:
@@ -438,7 +578,15 @@ class PlaywrightService:
                         for cookie in cookies:
                             if 'name' in cookie and 'value' in cookie:
                                 filtered_cookies[cookie['name']] = cookie['value']
-                
+
+                if not filtered_cookies and cookies:
+                    logger.warning("没有匹配的必须Cookie，尝试保留全部Cookie作为回退")
+                    filtered_cookies = {
+                        cookie['name']: cookie['value']
+                        for cookie in cookies
+                        if 'name' in cookie and 'value' in cookie
+                    }
+
                 if not filtered_cookies:
                     logger.error("No cookies extracted!")
                     raise ValueError("No cookies extracted")
@@ -468,11 +616,15 @@ class PlaywrightService:
                     "cookies": filtered_cookies,
                     "tokens": tokens,
                     "user_agent": user_agent,
-                }
-                
+                    "extra_params": captured.get("extra_params") or {},
+                    "extra_headers": captured.get("extra_headers") or {},
+                    "referer": captured.get("referer") or page.url,
+                    "cookie_string": '; '.join([f"{k}={v}" for k, v in filtered_cookies.items()]),
+                    "captured_body": captured.get("body"),
+                }                
                 # 发送进度：完成
                 if on_progress:
-                    on_progress("completed", {
+                    await self._emit_progress(on_progress, "completed", {
                         "message": "授权成功！",
                         "credentials": credentials
                     })
@@ -482,13 +634,13 @@ class PlaywrightService:
             except asyncio.TimeoutError:
                 logger.error("Authorization timeout")
                 if on_progress:
-                    on_progress("error", {"message": "授权超时，请重试"})
+                    await self._emit_progress(on_progress, "error", {"message": "授权超时，请重试"})
                 raise ValueError("Authorization timeout")
-                
+
             except Exception as e:
                 logger.error(f"Authorization failed: {e}")
                 if on_progress:
-                    on_progress("error", {"message": f"授权失败: {str(e)}"})
+                    await self._emit_progress(on_progress, "error", {"message": f"授权失败: {str(e)}"})
                 raise
                 
             finally:
@@ -585,3 +737,478 @@ class PlaywrightService:
 
 # 全局Playwright服务实例
 playwright_service = PlaywrightService()
+
+
+class PlaywrightWebSocketService:
+    """WebSocket实时服务"""
+    
+    _instances: Dict[str, 'PlaywrightWebSocketService'] = {}
+    
+    def __init__(self, user_id: int, platform: str):
+        self.user_id = user_id
+        self.platform = platform
+        self._browser = None
+        self._context = None
+        self._page = None
+        self._playwright = None
+        self._screenshot_task: Optional[asyncio.Task] = None
+        self._screenshot_callback: Optional[Callable] = None
+        self._streaming = False
+        self._logs: List[Dict[str, Any]] = []
+        self._last_screenshot: Optional[str] = None
+        self.headless = os.getenv("PLAYWRIGHT_HEADLESS", "false").lower() == "true"
+        self.timeout = int(os.getenv("PLAYWRIGHT_TIMEOUT", "300000"))
+    
+    @classmethod
+    def get_instance(cls, user_id: int, platform: str) -> 'PlaywrightWebSocketService':
+        key = f"{user_id}:{platform}"
+        if key not in cls._instances:
+            cls._instances[key] = cls(user_id, platform)
+        return cls._instances[key]
+    
+    @classmethod
+    def remove_instance(cls, user_id: int, platform: str):
+        key = f"{user_id}:{platform}"
+        if key in cls._instances:
+            instance = cls._instances[key]
+            asyncio.create_task(instance.cleanup())
+            del cls._instances[key]
+    
+    def _add_log(self, level: str, message: str, data: Optional[Dict] = None):
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "level": level,
+            "message": message,
+            "data": data
+        }
+        self._logs.append(log_entry)
+        if len(self._logs) > 1000:
+            self._logs = self._logs[-500:]
+    
+    async def start(self):
+        if self._playwright is None:
+            self._playwright = await async_playwright().start()
+            self._add_log("info", "Playwright引擎已启动")
+    
+    async def cleanup(self):
+        self._streaming = False
+        if self._screenshot_task:
+            self._screenshot_task.cancel()
+            try:
+                await self._screenshot_task
+            except asyncio.CancelledError:
+                pass
+        
+        if self._page:
+            try:
+                await self._page.close()
+            except:
+                pass
+            self._page = None
+        
+        if self._context:
+            try:
+                await self._context.close()
+            except:
+                pass
+            self._context = None
+        
+        if self._browser:
+            try:
+                await self._browser.close()
+            except:
+                pass
+            self._browser = None
+        
+        if self._playwright:
+            try:
+                await self._playwright.stop()
+            except:
+                pass
+            self._playwright = None
+        
+        self._add_log("info", "Playwright资源已清理")
+    
+    async def ensure_browser(self):
+        if not self._playwright:
+            await self.start()
+        
+        if not self._browser:
+            self._browser = await self._playwright.chromium.launch(
+                headless=self.headless,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-blink-features=AutomationControlled',
+                ]
+            )
+            self._add_log("info", f"浏览器已启动 (headless={self.headless})")
+    
+    async def create_page(self) -> Page:
+        await self.ensure_browser()
+        
+        if not self._context:
+            self._context = await self._browser.new_context(
+                viewport={'width': 1280, 'height': 720},
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                locale='zh-CN',
+                timezone_id='Asia/Shanghai',
+            )
+            self._add_log("info", "浏览器上下文已创建")
+        
+        if not self._page:
+            self._page = await self._context.new_page()
+            self._page.set_default_timeout(self.timeout)
+            self._add_log("info", "新页面已创建")
+        
+        return self._page
+    
+    async def navigate_to(self, url: str) -> bool:
+        page = await self.create_page()
+        try:
+            await page.goto(url, wait_until="networkidle")
+            self._add_log("info", f"已导航到: {url}", {"current_url": page.url})
+            return True
+        except Exception as e:
+            self._add_log("error", f"导航失败: {str(e)}")
+            return False
+    
+    async def capture_screenshot(self) -> Optional[str]:
+        if not self._page:
+            return None
+        
+        try:
+            await self._page.wait_for_load_state("networkidle", timeout=5000)
+        except:
+            pass
+        
+        try:
+            screenshot_bytes = await self._page.screenshot(type="png", full_page=False)
+            image_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
+            self._last_screenshot = image_base64
+            self._add_log("debug", f"截图已捕获 ({len(screenshot_bytes)} bytes)")
+            return image_base64
+        except Exception as e:
+            self._add_log("error", f"截图失败: {str(e)}")
+            return None
+    
+    async def click_element(self, selector: str) -> bool:
+        if not self._page:
+            return False
+        
+        try:
+            await self._page.wait_for_selector(selector, timeout=5000)
+            await self._page.click(selector)
+            self._add_log("info", f"已点击元素: {selector}")
+            return True
+        except Exception as e:
+            self._add_log("error", f"点击失败 ({selector}): {str(e)}")
+            return False
+    
+    async def input_text(self, selector: str, text: str) -> bool:
+        if not self._page:
+            return False
+        
+        try:
+            await self._page.wait_for_selector(selector, timeout=5000)
+            await self._page.fill(selector, text)
+            self._add_log("info", f"已输入文本到 {selector}: {text[:50]}...")
+            return True
+        except Exception as e:
+            self._add_log("error", f"输入失败 ({selector}): {str(e)}")
+            return False
+    
+    async def execute_script(self, script: str) -> Any:
+        if not self._page:
+            return None
+        
+        try:
+            result = await self._page.evaluate(script)
+            self._add_log("debug", f"脚本执行完成", {"result_type": type(result).__name__})
+            return result
+        except Exception as e:
+            self._add_log("error", f"脚本执行失败: {str(e)}")
+            return None
+    
+    async def get_current_url(self) -> str:
+        if self._page:
+            return self._page.url
+        return ""
+    
+    async def get_logs(self) -> List[Dict[str, Any]]:
+        return self._logs[-100:]
+    
+    async def start_screenshot_stream(
+        self,
+        callback: Callable[[str], Awaitable[None]],
+        interval_ms: int = 2000
+    ):
+        if self._streaming:
+            await self.stop_screenshot_stream()
+        
+        self._screenshot_callback = callback
+        self._streaming = True
+        
+        async def screenshot_loop():
+            while self._streaming:
+                try:
+                    image_data = await self.capture_screenshot()
+                    if image_data and self._screenshot_callback:
+                        await self._screenshot_callback(image_data)
+                except Exception as e:
+                    self._add_log("error", f"截图流错误: {str(e)}")
+                
+                await asyncio.sleep(interval_ms / 1000)
+        
+        self._screenshot_task = asyncio.create_task(screenshot_loop())
+        self._add_log("info", f"截图流已开始 (间隔: {interval_ms}ms)")
+    
+    async def stop_screenshot_stream(self):
+        if not self._streaming:
+            return
+        
+        self._streaming = False
+        
+        if self._screenshot_task:
+            self._screenshot_task.cancel()
+            try:
+                await self._screenshot_task
+            except asyncio.CancelledError:
+                pass
+            self._screenshot_task = None
+        
+        self._screenshot_callback = None
+        self._add_log("info", "截图流已停止")
+    
+    async def wait_for_element(self, selector: str, timeout: int = 10000) -> bool:
+        if not self._page:
+            return False
+        
+        try:
+            await self._page.wait_for_selector(selector, timeout=timeout)
+            self._add_log("info", f"元素已出现: {selector}")
+            return True
+        except PlaywrightTimeoutError:
+            self._add_log("warning", f"等待元素超时: {selector}")
+            return False
+        except Exception as e:
+            self._add_log("error", f"等待元素失败: {str(e)}")
+            return False
+
+
+playwright_ws_service = PlaywrightWebSocketService
+
+
+async def get_page_for_websocket(user_id: int, platform: str, url: str = "") -> Page:
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    await service.start()
+    
+    if url:
+        await service.navigate_to(url)
+    
+    return await service.create_page()
+
+
+async def release_websocket_service(user_id: int, platform: str):
+    PlaywrightWebSocketService.remove_instance(user_id, platform)
+
+
+async def capture_screenshot(platform: str, user_id: int = 1) -> Optional[str]:
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    await service.create_page()
+    return await service.capture_screenshot()
+
+
+async def navigate_to(platform: str, url: str, user_id: int = 1) -> bool:
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    return await service.navigate_to(url)
+
+
+async def click_element(platform: str, selector: str, user_id: int = 1) -> bool:
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    return await service.click_element(selector)
+
+
+async def input_text(platform: str, selector: str, text: str, user_id: int = 1) -> bool:
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    return await service.input_text(selector, text)
+
+
+async def execute_script(platform: str, script: str, user_id: int = 1) -> Any:
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    return await service.execute_script(script)
+
+
+async def get_current_url(platform: str, user_id: int = 1) -> str:
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    return await service.get_current_url()
+
+
+async def start_screenshot_stream(
+    platform: str,
+    callback: Callable[[str], Awaitable[None]],
+    interval_ms: int = 2000,
+    user_id: int = 1
+):
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    await service.start_screenshot_stream(callback, interval_ms)
+
+
+async def stop_screenshot_stream(platform: str, user_id: int = 1):
+    service = PlaywrightWebSocketService.get_instance(user_id, platform)
+    await service.stop_screenshot_stream()
+
+
+async def generate_image_with_playwright(
+    platform_meta: Dict[str, Any],
+    prompt: str,
+    cookies: Dict[str, str],
+    size: str = "1024x1024"
+) -> Dict[str, Any]:
+    """
+    使用Playwright生成图片（模拟真实用户在浏览器中操作）
+    
+    Args:
+        platform_meta: 平台元数据
+        prompt: 图片描述
+        cookies: Cookie字典
+        size: 图片尺寸
+    
+    Returns:
+        生成的图片URL列表
+    """
+    from loguru import logger
+    import asyncio
+    
+    result = {
+        "images": [],
+        "prompt": prompt,
+        "size": size,
+        "method": "playwright"
+    }
+    
+    platform_id = platform_meta.get("platform_id", "doubao")
+    
+    async with playwright_service._semaphore:
+        context = None
+        page = None
+        
+        try:
+            context = await playwright_service.create_context()
+            
+            if cookies:
+                cookie_list = [
+                    {"name": k, "value": v, "domain": ".doubao.com"}
+                    for k, v in cookies.items()
+                ]
+                await context.add_cookies(cookie_list)
+                logger.info(f"Added {len(cookies)} cookies for {platform_id}")
+            
+            page = await context.new_page()
+            page.set_default_timeout(60000)
+            
+            await page.goto("https://www.doubao.com/chat/")
+            logger.info(f"Navigated to https://www.doubao.com/chat/")
+            
+            await page.wait_for_load_state("networkidle", timeout=30000)
+            
+            input_selectors = [
+                "textarea[placeholder*='输入']",
+                "div[contenteditable='true']",
+                ".chat-input textarea",
+                "textarea.chat-input",
+                "[class*='input'] textarea"
+            ]
+            
+            input_box = None
+            for selector in input_selectors:
+                try:
+                    input_box = await page.query_selector(selector)
+                    if input_box:
+                        logger.info(f"Found input box with selector: {selector}")
+                        break
+                except:
+                    continue
+            
+            if not input_box:
+                logger.error("Could not find input box")
+                result["error"] = "无法找到输入框"
+                return result
+            
+            await input_box.fill("")
+            await input_box.type(prompt)
+            logger.info(f"Entered prompt: {prompt}")
+            
+            send_selectors = [
+                "button[type='submit']",
+                "button:has-text('发送')",
+                "[class*='send'] button",
+                ".chat-send-button",
+                "button:has-text('生成')"
+            ]
+            
+            send_button = None
+            for selector in send_selectors:
+                try:
+                    send_button = await page.query_selector(selector)
+                    if send_button:
+                        logger.info(f"Found send button with selector: {selector}")
+                        break
+                except:
+                    continue
+            
+            if send_button:
+                await send_button.click()
+                logger.info("Clicked send button")
+            else:
+                await input_box.press("Enter")
+                logger.info("Pressed Enter key")
+            
+            await asyncio.sleep(5)
+            
+            image_selectors = [
+                "img[src*='byteimg']",
+                "[class*='image'] img",
+                ".creations img",
+                "img[src*='tos-cn']"
+            ]
+            
+            image_urls = []
+            for selector in image_selectors:
+                try:
+                    images = await page.query_selector_all(selector)
+                    for img in images:
+                        src = await img.get_attribute("src")
+                        if src and src not in image_urls:
+                            clean_url = src.split("?")[0]
+                            if clean_url not in image_urls:
+                                image_urls.append(clean_url)
+                                logger.info(f"Found image: {clean_url[:80]}...")
+                except:
+                    continue
+            
+            if image_urls:
+                result["images"] = image_urls
+                logger.info(f"Found {len(image_urls)} images")
+            else:
+                screenshot = await page.screenshot(type="png")
+                import base64
+                result["screenshot"] = base64.b64encode(screenshot).decode()
+                result["error"] = "未找到生成的图片"
+                logger.warning("No images found")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Playwright image generation failed: {e}")
+            result["error"] = str(e)
+            return result
+            
+        finally:
+            if context:
+                try:
+                    await context.close()
+                    logger.info("Browser context closed")
+                except:
+                    pass

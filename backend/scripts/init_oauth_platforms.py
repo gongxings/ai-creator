@@ -284,7 +284,7 @@ def init_platforms():
                         "code_input": "input[placeholder='请输入验证码']",
                         "submit_button": "button[type='submit']",
                     },
-                    "cookie_names": ["sessionid", "sessionid_ss", "s_v_web_id", "tt_webid"],
+                    "cookie_names": ["sessionid", "sessionid_ss", "s_v_web_id", "ttwid"],
                 },
                 "litellm_config": {
                     "provider": "doubao_web",

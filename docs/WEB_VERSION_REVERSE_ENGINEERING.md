@@ -177,7 +177,7 @@ POST https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendSer
 - `sessionid`
 - `sessionid_ss`
 - `s_v_web_id`
-- `tt_webid`
+- `ttwid`
 
 **API端点**：
 ```

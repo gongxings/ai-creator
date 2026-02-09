@@ -68,7 +68,10 @@ class OAuthAccountManualCreate(OAuthAccountBase):
     cookies: Dict[str, str] = Field(..., description="Cookie键值对")
     tokens: Optional[Dict[str, str]] = Field(None, description="可选Token")
     user_agent: Optional[str] = Field(None, description="可选User-Agent")
-
+    extra_params: Optional[Dict[str, str]] = Field(None, description="Request Params")
+    extra_headers: Optional[Dict[str, str]] = Field(None, description="Request Headers")
+    referer: Optional[str] = Field(None, description="Referer")
+    cookie_string: Optional[str] = Field(None, description="Cookie String")
 
 class OAuthAccountUpdate(BaseModel):
     """更新OAuth账号"""

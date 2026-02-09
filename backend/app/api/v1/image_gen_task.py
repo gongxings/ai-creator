@@ -84,6 +84,15 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
             "litellm_config": platform_config.litellm_config or {},
             "quota_config": platform_config.quota_config or {},
         })
+        if isinstance(credentials, dict):
+            if credentials.get("extra_params"):
+                adapter.oauth_config["extra_params"] = credentials.get("extra_params")
+            if credentials.get("extra_headers"):
+                adapter.oauth_config["extra_headers"] = credentials.get("extra_headers")
+            if credentials.get("referer"):
+                adapter.oauth_config["referer"] = credentials.get("referer")
+            if credentials.get("cookie_string"):
+                adapter.oauth_config["cookie_string"] = credentials.get("cookie_string")
 
         # 调用图片生成
         prompt = request_data.get("prompt", "")

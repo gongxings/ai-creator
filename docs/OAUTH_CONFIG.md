@@ -7,6 +7,7 @@
 浏览器模式：**非 headless 模式（可见浏览器窗口）**
 
 当调用 `/api/v1/oauth/accounts/authorize` 接口时，系统会：
+
 1. 打开一个可见的浏览器窗口
 2. 自动点击登录按钮
 3. 轮询检测登录状态（每2秒检查一次）
@@ -39,42 +40,51 @@
 
 ```javascript
 // 1. 开始授权
-const startResponse = await fetch('/api/v1/oauth/authorize/start?platform=doubao', {
-  method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}` }
-});
+const startResponse = await fetch(
+  "/api/v1/oauth/authorize/start?platform=doubao",
+  {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  },
+);
 const { session_id } = await startResponse.json();
 
 // 2. 获取二维码并显示
-const qrResponse = await fetch('/api/v1/oauth/authorize/qr?platform=doubao', {
-  headers: { 'Authorization': `Bearer ${token}` }
+const qrResponse = await fetch("/api/v1/oauth/authorize/qr?platform=doubao", {
+  headers: { Authorization: `Bearer ${token}` },
 });
 const { qr_code } = await qrResponse.json();
 
 if (qr_code) {
-  document.getElementById('qrcode').src = `data:image/png;base64,${qr_code}`;
+  document.getElementById("qrcode").src = `data:image/png;base64,${qr_code}`;
 } else {
-  alert('未找到二维码，请使用账号密码登录');
+  alert("未找到二维码，请使用账号密码登录");
 }
 
 // 3. 轮询检查登录状态
 const checkInterval = setInterval(async () => {
-  const statusResponse = await fetch('/api/v1/oauth/authorize/status?platform=doubao', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
+  const statusResponse = await fetch(
+    "/api/v1/oauth/authorize/status?platform=doubao",
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
   const { logged_in } = await statusResponse.json();
-  
+
   if (logged_in) {
     clearInterval(checkInterval);
-    alert('登录成功！');
-    
+    alert("登录成功！");
+
     // 4. 完成授权
-    const completeResponse = await fetch('/api/v1/oauth/authorize/complete?platform=doubao', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const completeResponse = await fetch(
+      "/api/v1/oauth/authorize/complete?platform=doubao",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     const account = await completeResponse.json();
-    console.log('授权成功', account);
+    console.log("授权成功", account);
   }
 }, 2000); // 每2秒检查一次
 ```
@@ -140,19 +150,23 @@ PLAYWRIGHT_HEADLESS=false
    - `sessionid`
    - `sessionid_ss`
    - `s_v_web_id`
-   - `tt_webid`
+   - `ttwid`
 4. 使用 `/api/v1/oauth/accounts/manual` 接口手动添加
 
 ## 常见问题
 
 ### Q: 二维码获取失败？
+
 A: 豆包可能使用动态二维码，需要使用账号密码登录
 
 ### Q: 登录状态一直未更新？
+
 A: 检查浏览器是否正常打开，登录后检查 localStorage 是否有用户信息
 
 ### Q: 如何验证 Cookie 是否有效？
+
 A: 调用 `/api/v1/oauth/accounts/{account_id}/check` 接口验证
 
 ### Q: 服务器部署如何使用？
+
 A: 推荐使用分步授权流程，前端显示二维码，用户扫码登录

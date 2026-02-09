@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="user-settings flagship-page page-shell">
     <section class="page-hero settings-hero">
       <div class="hero-grid">
@@ -264,9 +264,38 @@
         </el-form-item>
         <el-form-item label="Auth Mode">
           <el-radio-group v-model="oauthForm.auth_mode">
-            <el-radio-button label="auto">Auto</el-radio-button>\n            <el-radio-button label="manual">Manual</el-radio-button>
+            <el-radio-button label="auto">Auto</el-radio-button>
+            <el-radio-button label="manual">Manual</el-radio-button>
+            <el-radio-button label="browser">Browser</el-radio-button>
           </el-radio-group>
         </el-form-item>
+        
+        <!-- 浏览器授权模式 -->
+        <template v-if="oauthForm.auth_mode === 'browser'">
+          <el-form-item>
+            <el-alert
+              title="浏览器授权说明"
+              type="success"
+              :closable="false"
+              style="margin-bottom: 10px"
+            >
+              <p>点击下方按钮打开浏览器进行授权，这是最可靠的授权方式。</p>
+              <p>系统会打开浏览器窗口，你在浏览器中登录账号后，系统会自动保存凭证。</p>
+            </el-alert>
+          </el-form-item>
+          <el-form-item>
+            <el-button 
+              type="primary" 
+              size="large" 
+              @click="openBrowserAuth"
+              :loading="browserAuthLoading"
+            >
+              <el-icon><Monitor /></el-icon>
+              打开浏览器授权
+            </el-button>
+          </el-form-item>
+        </template>
+        
         <template v-if="oauthForm.auth_mode === 'manual'">
           <el-form-item label="Login URL">
             <el-input :model-value="oauthLoginUrl" readonly>
@@ -281,6 +310,32 @@
               type="textarea"
               :rows="6"
               placeholder="Paste cookie JSON or key=value; key2=value2"
+            />
+          </el-form-item>
+          <el-form-item label="Referer">
+            <el-input
+              v-model="oauthForm.referer"
+              placeholder="e.g. https://www.doubao.com/chat/123456"
+            />
+          </el-form-item>
+          <el-form-item label="msToken">
+            <el-input v-model="oauthForm.ms_token" placeholder="from request query" />
+          </el-form-item>
+          <el-form-item label="a_bogus">
+            <el-input v-model="oauthForm.a_bogus" placeholder="from request query" />
+          </el-form-item>
+          <el-form-item label="x-flow-trace">
+            <el-input v-model="oauthForm.x_flow_trace" placeholder="from request headers" />
+          </el-form-item>
+          <el-form-item label="agw-js-conv">
+            <el-input v-model="oauthForm.agw_js_conv" placeholder="e.g. str, str" />
+          </el-form-item>
+          <el-form-item label="Cookie String">
+            <el-input
+              v-model="oauthForm.cookie_string"
+              type="textarea"
+              :rows="3"
+              placeholder="Optional raw cookie string"
             />
           </el-form-item>
           <el-form-item v-if="requiredCookieNames.length" label="Required">
@@ -358,12 +413,15 @@ import { getAIModels, addAIModel, updateAIModel, deleteAIModel } from '@/api/mod
 import { 
   getPlatforms,
   authorizeAccount, 
-  createAccountManual,
+  submitOAuthCookies,
   getAccounts, 
   updateAccount, 
   deleteAccount, 
   checkAccountValidity 
 } from '@/api/oauth'
+import { 
+  Setting, Plus, Picture, Monitor
+} from '@element-plus/icons-vue'
 import type { AIModel } from '@/types'
 
 const userStore = useUserStore()
@@ -413,6 +471,12 @@ const oauthForm = reactive({
   account_name: '',
   auth_mode: 'auto',
   cookie_text: '',
+  referer: '',
+  ms_token: '',
+  a_bogus: '',
+  x_flow_trace: '',
+  agw_js_conv: 'str, str',
+  cookie_string: '',
 })
 
 // OAuth平台列表（从后端获取）
@@ -562,6 +626,12 @@ const showAddOAuthDialog = () => {
   oauthForm.account_name = ''
   oauthForm.auth_mode = 'auto'
   oauthForm.cookie_text = ''
+  oauthForm.referer = ''
+  oauthForm.ms_token = ''
+  oauthForm.a_bogus = ''
+  oauthForm.x_flow_trace = ''
+  oauthForm.agw_js_conv = 'str, str'
+  oauthForm.cookie_string = ''
   oauthDialogVisible.value = true
 }
 
@@ -615,6 +685,16 @@ const parseCookies = (input: string): Record<string, string> => {
   return result
 }
 
+const buildCookieString = (raw: string, cookies: Record<string, string>) => {
+  const cleaned = raw.trim().replace(/^cookie:\s*/i, '')
+  if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[') && cleaned.includes('=')) {
+    return cleaned
+  }
+  return Object.entries(cookies)
+    .map(([key, value]) => `${key}=${value}`)
+    .join('; ')
+}
+
 const loadOAuthPlatforms = async () => {
   try {
     const data = await getPlatforms()
@@ -636,6 +716,29 @@ const loadOAuthAccounts = async () => {
   } catch (error) {
     ElMessage.error('加载OAuth账号失败')
   }
+}
+
+// 浏览器授权
+const browserAuthLoading = ref(false)
+
+const openBrowserAuth = async () => {
+  if (!oauthForm.platform) {
+    ElMessage.warning('请先选择平台')
+    return
+  }
+  
+  browserAuthLoading.value = true
+  
+  // 跳转到Playwright Viewer页面
+  const platform = oauthForm.platform
+  const accountName = oauthForm.account_name || platform
+  
+  // 关闭对话框
+  oauthDialogVisible.value = false
+  
+  // 跳转到浏览器授权页面，带上平台和账号名称参数
+  const redirectUrl = `/playwright/${platform}?account=${encodeURIComponent(accountName)}`
+  window.location.href = redirectUrl
 }
 
 const addOAuthAccount = async () => {
@@ -661,10 +764,22 @@ const addOAuthAccount = async () => {
 
       oauthDialogVisible.value = false
 
-      await createAccountManual({
+      const extra_params: Record<string, string> = {}
+      const extra_headers: Record<string, string> = {}
+      if (oauthForm.ms_token) extra_params.msToken = oauthForm.ms_token
+      if (oauthForm.a_bogus) extra_params.a_bogus = oauthForm.a_bogus
+      if (oauthForm.x_flow_trace) extra_headers['x-flow-trace'] = oauthForm.x_flow_trace
+      if (oauthForm.agw_js_conv) extra_headers['agw-js-conv'] = oauthForm.agw_js_conv
+
+      await submitOAuthCookies({
         platform: oauthForm.platform,
         account_name: oauthForm.account_name,
         cookies,
+        user_agent: navigator.userAgent,
+        referer: oauthForm.referer || undefined,
+        extra_params,
+        extra_headers,
+        cookie_string: oauthForm.cookie_string || buildCookieString(oauthForm.cookie_text, cookies),
       })
 
       loadingMessage.close()
