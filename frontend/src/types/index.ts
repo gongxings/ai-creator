@@ -99,7 +99,6 @@ export interface GenerateContentParams {
   tool_type: string
   params: Record<string, any>
   ai_model_id?: number
-  platform?: string  // 新增：Cookie模式的平台，如'doubao'、'qwen'等
 }
 
 export interface CreationVersion {
@@ -158,13 +157,13 @@ export interface PublishParams {
   location?: string
 }
 
-// 可用模型相关（整合OAuth和API Key模型）
+// 可用模型相关（仅 API Key 模型）
 export interface AvailableModel {
-  model_id: string  // oauth_{account_id}_{model_name} 或 ai_model_{model_id}
+  model_id: string  // ai_model_{model_id}
   model_name: string  // 实际模型名称
   display_name: string  // 显示名称
   provider: string  // 提供商
-  source_type: 'oauth' | 'api_key'  // 来源类型
+  source_type: 'api_key'  // 来源类型
   source_id: number  // 来源ID
   is_free: boolean  // 是否免费
   is_preferred: boolean  // 是否为用户偏好

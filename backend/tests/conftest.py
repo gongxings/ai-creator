@@ -1,9 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 Pytest配置文件
 """
 import os
 import sys
 from pathlib import Path
+
+# 在导入任何 app 模块之前设置测试配置
+os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+os.environ["REDIS_URL"] = "redis://localhost:6379/1"
+os.environ["LOG_LEVEL"] = "ERROR"
 
 import pytest
 from sqlalchemy import create_engine
@@ -14,35 +20,74 @@ from fastapi.testclient import TestClient
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.main import app
+# 导入 app.core.config 并修改 DATABASE_URL
+from app.core import config
+original_db_url = config.settings.DATABASE_URL
+config.settings.DATABASE_URL = "sqlite:///./test.db"
+
 from app.core.database import Base, get_db
-from app.core.config import settings
 from app.models.user import User
 from app.models.platform_config import PlatformConfig
 from app.models.oauth_account import OAuthAccount
 
+# 延迟导入 app
+from app.main import app
 
-# 测试数据库URL
-TEST_DATABASE_URL = "sqlite:///./test.db"
+
+# 测试数据库URL - 使用内存数据库避免文件锁问题
+import uuid
 
 
-@pytest.fixture(scope="session")
+def get_test_db_url():
+    """生成唯一的测试数据库URL"""
+    return f"sqlite:///./test_{uuid.uuid4().hex[:8]}.db"
+
+
+@pytest.fixture(scope="function")
 def engine():
     """创建测试数据库引擎"""
-    # 删除旧的测试数据库文件
-    if os.path.exists("test.db"):
-        os.remove("test.db")
+    test_db_url = get_test_db_url()
+    test_engine = create_engine(
+        test_db_url,
+        connect_args={"check_same_thread": False}
+    )
     
-    engine = create_engine(TEST_DATABASE_URL)
-    # 创建所有表
-    Base.metadata.create_all(bind=engine)
-    yield engine
+    # 修复 SQLite BigInteger 自增问题 - 预先修改 Base 元数据中的列类型
+    from sqlalchemy import BigInteger, Integer
+    
+    for table in Base.metadata.tables.values():
+        for column in table.columns:
+            if isinstance(column.type, BigInteger) and column.primary_key:
+                column.type = Integer()
+                column.autoincrement = True
+    
+    # 清除所有已存在的表（防止之前的索引残留）
+    Base.metadata.drop_all(bind=test_engine)
+    # 重新创建所有表
+    Base.metadata.create_all(bind=test_engine)
+    
+    # 替换 app 的数据库引擎
+    import app.core.database as db_module
+    original_engine = db_module.engine
+    original_session = db_module.SessionLocal
+    db_module.engine = test_engine
+    db_module.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+    
+    yield test_engine
+    
+    # 恢复原始引擎
+    db_module.engine = original_engine
+    db_module.SessionLocal = original_session
+    
     # 清理
-    Base.metadata.drop_all(bind=engine)
-    engine.dispose()
+    test_engine.dispose()
     # 删除测试数据库文件
-    if os.path.exists("test.db"):
-        os.remove("test.db")
+    db_path = test_db_url.replace("sqlite:///", "")
+    if os.path.exists(db_path):
+        try:
+            os.remove(db_path)
+        except PermissionError:
+            pass  # 忽略文件删除错误
 
 
 @pytest.fixture(scope="function")
@@ -74,12 +119,13 @@ def client(db_session):
 def test_user(db_session):
     """创建测试用户"""
     from app.core.security import get_password_hash
+    from app.models.user import UserStatus
     
     user = User(
         username="testuser",
         email="test@example.com",
-        hashed_password=get_password_hash("testpass123"),
-        is_active=True,
+        password_hash=get_password_hash("testpass123"),
+        status=UserStatus.ACTIVE,
     )
     db_session.add(user)
     db_session.commit()

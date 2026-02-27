@@ -24,7 +24,7 @@ class TestUserModel:
         user = User(
             username="testuser",
             email="test@example.com",
-            hashed_password=get_password_hash("password123"),
+            password_hash=get_password_hash("password123"),
             is_active=True
         )
         db_session.add(user)
@@ -36,14 +36,14 @@ class TestUserModel:
         assert user.email == "test@example.com"
         assert user.is_active is True
         assert user.created_at is not None
-        assert verify_password("password123", user.hashed_password)
+        assert verify_password("password123", user.password_hash)
     
     def test_user_unique_username(self, db_session):
         """测试用户名唯一性"""
         user1 = User(
             username="testuser",
             email="test1@example.com",
-            hashed_password=get_password_hash("password123")
+            password_hash=get_password_hash("password123")
         )
         db_session.add(user1)
         db_session.commit()
@@ -51,7 +51,7 @@ class TestUserModel:
         user2 = User(
             username="testuser",
             email="test2@example.com",
-            hashed_password=get_password_hash("password123")
+            password_hash=get_password_hash("password123")
         )
         db_session.add(user2)
         
@@ -63,7 +63,7 @@ class TestUserModel:
         user1 = User(
             username="testuser1",
             email="test@example.com",
-            hashed_password=get_password_hash("password123")
+            password_hash=get_password_hash("password123")
         )
         db_session.add(user1)
         db_session.commit()
@@ -71,7 +71,7 @@ class TestUserModel:
         user2 = User(
             username="testuser2",
             email="test@example.com",
-            hashed_password=get_password_hash("password123")
+            password_hash=get_password_hash("password123")
         )
         db_session.add(user2)
         
@@ -83,7 +83,7 @@ class TestUserModel:
         user = User(
             username="testuser",
             email="test@example.com",
-            hashed_password=get_password_hash("password123")
+            password_hash=get_password_hash("password123")
         )
         db_session.add(user)
         db_session.commit()
@@ -318,7 +318,8 @@ class TestOAuthModels:
         config = PlatformConfig(
             platform_id="test_platform",
             platform_name="测试平台",
-            description="测试用",
+            platform_icon="https://test.com/icon.png",
+            priority=1,
             oauth_config={"auth_url": "https://test.com"},
             litellm_config={"provider": "test"},
             quota_config={"daily_limit": 1000},

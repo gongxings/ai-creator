@@ -25,7 +25,7 @@
         </div>
       </template>
 
-      <!-- 桌面版表格 -->
+      <!-- 桌面版表�?-->
       <div class="table-view">
         <el-table :data="platformAccounts" v-loading="loadingAccounts" style="width: 100%">
           <el-table-column label="平台" width="160">
@@ -34,7 +34,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="account_name" label="账号名称" min-width="180" />
-          <el-table-column label="Cookie状态" width="120">
+          <el-table-column label="Cookie状�? width="120">
             <template #default="{ row }">
               <el-tag :type="getCookieStatusType(row.cookies_valid)">
                 {{ getCookieStatusText(row.cookies_valid) }}
@@ -46,7 +46,7 @@
               {{ row.cookies_updated_at ? formatDate(row.cookies_updated_at) : '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="账号状态" width="120">
+          <el-table-column label="账号状�? width="120">
             <template #default="{ row }">
               <el-tag :type="row.is_active === 'active' ? 'success' : 'info'">
                 {{ row.is_active === 'active' ? '启用' : '停用' }}
@@ -64,7 +64,7 @@
         </el-table>
       </div>
 
-      <!-- 手机版卡片 -->
+      <!-- 手机版卡�?-->
       <div v-if="platformAccounts.length > 0" class="card-view">
         <div v-for="account in platformAccounts" :key="account.id" class="platform-card">
           <div class="card-header">
@@ -85,7 +85,7 @@
               </el-tag>
             </div>
             <div class="info-row">
-              <span class="label">更新时间：</span>
+              <span class="label">更新时间�?/span>
               <span>{{ account.cookies_updated_at ? formatDate(account.cookies_updated_at) : '-' }}</span>
             </div>
           </div>
@@ -123,7 +123,7 @@
         </div>
       </template>
 
-      <!-- 桌面版表格 -->
+      <!-- 桌面版表�?-->
       <div class="table-view">
         <el-table :data="publishHistory" v-loading="loading">
           <el-table-column prop="title" label="标题" min-width="200" />
@@ -134,7 +134,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" width="120">
+          <el-table-column prop="status" label="状�? width="120">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">
                 {{ getStatusText(row.status) }}
@@ -169,7 +169,7 @@
         </el-table>
       </div>
 
-      <!-- 手机版卡片 -->
+      <!-- 手机版卡�?-->
       <div v-if="publishHistory.length > 0" class="card-view">
         <div v-for="record in publishHistory" :key="record.id" class="history-record-card">
           <div class="record-header">
@@ -181,11 +181,11 @@
 
           <div class="record-body">
             <div class="info-row">
-              <span class="label">平台：</span>
+              <span class="label">平台�?/span>
               <el-tag size="small">{{ getPlatformName(record.platform) }}</el-tag>
             </div>
             <div class="info-row">
-              <span class="label">时间：</span>
+              <span class="label">时间�?/span>
               <span>{{
                 record.status === 'scheduled' && record.scheduled_at
                   ? formatDate(record.scheduled_at)
@@ -217,7 +217,7 @@
       />
     </el-card>
 
-    <!-- 发布对话框 -->
+    <!-- 发布对话�?-->
     <el-dialog
       v-model="showPublishDialog"
       title="发布内容"
@@ -284,7 +284,7 @@
       </template>
     </el-dialog>
 
-    <!-- 绑定平台对话框 -->
+    <!-- 绑定平台对话�?-->
     <el-dialog
       v-model="showBindDialog"
       title="绑定平台账号"
@@ -297,7 +297,7 @@
         :closable="false"
         style="margin-bottom: 20px"
       >
-        <p><strong>方式1：前端授权（推荐）</strong></p>
+        <p><strong>方式1：前端授权（推荐�?/strong></p>
         <ul>
           <li>点击"前端授权"按钮打开授权窗口</li>
           <li>在授权窗口中完成登录</li>
@@ -305,11 +305,11 @@
           <li>无需手动操作</li>
         </ul>
         
-        <p><strong>方式2：后端授权</strong></p>
+        <p><strong>方式2：后端授�?/strong></p>
         <ul>
           <li>点击"后端授权"按钮</li>
-          <li>系统自动打开浏览器</li>
-          <li>在浏览器中扫码登录</li>
+          <li>系统自动打开浏览�?/li>
+          <li>在浏览器中扫码登�?/li>
           <li>系统自动提取Cookie</li>
         </ul>
       </el-alert>
@@ -334,7 +334,7 @@
             </el-form-item>
             
             <el-form-item label="账号名称" prop="accountName">
-              <el-input v-model="bindForm.accountName" placeholder="请输入账号名称（用于识别）" />
+              <el-input v-model="bindForm.accountName" placeholder="请输入账号名称（用于识别�? />
             </el-form-item>
           </div>
           
@@ -389,7 +389,7 @@
               v-model="bindForm.cookies"
               type="textarea"
               :rows="4"
-              placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}）"
+              placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}�?
             />
           </el-form-item>
           <el-alert
@@ -401,8 +401,8 @@
           >
             <template #default>
               <div class="login-info">
-                <div>登录地址：<a :href="loginInfo.login_url" target="_blank">{{ loginInfo.login_url }}</a></div>
-                <div>完成登录后复制Cookie再提交</div>
+                <div>登录地址�?a :href="loginInfo.login_url" target="_blank">{{ loginInfo.login_url }}</a></div>
+                <div>完成登录后复制Cookie再提�?/div>
               </div>
             </template>
           </el-alert>
@@ -424,7 +424,7 @@
       </template>
     </el-dialog>
 
-    <!-- 更新Cookie对话框 -->
+    <!-- 更新Cookie对话�?-->
     <el-dialog
       v-model="showCookieDialog"
       title="更新Cookie"
@@ -440,7 +440,7 @@
             v-model="cookieForm.cookies"
             type="textarea"
             :rows="4"
-            placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}）"
+            placeholder="输入平台Cookie（JSON格式，如 {&quot;key&quot;:&quot;value&quot;}�?
           />
         </el-form-item>
       </el-form>
@@ -452,7 +452,7 @@
       </template>
     </el-dialog>
 
-    <!-- 详情对话框 -->
+    <!-- 详情对话�?-->
     <el-dialog
       v-model="showDetailDialog"
       title="发布详情"
@@ -462,7 +462,7 @@
         <el-descriptions-item label="标题">
           {{ currentRecord.title }}
         </el-descriptions-item>
-        <el-descriptions-item label="状态">
+        <el-descriptions-item label="状�?>
           <el-tag :type="getStatusType(currentRecord.status)">
             {{ getStatusText(currentRecord.status) }}
           </el-tag>
@@ -510,7 +510,7 @@ import {
 } from '@/api/publish'
 import { getCreations } from '@/api/creations'
 
-// 状态
+// 状�?
 const loading = ref(false)
 const publishing = ref(false)
 const binding = ref(false)
@@ -597,7 +597,7 @@ const publishRules: FormRules = {
 
 const bindRules: FormRules = {
   platformCode: [{ required: true, message: '请选择平台', trigger: 'change' }],
-  accountName: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
+  accountName: [{ required: true, message: '请输入账号名�?, trigger: 'blur' }],
   cookies: [
     {
       validator: (_rule, value, callback) => {
@@ -616,7 +616,7 @@ const cookieRules: FormRules = {
   cookies: [{ required: true, message: '请输入Cookie', trigger: 'blur' }]
 }
 
-// 计算属性
+// 计算属�?
 const activePlatformAccounts = computed(() =>
   platformAccounts.value.filter((account: any) => account.is_active === 'active')
 )
@@ -626,7 +626,7 @@ const getPlatformName = (code: string) => {
   return match?.name || code
 }
 
-// 获取状态类型
+// 获取状态类�?
 const getStatusType = (status: string) => {
   const types: Record<string, any> = {
     draft: 'info',
@@ -638,15 +638,15 @@ const getStatusType = (status: string) => {
   return types[status] || 'info'
 }
 
-// 获取状态文本
+// 获取状态文�?
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
     draft: '草稿',
-    pending: '待发布',
-    publishing: '发布中',
-    success: '已发布',
+    pending: '待发�?,
+    publishing: '发布�?,
+    success: '已发�?,
     failed: '发布失败',
-    scheduled: '已排期'
+    scheduled: '已排�?
   }
   return texts[status] || '未知'
 }
@@ -826,7 +826,7 @@ const handleFrontendAuth = async () => {
   }
   
   if (!bindForm.accountName) {
-    ElMessage.warning('请输入账号名称')
+    ElMessage.warning('请输入账号名�?)
     return
   }
   
@@ -838,7 +838,7 @@ const handleFrontendAuth = async () => {
     const left = (window.innerWidth - width) / 2 + window.screenX
     const top = (window.innerHeight - height) / 2 + window.screenY
     
-    const authUrl = `${window.location.origin}/api/v1/publish/platforms/accounts/cookie-validate/${bindForm.platformCode}`
+    const authUrl = `${window.location.origin}/api/v1/publish/platforms/accounts/cookie-validate/${bindForm.platformCode}?account_name=${encodeURIComponent(bindForm.accountName)}`
     
     authWindow.value = window.open(
       authUrl,
@@ -846,7 +846,7 @@ const handleFrontendAuth = async () => {
       `width=${width},height=${height},left=${left},top=${top}`
     )
     
-    // 监听来自授权窗口的消息
+    // 监听来自授权窗口的消�?
     const handleAuthMessage = (event: MessageEvent) => {
       // 验证消息来源
       if (event.origin !== window.location.origin) {
@@ -856,7 +856,7 @@ const handleFrontendAuth = async () => {
       const { type, platform } = event.data
       
       if (type === 'publish_cookies_success') {
-        ElMessage.success('授权成功！')
+        ElMessage.success('授权成功�?)
         
         // 关闭授权窗口
         if (authWindow.value && !authWindow.value.closed) {
@@ -866,7 +866,7 @@ const handleFrontendAuth = async () => {
         // 刷新账号列表
         loadPlatformAccounts()
         
-        // 关闭对话框
+        // 关闭对话�?
         showBindDialog.value = false
         bindForm.platformCode = ''
         bindForm.accountName = ''
@@ -877,7 +877,7 @@ const handleFrontendAuth = async () => {
     
     window.addEventListener('message', handleAuthMessage)
     
-    // 设置超时，5分钟后自动清理
+    // 设置超时�?分钟后自动清�?
     setTimeout(() => {
       window.removeEventListener('message', handleAuthMessage)
       if (authWindow.value && !authWindow.value.closed) {
@@ -901,7 +901,7 @@ const handleBind = async () => {
     return
   }
   
-  // 后端授权模式或手动模式
+  // 后端授权模式或手动模�?
   if (!bindFormRef.value) return
   
   await bindFormRef.value.validate(async (valid) => {
@@ -1015,7 +1015,7 @@ const handleValidateCookies = async (row: any) => {
     if (response.valid) {
       ElMessage.success('Cookie有效')
     } else {
-      ElMessage.warning(response.message || 'Cookie已失效')
+      ElMessage.warning(response.message || 'Cookie已失�?)
     }
     loadPlatformAccounts()
   } catch (error: any) {
@@ -1072,7 +1072,7 @@ const deleteRecord = async (id: number) => {
   }
 }
 
-// 初始化
+// 初始�?
 onMounted(() => {
   loadPlatforms()
   loadPlatformAccounts()
@@ -1138,12 +1138,12 @@ onUnmounted(() => {
       gap: 12px;
     }
 
-    // 桌面版表格
+    // 桌面版表�?
     .table-view {
       display: block;
     }
 
-    // 手机版卡片
+    // 手机版卡�?
     .card-view {
       display: none;
     }
@@ -1377,3 +1377,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

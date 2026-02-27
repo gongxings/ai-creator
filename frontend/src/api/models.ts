@@ -8,9 +8,9 @@ export function getAIModels() {
 
 // 获取可用模型列表（包括OAuth和API Key模型）
 export function getAvailableModels(sceneType?: string) {
-  return request.get<{ models: AvailableModel[] }>('/v1/models/available', {
+  return request.get<{ data: { models: AvailableModel[] } }>('/v1/ai/models/available', {
     params: sceneType ? { scene_type: sceneType } : {}
-  })
+  }).then((res: any) => res.data)
 }
 
 // 统一AI调用接口
