@@ -25,13 +25,20 @@ class OpenAIService(AIServiceBase):
         **kwargs
     ) -> str:
         """生成文本"""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        # OpenRouter 需要额外的 headers
+        if "openrouter" in self.base_url.lower():
+            headers["HTTP-Referer"] = "http://localhost:3001"
+            headers["X-Title"] = "AI Creator"
+        
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
+                headers=headers,
                 json={
                     "model": kwargs.get("model", self.model),
                     "messages": [
@@ -40,7 +47,7 @@ class OpenAIService(AIServiceBase):
                     "max_tokens": max_tokens or 2000,
                     "temperature": temperature or 0.7,
                 },
-                timeout=60.0,
+                timeout=120.0,
             )
             response.raise_for_status()
             data = response.json()
