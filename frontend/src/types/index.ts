@@ -78,12 +78,18 @@ export interface AIModelForm {
 export interface Creation {
   id: number
   user_id: number
-  content_type: string
+  content_type?: string
+  creation_type?: string
   tool_type: string
   title: string
-  content: string
-  ai_model_id: number
-  generation_params: Record<string, any>
+  content?: string
+  output_content?: string
+  input_data?: Record<string, any>
+  output_data?: Record<string, any>
+  extra_data?: Record<string, any>
+  ai_model_id?: number
+  model_id?: number
+  generation_params?: Record<string, any>
   status: string
   created_at: string
   updated_at: string

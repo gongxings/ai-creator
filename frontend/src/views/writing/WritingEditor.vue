@@ -180,7 +180,7 @@ const optimizeTypes = ref<string[]>([])
 const selectedPlatforms = ref<string[]>([])
 
 const contentStats = computed(() => {
-  const text = quillEditor?.getText()?.trim() || currentCreation.value?.content?.replace(/<[^>]*>/g, '').trim() || ''
+  const text = quillEditor?.getText()?.trim() || currentCreation.value?.output_content?.replace(/<[^>]*>/g, '').trim() || currentCreation.value?.content?.replace(/<[^>]*>/g, '').trim() || ''
   const wordCount = text.replace(/\s+/g, '').length
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 300))
   return { wordCount, readingMinutes }
@@ -218,7 +218,7 @@ const handleGenerate = async () => {
     })
     currentCreation.value = res
     if (quillEditor) {
-      quillEditor.root.innerHTML = res.content
+      quillEditor.root.innerHTML = res.output_content || res.content || ''
     }
     ElMessage.success('生成成功')
   } catch (error: any) {
@@ -235,7 +235,7 @@ const handleRegenerate = async () => {
     const res = await regenerateContent(currentCreation.value.id)
     currentCreation.value = res
     if (quillEditor) {
-      quillEditor.root.innerHTML = res.content
+      quillEditor.root.innerHTML = res.output_content || res.content || ''
     }
     ElMessage.success('重新生成成功')
   } catch (error: any) {
@@ -257,7 +257,7 @@ const handleOptimize = async () => {
     })
     currentCreation.value = res
     if (quillEditor) {
-      quillEditor.root.innerHTML = res.content
+      quillEditor.root.innerHTML = res.output_content || res.content || ''
     }
     showOptimizeDialog.value = false
     ElMessage.success('优化成功')
@@ -291,7 +291,7 @@ const handlePublish = async () => {
 
 const handleExport = () => {
   if (!currentCreation.value) return
-  const htmlContent = quillEditor?.root?.innerHTML || currentCreation.value.content
+  const htmlContent = quillEditor?.root?.innerHTML || currentCreation.value.output_content || currentCreation.value.content || ''
   const blob = new Blob([htmlContent], { type: 'text/html' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
