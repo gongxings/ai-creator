@@ -79,7 +79,7 @@
           <el-table-column prop="content" label="内容预览" min-width="300">
             <template #default="{ row }">
               <div class="content-preview">
-                {{ getContentPreview(row.content) }}
+                {{ getContentPreview(row.output_content) }}
               </div>
             </template>
           </el-table-column>
@@ -149,7 +149,7 @@
 
         <el-divider />
 
-        <div class="content-display" v-html="currentCreation.content"></div>
+        <div class="content-display" v-html="currentCreation.output_content"></div>
       </div>
 
       <template #footer>
@@ -363,7 +363,7 @@ const handleCopyContent = async () => {
   try {
     // 创建临时元素来提取纯文本
     const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = currentCreation.value.content
+    tempDiv.innerHTML = currentCreation.value.content||currentCreation.value.output_content
     const text = tempDiv.textContent || tempDiv.innerText || ''
 
     await navigator.clipboard.writeText(text)

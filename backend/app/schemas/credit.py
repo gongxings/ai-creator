@@ -163,6 +163,18 @@ class PaymentCallbackRequest(BaseModel):
     status: str
 
 
+class UnifiedPaymentCallbackRequest(BaseModel):
+    """统一支付回调请求（用于模拟支付）"""
+    order_type: str = Field(..., description="订单类型: recharge 或 membership")
+    order_no: str = Field(..., description="订单号")
+    
+    @validator('order_type')
+    def validate_order_type(cls, v):
+        if v not in ['recharge', 'membership']:
+            raise ValueError('订单类型必须是 recharge 或 membership')
+        return v
+
+
 class PaymentStatusResponse(BaseModel):
     """支付状态响应"""
     order_no: str

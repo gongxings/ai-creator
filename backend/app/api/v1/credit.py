@@ -15,7 +15,7 @@ from app.schemas.credit import (
     MembershipOrderCreate, MembershipOrderResponse,
     CreditPriceResponse, MembershipPriceResponse,
     CreditPriceCreate, MembershipPriceCreate,
-    PaymentCallbackRequest,
+    PaymentCallbackRequest, UnifiedPaymentCallbackRequest,
     CreditStatisticsResponse, MembershipStatisticsResponse
 )
 from app.services.credit_service import (
@@ -69,7 +69,7 @@ async def get_credit_statistics(
 
 # ==================== 充值相关 ====================
 
-@router.post("/recharge/order")
+@router.post("/recharge")
 async def create_recharge_order(
     order_data: RechargeOrderCreate,
     current_user: User = Depends(get_current_user),
@@ -117,7 +117,7 @@ async def recharge_payment_callback(
 
 # ==================== 会员相关 ====================
 
-@router.post("/membership/order")
+@router.post("/membership")
 async def create_membership_order(
     order_data: MembershipOrderCreate,
     current_user: User = Depends(get_current_user),
@@ -163,6 +163,33 @@ async def membership_payment_callback(
     return success_response(data={"success": success})
 
 
+@router.post("/payment/callback")
+async def unified_payment_callback(
+    callback_data: UnifiedPaymentCallbackRequest,
+    db: Session = Depends(get_db)
+):
+    """统一支付回调（用于模拟支付成功）"""
+    import uuid
+    transaction_id = str(uuid.uuid4())
+    
+    if callback_data.order_type == 'recharge':
+        success = RechargeService.process_payment_callback(
+            db,
+            callback_data.order_no,
+            transaction_id,
+            'success'
+        )
+    else:  # membership
+        success = MembershipService.process_payment_callback(
+            db,
+            callback_data.order_no,
+            transaction_id,
+            'success'
+        )
+    
+    return success_response(data={"success": success})
+
+
 @router.get("/membership/statistics")
 async def get_membership_statistics(
     current_user: User = Depends(get_current_user),
@@ -175,14 +202,14 @@ async def get_membership_statistics(
 
 # ==================== 价格配置相关 ====================
 
-@router.get("/prices/credits")
+@router.get("/prices")
 async def get_credit_prices(db: Session = Depends(get_db)):
     """获取积分价格列表（公开接口）"""
     prices = PriceService.get_credit_prices(db)
     return success_response(data=[CreditPriceResponse.from_orm(p) for p in prices])
 
 
-@router.get("/prices/membership")
+@router.get("/membership/prices")
 async def get_membership_prices(db: Session = Depends(get_db)):
     """获取会员价格列表（公开接口）"""
     prices = PriceService.get_membership_prices(db)
