@@ -248,7 +248,7 @@ class WritingService:
             return OpenAIService(
                 api_key=ai_model.api_key,
                 config={
-                    "base_url": ai_model.api_base or "https://api.openai.com/v1",
+                    "base_url": ai_model.base_url or "https://api.openai.com/v1",
                     "model": ai_model.model_name or "gpt-4",
                 }
             )
@@ -270,72 +270,79 @@ class WritingService:
             "note_type": "分享",
         },
         "official_document": {
+            "doc_type": "通知",
             "issuer": "发文单位",
             "receiver": "收文单位",
             "content": "",
         },
         "academic_paper": {
+            "title": "",
             "field": "通用",
             "method": "文献研究",
             "main_points": "",
         },
         "marketing_copy": {
+            "product": "产品/服务",
             "target_customer": "目标客户",
             "selling_points": "",
             "goal": "提高销量",
         },
         "news_article": {
-            "article_type": "新闻稿",
+            "news_type": "新闻稿",
             "key_info": "",
-            "platform": "通用平台",
         },
         "video_script": {
             "duration": "1分钟",
             "platform": "抖音",
+            "style": "轻松",
         },
         "story_novel": {
             "genre": "现代",
             "theme": "",
             "characters": "",
             "setting": "",
-            "plot_points": "",
         },
         "business_plan": {
+            "project_name": "项目",
             "industry": "通用行业",
             "business_model": "",
             "target_market": "",
-            "team": "",
         },
         "work_report": {
             "report_type": "工作总结",
             "period": "本月",
             "main_work": "",
             "achievements": "",
-            "problems": "",
         },
-        "resume_cover_letter": {
-            "doc_type": "简历",
+        "resume": {
+            "name": "",
             "position": "",
-            "background": "",
             "experience": "",
+            "education": "",
             "skills": "",
-            "intention": "",
+        },
+        "cover_letter": {
+            "position": "",
+            "company": "",
+            "background": "",
+            "reason": "",
         },
         "lesson_plan": {
-            "course_name": "",
-            "students": "学生",
-            "objectives": "",
+            "subject": "",
+            "grade": "",
             "duration": "45分钟",
+            "objectives": "",
         },
-        "content_rewrite": {
+        "rewrite": {
+            "original_text": "",
             "rewrite_type": "改写",
             "target_style": "通用",
-            "word_count": "适中",
         },
         "translation": {
+            "source_text": "",
             "source_lang": "中文",
             "target_lang": "英文",
-            "translation_type": "意译",
+            "style": "通用",
         },
     }
     
