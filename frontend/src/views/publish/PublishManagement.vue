@@ -360,90 +360,92 @@
         </el-tab-pane>
 
         <el-tab-pane label="手动授权" name="backend">
-          <el-form-item label="选择平台" prop="platformCode">
-            <el-select
-                v-model="bindForm.platformCode"
-                placeholder="请选择要绑定的平台"
-                style="width: 100%"
-                @change="handlePlatformChange"
-            >
-              <el-option
-                  v-for="platform in platforms"
-                  :key="platform.platform"
-                  :label="platform.name"
-                  :value="platform.platform"
-              />
-            </el-select>
-          </el-form-item>
+          <el-form ref="bindFormRef" :model="bindForm" :rules="bindRules" label-width="100px">
+            <el-form-item label="选择平台" prop="platformCode">
+              <el-select
+                  v-model="bindForm.platformCode"
+                  placeholder="请选择要绑定的平台"
+                  style="width: 100%"
+                  @change="handlePlatformChange"
+              >
+                <el-option
+                    v-for="platform in platforms"
+                    :key="platform.platform"
+                    :label="platform.name"
+                    :value="platform.platform"
+                />
+              </el-select>
+            </el-form-item>
 
-          <el-form-item label="账号名称" prop="accountName">
-            <el-input v-model="bindForm.accountName" placeholder="请输入账号名称"/>
-          </el-form-item>
+            <el-form-item label="账号名称" prop="accountName">
+              <el-input v-model="bindForm.accountName" placeholder="请输入账号名称"/>
+            </el-form-item>
 
-          <el-form-item label="授权方式">
-            <el-radio-group v-model="bindForm.authMode">
-              <el-radio-button label="auto">自动</el-radio-button>
-              <el-radio-button label="manual">手动</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
+            <el-form-item label="授权方式">
+              <el-radio-group v-model="bindForm.authMode">
+                <el-radio-button label="auto">自动</el-radio-button>
+                <el-radio-button label="manual">手动</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
 
-          <el-alert
-              v-if="bindForm.authMode === 'auto'"
-              title="点击【手动授权】按钮，按照说明操作"
-              type="info"
-              :closable="false"
-              show-icon
-          />
-
-          <el-form-item v-if="bindForm.authMode === 'manual'" label="Cookie" prop="cookies">
-            <el-input
-                v-model="bindForm.cookies"
-                type="textarea"
-                :rows="4"
-                placeholder="粘贴从浏览器开发者工具复制的Cookie字符串（如：key=value; key2=value2）"
+            <el-alert
+                v-if="bindForm.authMode === 'auto'"
+                title="点击【手动授权】按钮，按照说明操作"
+                type="info"
+                :closable="false"
+                show-icon
             />
-          </el-form-item>
 
-          <!-- Cookie获取教程 -->
-          <el-alert
-              v-if="bindForm.authMode === 'manual'"
-              title="如何获取Cookie"
-              type="info"
-              :closable="false"
-              style="margin-top: 15px"
-          >
-            <template #default>
-              <div class="cookie-help">
-                <ol style="margin: 0; padding-left: 20px; line-height: 1.8;">
-                  <li>点击下方"打开登录页面"按钮，在新窗口中登录{{ getPlatformName(bindForm.platformCode) }}</li>
-                  <li>登录成功后，按 <strong>F12</strong> 打开开发者工具</li>
-                  <li>切换到 <strong>Application</strong> 或 <strong>Storage</strong> 标签</li>
-                  <li>左侧选择 <strong>Cookies</strong> → 找到对应平台域名</li>
-                  <li>在 cookie 列表上<strong>右键 → 复制</strong> 或 全选复制</li>
-                  <li>粘贴到上方输入框</li>
-                </ol>
-                <el-button 
-                  type="primary" 
-                  size="small" 
-                  style="margin-top: 12px"
-                  @click="openLoginPage"
-                  :disabled="!bindForm.platformCode"
-                >
-                  打开登录页面
-                </el-button>
-              </div>
-            </template>
-          </el-alert>
+            <el-form-item v-if="bindForm.authMode === 'manual'" label="Cookie" prop="cookies">
+              <el-input
+                  v-model="bindForm.cookies"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="粘贴从浏览器开发者工具复制的Cookie字符串（如：key=value; key2=value2）"
+              />
+            </el-form-item>
 
-          <el-button
-              type="primary"
-              @click="handleBind"
-              :loading="binding"
-              style="width: 100%; margin-top: 20px"
-              size="large"
-          >
-            手动授权
-          </el-button>
+            <!-- Cookie获取教程 -->
+            <el-alert
+                v-if="bindForm.authMode === 'manual'"
+                title="如何获取Cookie"
+                type="info"
+                :closable="false"
+                style="margin-top: 15px"
+            >
+              <template #default>
+                <div class="cookie-help">
+                  <ol style="margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li>点击下方"打开登录页面"按钮，在新窗口中登录{{ getPlatformName(bindForm.platformCode) }}</li>
+                    <li>登录成功后，按 <strong>F12</strong> 打开开发者工具</li>
+                    <li>切换到 <strong>Application</strong> 或 <strong>Storage</strong> 标签</li>
+                    <li>左侧选择 <strong>Cookies</strong> → 找到对应平台域名</li>
+                    <li>在 cookie 列表上<strong>右键 → 复制</strong> 或 全选复制</li>
+                    <li>粘贴到上方输入框</li>
+                  </ol>
+                  <el-button 
+                    type="primary" 
+                    size="small" 
+                    style="margin-top: 12px"
+                    @click="openLoginPage"
+                    :disabled="!bindForm.platformCode"
+                  >
+                    打开登录页面
+                  </el-button>
+                </div>
+              </template>
+            </el-alert>
+
+            <el-button
+                type="primary"
+                @click="handleBind"
+                :loading="binding"
+                style="width: 100%; margin-top: 20px"
+                size="large"
+            >
+              手动授权
+            </el-button>
+          </el-form>
         </el-tab-pane>
       </el-tabs>
 
