@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.creation import Creation, CreationVersion
+from app.models.ai_model import AIModel
 from app.schemas.creation import (
     WritingToolInfo,
     CreationGenerate as WritingGenerateRequest,
@@ -164,14 +165,11 @@ async def generate_content(
         )
     
     try:
-        # 创建写作服务实例
-        writing_service = WritingService(db)
-        
         # 判断使用哪种模式
         if request.platform:
             # Cookie模式
             logger.info(f"Using Cookie mode for platform: {request.platform}")
-            result = await writing_service.generate_content_with_cookie(
+            content = await WritingService.generate_content_with_cookie(
                 db=db,
                 user_id=current_user.id,
                 tool_type=request.tool_type,
@@ -181,16 +179,50 @@ async def generate_content(
         else:
             # API Key模式（原有方式）
             logger.info(f"Using API Key mode with model_id: {request.model_id}")
-            result = await writing_service.generate_content(
+            
+            # 获取AI模型
+            if not request.model_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="请选择AI模型或指定平台",
+                )
+            
+            ai_model = db.query(AIModel).filter(
+                AIModel.id == request.model_id,
+                AIModel.user_id == current_user.id
+            ).first()
+            
+            if not ai_model:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="AI模型不存在或无权访问",
+                )
+            
+            content = await WritingService.generate_content(
                 db=db,
-                user_id=current_user.id,
                 tool_type=request.tool_type,
-                input_data=request.parameters or {},
-                ai_model_id=request.model_id,
+                user_input=request.parameters or {},
+                ai_model=ai_model,
             )
         
-        return result
+        # 创建创作记录
+        creation = Creation(
+            user_id=current_user.id,
+            title=f"{request.tool_type} - {(request.parameters or {}).get('topic', '未命名')}",
+            content=content,
+            creation_type="writing",
+            tool_type=request.tool_type,
+            input_data=request.parameters,
+            status="completed",
+        )
+        db.add(creation)
+        db.commit()
+        db.refresh(creation)
         
+        return creation
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Content generation failed: {e}", exc_info=True)
         # 生成失败，退还积分
@@ -391,20 +423,37 @@ async def regenerate_content(
             detail=str(e),
         )
     
-    writing_service = WritingService(db)
-    
     try:
+        # 获取AI模型
+        ai_model = db.query(AIModel).filter(
+            AIModel.id == creation.model_id,
+            AIModel.user_id == current_user.id
+        ).first()
+        
+        if not ai_model:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="AI模型不存在或无权访问",
+            )
+        
         # 使用原始输入数据重新生成
-        result = await writing_service.generate_content(
+        input_data = creation.input_data or {}
+        content = await WritingService.generate_content(
             db=db,
-            user_id=current_user.id,
             tool_type=creation.tool_type,
-            input_data=creation.extra_data.get("input_data", {}) if creation.extra_data else {},
-            ai_model_id=creation.ai_model_id,
+            user_input=input_data,
+            ai_model=ai_model,
         )
         
-        return result
+        # 更新创作记录
+        creation.content = content
+        db.commit()
+        db.refresh(creation)
         
+        return creation
+        
+    except HTTPException:
+        raise
     except Exception as e:
         # 生成失败，退还积分
         if not current_user.is_member:
