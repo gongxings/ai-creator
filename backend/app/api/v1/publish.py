@@ -151,12 +151,14 @@ async def submit_publish_cookies(
         
         return PlatformAccountResponse(
             id=account.id,
+            user_id=account.user_id,
             platform=account.platform,
             account_name=account.account_name,
             cookies_valid=account.cookies_valid,
             cookies_updated_at=account.cookies_updated_at,
             is_active=account.is_active,
-            created_at=account.created_at
+            created_at=account.created_at,
+            updated_at=account.updated_at
         )
         
     except Exception as e:
@@ -493,12 +495,14 @@ async def authorize_platform_account(
 
         return PlatformAccountResponse(
             id=account.id,
+            user_id=account.user_id,
             platform=account.platform,
             account_name=account.account_name,
             cookies_valid=account.cookies_valid,
             cookies_updated_at=account.cookies_updated_at,
             is_active=account.is_active,
-            created_at=account.created_at
+            created_at=account.created_at,
+            updated_at=account.updated_at
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"授权失败: {str(e)}")
@@ -538,12 +542,14 @@ async def create_platform_account(
     
     return PlatformAccountResponse(
         id=account.id,
+        user_id=account.user_id,
         platform=account.platform,
         account_name=account.account_name,
         cookies_valid=account.cookies_valid,
         cookies_updated_at=account.cookies_updated_at,
         is_active=account.is_active,
-        created_at=account.created_at
+        created_at=account.created_at,
+        updated_at=account.updated_at
     )
 
 
@@ -560,12 +566,14 @@ async def get_platform_accounts(
     return [
         PlatformAccountResponse(
             id=account.id,
+            user_id=account.user_id,
             platform=account.platform,
             account_name=account.account_name,
             cookies_valid=account.cookies_valid,
             cookies_updated_at=account.cookies_updated_at,
             is_active=account.is_active,
-            created_at=account.created_at
+            created_at=account.created_at,
+            updated_at=account.updated_at
         )
         for account in accounts
     ]
@@ -597,12 +605,14 @@ async def update_platform_account(
     
     return PlatformAccountResponse(
         id=account.id,
+        user_id=account.user_id,
         platform=account.platform,
         account_name=account.account_name,
         cookies_valid=account.cookies_valid,
         cookies_updated_at=account.cookies_updated_at,
         is_active=account.is_active,
-        created_at=account.created_at
+        created_at=account.created_at,
+        updated_at=account.updated_at
     )
 
 
