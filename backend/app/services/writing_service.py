@@ -257,6 +257,85 @@ class WritingService:
         else:
             raise ValueError(f"不支持的AI服务提供商: {ai_model.provider}")
     
+    # 各工具类型的默认参数值
+    TOOL_DEFAULTS = {
+        "wechat_article": {
+            "target_audience": "普通读者",
+            "style": "专业",
+        },
+        "xiaohongshu_note": {
+            "note_type": "分享",
+        },
+        "official_document": {
+            "issuer": "发文单位",
+            "receiver": "收文单位",
+            "content": "",
+        },
+        "academic_paper": {
+            "field": "通用",
+            "method": "文献研究",
+            "main_points": "",
+        },
+        "marketing_copy": {
+            "target_customer": "目标客户",
+            "selling_points": "",
+            "goal": "提高销量",
+        },
+        "news_article": {
+            "article_type": "新闻稿",
+            "key_info": "",
+            "platform": "通用平台",
+        },
+        "video_script": {
+            "duration": "1分钟",
+            "platform": "抖音",
+        },
+        "story_novel": {
+            "genre": "现代",
+            "theme": "",
+            "characters": "",
+            "setting": "",
+            "plot_points": "",
+        },
+        "business_plan": {
+            "industry": "通用行业",
+            "business_model": "",
+            "target_market": "",
+            "team": "",
+        },
+        "work_report": {
+            "report_type": "工作总结",
+            "period": "本月",
+            "main_work": "",
+            "achievements": "",
+            "problems": "",
+        },
+        "resume_cover_letter": {
+            "doc_type": "简历",
+            "position": "",
+            "background": "",
+            "experience": "",
+            "skills": "",
+            "intention": "",
+        },
+        "lesson_plan": {
+            "course_name": "",
+            "students": "学生",
+            "objectives": "",
+            "duration": "45分钟",
+        },
+        "content_rewrite": {
+            "rewrite_type": "改写",
+            "target_style": "通用",
+            "word_count": "适中",
+        },
+        "translation": {
+            "source_lang": "中文",
+            "target_lang": "英文",
+            "translation_type": "意译",
+        },
+    }
+    
     @classmethod
     async def generate_content(
         cls,
@@ -272,9 +351,13 @@ class WritingService:
         
         prompt_template = cls.TOOL_PROMPTS[tool_type]
         
+        # 合并默认参数和用户输入
+        defaults = cls.TOOL_DEFAULTS.get(tool_type, {})
+        merged_input = {**defaults, **user_input}
+        
         # 填充提示词
         try:
-            prompt = prompt_template.format(**user_input)
+            prompt = prompt_template.format(**merged_input)
         except KeyError as e:
             raise ValueError(f"缺少必需的输入参数: {str(e)}")
         
