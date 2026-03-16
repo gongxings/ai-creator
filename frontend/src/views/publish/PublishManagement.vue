@@ -306,58 +306,66 @@
           :closable="false"
           style="margin-bottom: 20px"
       >
-        <p><strong>方式1: 自动授权</strong></p>
-        <ul>
-          <li>点击"自动授权"按钮，后台会打开浏览器窗口</li>
-          <li>在浏览器窗口中扫码/登录平台</li>
-          <li>登录成功后Cookie会自动提取</li>
-          <li>注意：需要服务器支持显示浏览器窗口</li>
-        </ul>
-        <p><strong>方式2: 手动授权（推荐）</strong></p>
-        <ul>
-          <li>点击"打开登录页面"按钮，登录对应平台</li>
-          <li>登录成功后，按F12打开开发者工具</li>
-          <li>切换到 Application / Storage → Cookies</li>
-          <li>复制该平台的所有Cookie</li>
-          <li>粘贴到下方输入框</li>
-          <li>点击"手动授权"按钮提交</li>
-        </ul>
+<!--        <p><strong>方式1: 自动授权</strong></p>-->
+<!--        <ul>-->
+<!--          <li>点击"自动授权"按钮，后台会打开浏览器窗口</li>-->
+<!--          <li>在浏览器窗口中扫码/登录平台</li>-->
+<!--          <li>登录成功后Cookie会自动提取</li>-->
+<!--          <li>注意：需要服务器支持显示浏览器窗口</li>-->
+<!--        </ul>-->
+<!--        <p><strong>方式: 手动授权</strong></p>-->
+<!--        <ul>-->
+<!--          <li>点击"打开登录页面"按钮，登录对应平台</li>-->
+<!--          <li>登录成功后，按F12打开开发者工具</li>-->
+<!--          <li>切换到 Application / Storage → Cookies</li>-->
+<!--          <li>复制该平台的所有Cookie</li>-->
+<!--          <li>粘贴到下方输入框</li>-->
+<!--          <li>点击"手动授权"按钮提交</li>-->
+<!--        </ul>-->
+        <ol style="margin: 0; padding-left: 20px; line-height: 1.8;">
+          <li>点击下方"打开登录页面"按钮，在新窗口中登录{{ getPlatformName(bindForm.platformCode) }}</li>
+          <li>登录成功后，按 <strong>F12</strong> 打开开发者工具</li>
+          <li>切换到 <strong>Application</strong> 或 <strong>Storage</strong> 标签</li>
+          <li>左侧选择 <strong>Cookies</strong> → 找到对应平台域名</li>
+          <li>在 cookie 列表上<strong>右键 → 复制</strong> 或 全选复制</li>
+          <li>粘贴到上方输入框</li>
+        </ol>
       </el-alert>
 
       <el-tabs v-model="authMethod">
-        <el-tab-pane label="自动授权" name="frontend">
-          <div class="auth-frontend">
-            <el-form-item label="选择平台" prop="platformCode">
-              <el-select
-                  v-model="bindForm.platformCode"
-                  placeholder="请选择平台"
-                  style="width: 100%"
-                  @change="handlePlatformChange"
-              >
-                <el-option
-                    v-for="platform in platforms"
-                    :key="platform.platform"
-                    :label="platform.name"
-                    :value="platform.platform"
-                />
-              </el-select>
-            </el-form-item>
+<!--        <el-tab-pane label="自动授权" name="frontend">-->
+<!--          <div class="auth-frontend">-->
+<!--            <el-form-item label="选择平台" prop="platformCode">-->
+<!--              <el-select-->
+<!--                  v-model="bindForm.platformCode"-->
+<!--                  placeholder="请选择平台"-->
+<!--                  style="width: 100%"-->
+<!--                  @change="handlePlatformChange"-->
+<!--              >-->
+<!--                <el-option-->
+<!--                    v-for="platform in platforms"-->
+<!--                    :key="platform.platform"-->
+<!--                    :label="platform.name"-->
+<!--                    :value="platform.platform"-->
+<!--                />-->
+<!--              </el-select>-->
+<!--            </el-form-item>-->
 
-            <el-form-item label="账号名称" prop="accountName">
-              <el-input v-model="bindForm.accountName" placeholder="请输入账号名称（用于区分不同账号）" />
-            </el-form-item>
-          </div>
+<!--            <el-form-item label="账号名称" prop="accountName">-->
+<!--              <el-input v-model="bindForm.accountName" placeholder="请输入账号名称（用于区分不同账号）" />-->
+<!--            </el-form-item>-->
+<!--          </div>-->
 
-          <el-button
-              type="primary"
-              @click="handleFrontendAuth"
-              :loading="binding"
-              style="width: 100%; margin-top: 20px"
-              size="large"
-          >
-            自动授权
-          </el-button>
-        </el-tab-pane>
+<!--          <el-button-->
+<!--              type="primary"-->
+<!--              @click="handleFrontendAuth"-->
+<!--              :loading="binding"-->
+<!--              style="width: 100%; margin-top: 20px"-->
+<!--              size="large"-->
+<!--          >-->
+<!--            自动授权-->
+<!--          </el-button>-->
+<!--        </el-tab-pane>-->
 
         <el-tab-pane label="手动授权" name="backend">
           <el-form ref="bindFormRef" :model="bindForm" :rules="bindRules" label-width="100px">
@@ -383,7 +391,7 @@
 
             <el-form-item label="授权方式">
               <el-radio-group v-model="bindForm.authMode">
-                <el-radio-button label="auto">自动</el-radio-button>
+<!--                <el-radio-button label="auto">自动</el-radio-button>-->
                 <el-radio-button label="manual">手动</el-radio-button>
               </el-radio-group>
             </el-form-item>
@@ -415,14 +423,6 @@
             >
               <template #default>
                 <div class="cookie-help">
-                  <ol style="margin: 0; padding-left: 20px; line-height: 1.8;">
-                    <li>点击下方"打开登录页面"按钮，在新窗口中登录{{ getPlatformName(bindForm.platformCode) }}</li>
-                    <li>登录成功后，按 <strong>F12</strong> 打开开发者工具</li>
-                    <li>切换到 <strong>Application</strong> 或 <strong>Storage</strong> 标签</li>
-                    <li>左侧选择 <strong>Cookies</strong> → 找到对应平台域名</li>
-                    <li>在 cookie 列表上<strong>右键 → 复制</strong> 或 全选复制</li>
-                    <li>粘贴到上方输入框</li>
-                  </ol>
                   <el-button 
                     type="primary" 
                     size="small" 
@@ -603,7 +603,7 @@ const bindForm = reactive({
   platformCode: '',
   accountName: '',
   cookies: '',
-  authMode: 'auto'
+  authMode: 'manual'
 })
 
 // Cookie表单
