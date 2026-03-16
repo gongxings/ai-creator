@@ -209,10 +209,11 @@ async def generate_content(
         creation = Creation(
             user_id=current_user.id,
             title=f"{request.tool_type} - {(request.parameters or {}).get('topic', '未命名')}",
-            content=content,
-            creation_type="writing",
+            output_content=content,
+            creation_type=request.tool_type,
             tool_type=request.tool_type,
             input_data=request.parameters,
+            model_id=ai_model.id if not request.platform else None,
             status="completed",
         )
         db.add(creation)
@@ -446,7 +447,7 @@ async def regenerate_content(
         )
         
         # 更新创作记录
-        creation.content = content
+        creation.output_content = content
         db.commit()
         db.refresh(creation)
         
