@@ -247,12 +247,15 @@ class WritingService:
         if ai_model.provider == "openai":
             return OpenAIService(
                 api_key=ai_model.api_key,
-                model=ai_model.model_name
+                config={
+                    "base_url": ai_model.api_base or "https://api.openai.com/v1",
+                    "model": ai_model.model_name or "gpt-4",
+                }
             )
         elif ai_model.provider == "anthropic":
             return AnthropicService(
                 api_key=ai_model.api_key,
-                model=ai_model.model_name
+                model=ai_model.model_name or "claude-3-opus-20240229",
             )
         else:
             raise ValueError(f"不支持的AI服务提供商: {ai_model.provider}")
