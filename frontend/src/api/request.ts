@@ -143,7 +143,7 @@ service.interceptors.response.use(
       
       switch (status) {
         case 400:
-          message = error.response.data.detail || '请求参数错误'
+          message = error.response.data.detail || error.response.data.message || '请求参数错误'
           break
         case 401:
           message = '未授权，请重新登录'
@@ -171,6 +171,9 @@ service.interceptors.response.use(
               isShowingLoginPrompt = false
             })
           }
+          break
+        case 402:
+          message = error.response.data.detail || error.response.data.message || '积分不足，请充值'
           break
         case 403:
           message = '拒绝访问'
