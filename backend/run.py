@@ -11,12 +11,16 @@ from pathlib import Path
 backend_dir = Path(__file__).parent
 sys.path.insert(0, str(backend_dir))
 
-# 应用nest_asyncio以支持Windows上的Playwright
-try:
-    import nest_asyncio
-    nest_asyncio.apply()
-except ImportError:
-    print("[WARNING] nest_asyncio not installed. Run: pip install nest-asyncio")
+# 在 Python 3.13+ 上 nest_asyncio 可能与 uvicorn 不兼容，跳过
+if sys.version_info < (3, 13):
+    try:
+        import nest_asyncio
+        nest_asyncio.apply()
+        print("[NEST-ASYNCIO] Applied")
+    except ImportError:
+        print("[WARNING] nest_asyncio not installed. Run: pip install nest-asyncio")
+else:
+    print(f"[NEST-ASYNCIO] Skipped (Python {sys.version_info.major}.{sys.version_info.minor})")
 
 if __name__ == "__main__":
     import uvicorn
@@ -25,9 +29,7 @@ if __name__ == "__main__":
     print("[START] {} v{}".format(settings.APP_NAME, settings.APP_VERSION))
     print("[DOCS] API: http://{}:{}/docs".format(settings.HOST, settings.PORT))
     print("[DOCS] ReDoc: http://{}:{}/redoc".format(settings.HOST, settings.PORT))
-    print(f"[EVENT LOOP POLICY] {asyncio.get_event_loop_policy().__class__.__name__}")
     print(f"[PLATFORM] {sys.platform}")
-    print(f"[NEST-ASYNCIO] Applied")
     
     # Windows + Playwright 暂时禁用 reload，避免子进程事件循环问题
     use_reload = settings.DEBUG and sys.platform != "win32"

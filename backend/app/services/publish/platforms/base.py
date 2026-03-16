@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 from datetime import datetime
 import json
 import logging
+import base64
+from hashlib import sha256
 from cryptography.fernet import Fernet
 
 from app.models.publish import PlatformAccount
@@ -18,8 +20,10 @@ class BasePlatformPublisher(ABC):
     
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
-        # 使用配置中的加密密钥
-        self.cipher = Fernet(settings.SECRET_KEY.encode()[:32].ljust(32, b'0'))
+        # 使用配置中的加密密钥生成32字节的base64编码Fernet密钥
+        # 通过SHA256哈希SECRET_KEY确保固定32字节长度
+        key = base64.urlsafe_b64encode(sha256(settings.SECRET_KEY.encode()).digest()[:32])
+        self.cipher = Fernet(key)
     
     @abstractmethod
     async def create_draft(

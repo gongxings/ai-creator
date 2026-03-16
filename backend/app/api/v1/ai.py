@@ -192,8 +192,31 @@ async def _call_api_key_model(
     )
 
 
-async def _stream_response(response: ChatResponse) -> AsyncGenerator[str, None]:
+async def _stream_response(result, service=None, messages=None, temperature=0.7, max_tokens=None) -> AsyncGenerator[str, None]:
     """流式响应生成器"""
-    # 这里简化处理，实际应该从AI服务获取流式数据
-    yield f"data: {json.dumps(response.dict())}\n\n"
+    if service and messages:
+        # 尝试使用服务的真正流式接口
+        try:
+            async for chunk in service.chat_completion_stream(
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            ):
+                data = {
+                    "content": chunk,
+                    "model_id": result.model_id if hasattr(result, 'model_id') else "",
+                    "finish_reason": None
+                }
+                yield f"data: {json.dumps(data)}\n\n"
+            yield f"data: {json.dumps({'finish_reason': 'stop'})}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+        except (NotImplementedError, AttributeError):
+            pass
+    
+    # 降级：从完整响应分块发送
+    if hasattr(result, 'dict'):
+        yield f"data: {json.dumps(result.dict())}\n\n"
+    else:
+        yield f"data: {json.dumps(result)}\n\n"
     yield "data: [DONE]\n\n"

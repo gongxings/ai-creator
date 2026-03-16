@@ -4,70 +4,70 @@
       <template #header>
         <div class="card-header">
           <el-icon><Setting /></el-icon>
-          <span>ÓÃ»§ÉèÖÃ</span>
+          <span>ç”¨æˆ·è®¾ç½®</span>
         </div>
       </template>
 
       <el-tabs v-model="activeTab" class="settings-tabs">
-        <el-tab-pane label="¸öÈËĞÅÏ¢" name="profile">
+        <el-tab-pane label="ä¸ªäººä¿¡æ¯" name="profile">
           <el-form :model="profileForm" label-width="100px" class="settings-form">
-            <el-form-item label="ÓÃ»§Ãû">
+            <el-form-item label="ç”¨æˆ·å">
               <el-input v-model="profileForm.username" disabled />
             </el-form-item>
-            <el-form-item label="ÓÊÏä">
+            <el-form-item label="é‚®ç®±">
               <el-input v-model="profileForm.email" />
             </el-form-item>
-            <el-form-item label="ÊÖ»úºÅ">
+            <el-form-item label="æ‰‹æœºå·">
               <el-input v-model="profileForm.phone" />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="updateProfile">±£´æĞŞ¸Ä</el-button>
+              <el-button type="primary" @click="updateProfile">ä¿å­˜ä¿®æ”¹</el-button>
             </el-form-item>
           </el-form>
         </el-tab-pane>
 
-        <el-tab-pane label="ĞŞ¸ÄÃÜÂë" name="password">
+        <el-tab-pane label="ä¿®æ”¹å¯†ç " name="password">
           <el-form :model="passwordForm" :rules="passwordRules" ref="passwordFormRef" label-width="100px" class="settings-form">
-            <el-form-item label="µ±Ç°ÃÜÂë" prop="oldPassword">
+            <el-form-item label="å½“å‰å¯†ç " prop="oldPassword">
               <el-input v-model="passwordForm.oldPassword" type="password" show-password />
             </el-form-item>
-            <el-form-item label="ĞÂÃÜÂë" prop="newPassword">
+            <el-form-item label="æ–°å¯†ç " prop="newPassword">
               <el-input v-model="passwordForm.newPassword" type="password" show-password />
             </el-form-item>
-            <el-form-item label="È·ÈÏÃÜÂë" prop="confirmPassword">
+            <el-form-item label="ç¡®è®¤å¯†ç " prop="confirmPassword">
               <el-input v-model="passwordForm.confirmPassword" type="password" show-password />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="changePasswordHandler">ĞŞ¸ÄÃÜÂë</el-button>
+              <el-button type="primary" @click="changePasswordHandler">ä¿®æ”¹å¯†ç </el-button>
             </el-form-item>
           </el-form>
         </el-tab-pane>
 
-        <el-tab-pane label="AIÄ£ĞÍ" name="models">
+        <el-tab-pane label="AIæ¨¡å‹" name="models">
           <div class="models-section">
             <div class="section-header">
-              <h3>AIÄ£ĞÍÅäÖÃ</h3>
+              <h3>AIæ¨¡å‹ç®¡ç†</h3>
               <el-button type="primary" @click="showAddModelDialog">
                 <el-icon><Plus /></el-icon>
-                Ìí¼ÓÄ£ĞÍ
+                æ·»åŠ æ¨¡å‹
               </el-button>
             </div>
 
             <el-table :data="models" style="width: 100%">
-              <el-table-column prop="name" label="Ä£ĞÍÃû³Æ" />
-              <el-table-column prop="provider" label="Ìá¹©ÉÌ" />
-              <el-table-column prop="model_name" label="Ä£ĞÍ" />
-              <el-table-column label="×´Ì¬">
+              <el-table-column prop="name" label="æ¨¡å‹åç§°" />
+              <el-table-column prop="provider" label="æä¾›å•†" />
+              <el-table-column prop="model_name" label="æ¨¡å‹" />
+              <el-table-column label="çŠ¶æ€">
                 <template #default="{ row }">
                   <el-tag :type="row.is_active ? 'success' : 'info'">
-                    {{ row.is_active ? 'ÆôÓÃ' : '½ûÓÃ' }}
+                    {{ row.is_active ? 'å¯ç”¨' : 'ç¦ç”¨' }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="²Ù×÷" width="200">
+              <el-table-column label="æ“ä½œ" width="200">
                 <template #default="{ row }">
-                  <el-button link type="primary" @click="editModel(row)">±à¼­</el-button>
-                  <el-button link type="danger" @click="deleteModel(row.id)">É¾³ı</el-button>
+                  <el-button link type="primary" @click="editModel(row)">ç¼–è¾‘</el-button>
+                  <el-button link type="danger" @click="deleteModel(row.id)">åˆ é™¤</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -76,35 +76,36 @@
       </el-tabs>
     </el-card>
 
-    <el-dialog v-model="modelDialogVisible" :title="modelForm.id ? '±à¼­AIÄ£ĞÍ' : 'Ìí¼ÓAIÄ£ĞÍ'" width="600px">
+    <el-dialog v-model="modelDialogVisible" :title="modelForm.id ? 'ç¼–è¾‘AIæ¨¡å‹' : 'æ·»åŠ AIæ¨¡å‹'" width="600px">
       <el-form :model="modelForm" label-width="100px">
-        <el-form-item label="Ä£ĞÍÃû³Æ">
-          <el-input v-model="modelForm.name" placeholder="ÀıÈç£ºGPT-4" />
+        <el-form-item label="æ¨¡å‹åç§°">
+          <el-input v-model="modelForm.name" placeholder="ä¾‹å¦‚ï¼šGPT-4" />
         </el-form-item>
-        <el-form-item label="Ìá¹©ÉÌ">
-          <el-select v-model="modelForm.provider" placeholder="Ñ¡ÔñÌá¹©ÉÌ">
+        <el-form-item label="æä¾›å•†">
+          <el-select v-model="modelForm.provider" placeholder="é€‰æ‹©æä¾›å•†">
             <el-option label="OpenAI" value="openai" />
             <el-option label="Anthropic" value="anthropic" />
-            <el-option label="ÖÇÆ×AI" value="zhipu" />
-            <el-option label="°Ù¶ÈÎÄĞÄ" value="baidu" />
+            <el-option label="æ™ºè°±AI" value="zhipu" />
+            <el-option label="ç™¾åº¦æ–‡å¿ƒ" value="baidu" />
+            <el-option label="é˜¿é‡Œé€šä¹‰" value="qwen" />
           </el-select>
         </el-form-item>
-        <el-form-item label="APIÃÜÔ¿">
-          <el-input v-model="modelForm.api_key" type="password" show-password placeholder="ÊäÈëAPIÃÜÔ¿" />
+        <el-form-item label="APIå¯†é’¥">
+          <el-input v-model="modelForm.api_key" type="password" show-password placeholder="è¾“å…¥APIå¯†é’¥" />
         </el-form-item>
-        <el-form-item label="APIµØÖ·">
-          <el-input v-model="modelForm.api_base" placeholder="¿ÉÑ¡£¬Ä¬ÈÏÊ¹ÓÃ¹Ù·½µØÖ·" />
+        <el-form-item label="APIåœ°å€">
+          <el-input v-model="modelForm.api_base" placeholder="å¯é€‰ï¼Œé»˜è®¤ä½¿ç”¨å®˜æ–¹åœ°å€" />
         </el-form-item>
-        <el-form-item label="Ä£ĞÍÃû³Æ">
-          <el-input v-model="modelForm.model_name" placeholder="ÀıÈç£ºgpt-4-turbo-preview" />
+        <el-form-item label="æ¨¡å‹æ ‡è¯†">
+          <el-input v-model="modelForm.model_name" placeholder="ä¾‹å¦‚ï¼šgpt-4-turbo-preview" />
         </el-form-item>
-        <el-form-item label="ÆôÓÃ">
+        <el-form-item label="å¯ç”¨">
           <el-switch v-model="modelForm.is_active" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="modelDialogVisible = false">È¡Ïû</el-button>
-        <el-button type="primary" @click="saveModel">±£´æ</el-button>
+        <el-button @click="modelDialogVisible = false">å–æ¶ˆ</el-button>
+        <el-button type="primary" @click="saveModel">ä¿å­˜</el-button>
       </template>
     </el-dialog>
   </div>
@@ -126,16 +127,16 @@ const profileForm = reactive({ username: '', email: '', phone: '' })
 const passwordFormRef = ref<FormInstance>()
 const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const passwordRules = {
-  oldPassword: [{ required: true, message: 'ÇëÊäÈëµ±Ç°ÃÜÂë', trigger: 'blur' }],
+  oldPassword: [{ required: true, message: 'è¯·è¾“å…¥å½“å‰å¯†ç ', trigger: 'blur' }],
   newPassword: [
-    { required: true, message: 'ÇëÊäÈëĞÂÃÜÂë', trigger: 'blur' },
-    { min: 6, message: 'ÃÜÂë³¤¶ÈÖÁÉÙ6Î»', trigger: 'blur' },
+    { required: true, message: 'è¯·è¾“å…¥æ–°å¯†ç ', trigger: 'blur' },
+    { min: 6, message: 'å¯†ç é•¿åº¦è‡³å°‘6ä½', trigger: 'blur' },
   ],
   confirmPassword: [
-    { required: true, message: 'ÇëÈ·ÈÏĞÂÃÜÂë', trigger: 'blur' },
+    { required: true, message: 'è¯·ç¡®è®¤æ–°å¯†ç ', trigger: 'blur' },
     {
       validator: (_rule: any, value: string, callback: any) => {
-        if (value !== passwordForm.newPassword) callback(new Error('Á½´ÎÊäÈëµÄÃÜÂë²»Ò»ÖÂ'))
+        if (value !== passwordForm.newPassword) callback(new Error('ä¸¤æ¬¡è¾“å…¥çš„å¯†ç ä¸ä¸€è‡´'))
         else callback()
       },
       trigger: 'blur',
@@ -167,9 +168,9 @@ const updateProfile = async () => {
   try {
     await updateUserInfo({ email: profileForm.email, phone: profileForm.phone })
     await userStore.fetchUserInfo()
-    ElMessage.success('¸öÈËĞÅÏ¢¸üĞÂ³É¹¦')
+    ElMessage.success('ä¸ªäººä¿¡æ¯æ›´æ–°æˆåŠŸ')
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.detail || '¸üĞÂÊ§°Ü')
+    ElMessage.error(error.response?.data?.detail || 'æ›´æ–°å¤±è´¥')
   }
 }
 
@@ -179,13 +180,13 @@ const changePasswordHandler = async () => {
     if (!valid) return
     try {
       await changePassword({ old_password: passwordForm.oldPassword, new_password: passwordForm.newPassword })
-      ElMessage.success('ÃÜÂëĞŞ¸Ä³É¹¦£¬ÇëÖØĞÂµÇÂ¼')
+      ElMessage.success('å¯†ç ä¿®æ”¹æˆåŠŸï¼Œè¯·é‡æ–°ç™»å½•')
       passwordForm.oldPassword = ''
       passwordForm.newPassword = ''
       passwordForm.confirmPassword = ''
       setTimeout(() => userStore.logout(), 2000)
     } catch (error: any) {
-      ElMessage.error(error.response?.data?.detail || 'ÃÜÂëĞŞ¸ÄÊ§°Ü')
+      ElMessage.error(error.response?.data?.detail || 'å¯†ç ä¿®æ”¹å¤±è´¥')
     }
   })
 }
@@ -194,7 +195,7 @@ const loadModels = async () => {
   try {
     models.value = await getAIModels()
   } catch {
-    ElMessage.error('¼ÓÔØAIÄ£ĞÍÊ§°Ü')
+    ElMessage.error('åŠ è½½AIæ¨¡å‹å¤±è´¥')
   }
 }
 
@@ -224,30 +225,30 @@ const saveModel = async () => {
   try {
     if (modelForm.id) {
       await updateAIModel(modelForm.id, modelForm)
-      ElMessage.success('Ä£ĞÍ¸üĞÂ³É¹¦')
+      ElMessage.success('æ¨¡å‹æ›´æ–°æˆåŠŸ')
     } else {
       await addAIModel(modelForm)
-      ElMessage.success('Ä£ĞÍÌí¼Ó³É¹¦')
+      ElMessage.success('æ¨¡å‹æ·»åŠ æˆåŠŸ')
     }
     modelDialogVisible.value = false
     await loadModels()
   } catch {
-    ElMessage.error('±£´æÊ§°Ü')
+    ElMessage.error('ä¿å­˜å¤±è´¥')
   }
 }
 
 const deleteModel = async (id: number) => {
   try {
-    await ElMessageBox.confirm('È·¶¨ÒªÉ¾³ıÕâ¸öAIÄ£ĞÍÂğ£¿', 'ÌáÊ¾', {
-      confirmButtonText: 'È·¶¨',
-      cancelButtonText: 'È¡Ïû',
+    await ElMessageBox.confirm('ç¡®å®šè¦åˆ é™¤è¿™ä¸ªAIæ¨¡å‹å—ï¼Ÿ', 'æç¤º', {
+      confirmButtonText: 'ç¡®å®š',
+      cancelButtonText: 'å–æ¶ˆ',
       type: 'warning',
     })
     await deleteAIModel(id)
-    ElMessage.success('É¾³ı³É¹¦')
+    ElMessage.success('åˆ é™¤æˆåŠŸ')
     await loadModels()
   } catch (error: any) {
-    if (error !== 'cancel') ElMessage.error('É¾³ıÊ§°Ü')
+    if (error !== 'cancel') ElMessage.error('åˆ é™¤å¤±è´¥')
   }
 }
 

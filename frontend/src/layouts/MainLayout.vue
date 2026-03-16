@@ -34,28 +34,28 @@
             <el-icon><Document /></el-icon>
             <span>PPT生成</span>
           </el-menu-item>
+          <el-menu-item v-if="userStore.isLoggedIn" index="/history">
+            <el-icon><Clock /></el-icon>
+            <span>历史记录</span>
+          </el-menu-item>
+          <el-menu-item v-if="userStore.isLoggedIn" index="/publish">
+            <el-icon><Upload /></el-icon>
+            <span>发布管理</span>
+          </el-menu-item>
+          <el-sub-menu v-if="userStore.isLoggedIn" index="/credit">
+            <template #title>
+              <el-icon><Wallet /></el-icon>
+              <span>积分会员</span>
+            </template>
+            <el-menu-item index="/credit/recharge">积分充值</el-menu-item>
+            <el-menu-item index="/credit/membership">会员购买</el-menu-item>
+            <el-menu-item index="/credit/transactions">交易记录</el-menu-item>
+          </el-sub-menu>
           <el-sub-menu v-if="userStore.isAdmin" index="/operation">
             <template #title>
               <el-icon><DataAnalysis /></el-icon>
               <span>运营管理</span>
             </template>
-            <el-menu-item index="/history">
-              <el-icon><Clock /></el-icon>
-              <span>历史记录</span>
-            </el-menu-item>
-            <el-menu-item index="/publish">
-              <el-icon><Upload /></el-icon>
-              <span>发布管理</span>
-            </el-menu-item>
-            <el-sub-menu index="/credit">
-              <template #title>
-                <el-icon><Wallet /></el-icon>
-                <span>积分会员</span>
-              </template>
-              <el-menu-item index="/credit/recharge">积分充值</el-menu-item>
-              <el-menu-item index="/credit/membership">会员购买</el-menu-item>
-              <el-menu-item index="/credit/transactions">交易记录</el-menu-item>
-            </el-sub-menu>
             <el-menu-item index="/operation/activities">活动管理</el-menu-item>
             <el-menu-item index="/operation/coupons">优惠券</el-menu-item>
             <el-menu-item index="/operation/referral">推广管理</el-menu-item>
@@ -90,7 +90,15 @@
               <el-dropdown-menu>
                 <el-dropdown-item command="settings">
                   <el-icon><Setting /></el-icon>
-                  设置
+                  个人设置
+                </el-dropdown-item>
+<!--                <el-dropdown-item command="oauth">-->
+<!--                  <el-icon><Connection /></el-icon>-->
+<!--                  OAuth账号-->
+<!--                </el-dropdown-item>-->
+                <el-dropdown-item command="api-keys">
+                  <el-icon><Key /></el-icon>
+                  API密钥
                 </el-dropdown-item>
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>
@@ -138,6 +146,8 @@ import {
   CreditCard,
   Medal,
   DataAnalysis,
+  Connection,
+  Key,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 
@@ -150,7 +160,9 @@ const activeMenu = computed(() => {
   if (path === '/') return '/'
   if (path.startsWith('/writing')) return '/writing'
   if (path.startsWith('/credit')) return '/credit'
-  if (path.startsWith('/operation') || path === '/history' || path === '/publish') return '/operation'
+  if (path.startsWith('/operation')) return '/operation'
+  if (path === '/history') return '/history'
+  if (path === '/publish') return '/publish'
   return path
 })
 
@@ -158,6 +170,12 @@ const handleCommand = async (command: string) => {
   switch (command) {
     case 'settings':
       router.push('/settings')
+      break
+    case 'oauth':
+      router.push('/settings/oauth')
+      break
+    case 'api-keys':
+      router.push('/settings/api-keys')
       break
     case 'logout':
       try {

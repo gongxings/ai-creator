@@ -237,12 +237,8 @@ app.include_router(
 
 
 if __name__ == "__main__":
-    # 应用nest_asyncio以支持Windows上的Playwright
-    try:
-        import nest_asyncio
-        nest_asyncio.apply()
-    except ImportError:
-        print("[WARNING] nest_asyncio not installed. Run: pip install nest-asyncio")
+    # nest_asyncio 在 Python 3.13+ 上与 anyio/uvicorn 不兼容，已禁用
+    # 如需在 Windows 上运行 Playwright，请使用 Python 3.12 或更早版本
     
     import uvicorn
     
@@ -251,5 +247,5 @@ if __name__ == "__main__":
         host=settings.HOST,
         port=settings.PORT,
         reload=settings.DEBUG,
-        log_level=settings.LOG_LEVEL.lower()
+        log_level=settings.LOG_LEVEL.lower(),
     )

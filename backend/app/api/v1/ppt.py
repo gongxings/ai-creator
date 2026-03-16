@@ -6,6 +6,7 @@ import uuid
 import asyncio
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import logging
@@ -16,6 +17,7 @@ from app.models.creation import Creation
 from app.models.credit import CreditTransaction, TransactionType
 from app.schemas.common import success_response
 from app.utils.deps import get_current_user
+from app.services.ai.ppt_service import create_local_ppt_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -129,16 +131,113 @@ async def process_ppt_generation(db: Session, creation_id: int, request_data: di
                 creation.output_data = {"error": f"不支持的平台: {platform}"}
                 db.commit()
         else:
-            # API Key模式 - 模拟
-            await asyncio.sleep(2)
-            ppt_url = f"https://example.com/ppt_{uuid.uuid4().hex[:8]}.pptx"
-            preview_images = [
-                f"https://example.com/ppt_preview_{uuid.uuid4().hex[:8]}.png"
-                for _ in range(3)
-            ]
-            creation.status = "completed"
-            creation.output_data = {"ppt_url": ppt_url, "preview_images": preview_images}
-            db.commit()
+            # API Key模式 - 使用AI生成大纲，再用python-pptx生成PPTX
+            import os
+            import tempfile
+            
+            topic = request_data.get("topic", "")
+            slides_count = request_data.get("slides_count", 10)
+            style = request_data.get("style", "")
+            
+            # 使用AI生成PPT大纲
+            outline = None
+            try:
+                from app.services.ai.factory import AIServiceFactory
+                from app.models.ai_model import AIModel
+                
+                # 获取用户的默认AI模型
+                ai_model = db.query(AIModel).filter(
+                    AIModel.user_id == user_id,
+                    AIModel.is_active == True
+                ).first()
+                
+                if ai_model:
+                    ai_service = AIServiceFactory.create(
+                        provider=ai_model.provider,
+                        api_key=ai_model.api_key,
+                        base_url=ai_model.api_base
+                    )
+                    
+                    style_hint = f"\n风格要求：{style}" if style else ""
+                    prompt = f"""请帮我生成一份{slides_count}页的PPT大纲：
+
+标题：{topic}{style_hint}
+
+请严格按照以下格式生成每页的标题和要点：
+第1页：标题页
+- 主标题：{topic}
+- 副标题：...
+
+第2页：概述
+- 要点1：...
+- 要点2：...
+- 要点3：...
+
+第3页：...
+...
+
+注意：
+1. 每页包含标题和3-5个要点
+2. 逻辑清晰，循序渐进
+3. 最后一页为总结和展望
+"""
+                    outline = await ai_service.generate_text(prompt)
+            except Exception as e:
+                logger.warning(f"AI outline generation failed, using simple outline: {e}")
+            
+            # 如果AI生成失败，创建简单大纲
+            if not outline:
+                outline = f"第1页：标题页\n- 主标题：{topic}\n- 副标题：AI生成的演示文稿\n\n"
+                for i in range(2, slides_count):
+                    outline += f"第{i}页：第{i-1}部分\n- 要点1：待补充\n- 要点2：待补充\n- 要点3：待补充\n\n"
+                outline += f"第{slides_count}页：总结\n- 要点1：总结回顾\n- 要点2：展望未来\n"
+            
+            # 使用LocalPPTService生成PPTX文件
+            try:
+                local_service = create_local_ppt_service()
+                if local_service.available:
+                    # 生成文件到临时目录
+                    output_dir = os.path.join(tempfile.gettempdir(), "ai_creator_ppts")
+                    os.makedirs(output_dir, exist_ok=True)
+                    filename = f"ppt_{uuid.uuid4().hex[:8]}.pptx"
+                    output_path = os.path.join(output_dir, filename)
+                    
+                    local_service.create_pptx_from_outline(
+                        ppt_title=topic,
+                        outline=outline,
+                        output_path=output_path
+                    )
+                    
+                    # 生成下载URL（需要配置静态文件服务）
+                    ppt_url = f"/api/v1/ppt/files/{filename}"
+                    
+                    creation.status = "completed"
+                    creation.output_content = outline
+                    creation.output_data = {
+                        "ppt_url": ppt_url,
+                        "ppt_file_path": output_path,
+                        "outline": outline,
+                    }
+                    db.commit()
+                else:
+                    # python-pptx不可用，只返回大纲
+                    creation.status = "completed"
+                    creation.output_content = outline
+                    creation.output_data = {
+                        "outline": outline,
+                        "message": "python-pptx未安装，仅生成大纲"
+                    }
+                    db.commit()
+            except Exception as e:
+                logger.error(f"LocalPPTService failed: {e}")
+                # 降级：返回大纲
+                creation.status = "completed"
+                creation.output_content = outline
+                creation.output_data = {
+                    "outline": outline,
+                    "message": f"PPTX文件生成失败，仅返回大纲: {str(e)}"
+                }
+                db.commit()
 
     except Exception as e:
         logger.error(f"PPT generation failed: {e}")
@@ -327,6 +426,8 @@ async def download_ppt(
     current_user: User = Depends(get_current_user)
 ):
     """下载PPT文件"""
+    import os
+    
     creation = db.query(Creation).filter(
         Creation.id == ppt_id,
         Creation.user_id == current_user.id
@@ -336,11 +437,25 @@ async def download_ppt(
         raise HTTPException(status_code=404, detail="PPT不存在")
 
     data = creation.output_data or {}
-    download_url = data.get("ppt_url") or f"https://example.com/ppt/{ppt_id}.pptx"
-    return success_response(
-        data={"download_url": download_url},
-        message="success"
-    )
+    file_path = data.get("ppt_file_path")
+    
+    # 如果有实际文件，直接返回文件
+    if file_path and os.path.exists(file_path):
+        return FileResponse(
+            path=file_path,
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            filename=f"{creation.title or 'presentation'}.pptx"
+        )
+    
+    # 降级：返回URL
+    download_url = data.get("ppt_url")
+    if download_url:
+        return success_response(
+            data={"download_url": download_url},
+            message="success"
+        )
+    
+    raise HTTPException(status_code=404, detail="PPT文件不存在，请重新生成")
 
 
 @router.get("/templates")

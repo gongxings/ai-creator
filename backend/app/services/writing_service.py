@@ -420,6 +420,8 @@ class WritingService:
             logger.error(f"Unexpected error during Cookie-based optimization: {e}")
             raise ValueError(f"优化内容失败: {str(e)}")
 
+    @staticmethod
+    def get_available_tools():
         """获取所有可用的写作工具列表"""
         tools = [
             {

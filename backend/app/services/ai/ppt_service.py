@@ -174,7 +174,7 @@ class LocalPPTService:
     
     def create_pptx_from_outline(
         self,
-        title: str,
+        ppt_title: str,
         outline: str,
         output_path: str = "/tmp/presentation.pptx"
     ) -> str:
@@ -182,7 +182,7 @@ class LocalPPTService:
         从大纲创建PPT文件
         
         Args:
-            title: PPT标题
+            ppt_title: PPT标题
             outline: PPT大纲（文本格式）
             output_path: 输出文件路径
             
@@ -198,43 +198,61 @@ class LocalPPTService:
         # 添加标题页
         title_slide_layout = prs.slide_layouts[0]
         slide = prs.slides.add_slide(title_slide_layout)
-        title = slide.shapes.title
-        subtitle = slide.placeholders[1]
-        title.text = title
-        subtitle.text = "AI生成的演示文稿"
+        title_shape = slide.shapes.title
+        subtitle_shape = slide.placeholders[1]
+        title_shape.text = ppt_title
+        subtitle_shape.text = "AI生成的演示文稿"
         
         # 解析大纲并添加页面
-        # 这里需要实现大纲解析逻辑
-        # 简化处理：按行分割并创建页面
-        lines = outline.split("\n")
-        current_slide_data = {"title": "", "content": []}
+        slides_data = self._parse_outline(outline)
         
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            
-            # 简单的解析逻辑
-            if line.startswith("第") and "页" in line:
-                # 新页面
-                if current_slide_data["title"]:
-                    self._add_slide(prs, current_slide_data)
-                current_slide_data = {"title": line, "content": []}
-            elif line.startswith("-") or line.startswith("•"):
-                # 要点
-                current_slide_data["content"].append(line[1:].strip())
-            elif line and not current_slide_data["title"]:
-                current_slide_data["title"] = line
-        
-        # 添加最后一页
-        if current_slide_data["title"]:
-            self._add_slide(prs, current_slide_data)
+        for slide_data in slides_data:
+            self._add_slide(prs, slide_data)
         
         # 保存
         prs.save(output_path)
         logger.info(f"PPT created at: {output_path}")
         
         return output_path
+    
+    def _parse_outline(self, outline: str) -> list:
+        """解析大纲文本为结构化数据"""
+        slides = []
+        current_slide = {"title": "", "content": []}
+        
+        for line in outline.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            
+            # 检测新页面标记
+            if line.startswith("第") and "页" in line:
+                if current_slide["title"] or current_slide["content"]:
+                    slides.append(current_slide)
+                # 提取页面标题（冒号后面的部分）
+                parts = line.split("：", 1) if "：" in line else line.split(":", 1)
+                slide_title = parts[1].strip() if len(parts) > 1 else line
+                current_slide = {"title": slide_title, "content": []}
+            elif line.startswith("- ") or line.startswith("• ") or line.startswith("* "):
+                # 要点内容
+                point = line[2:].strip()
+                # 移除 "要点N：" 前缀
+                if "：" in point and point.split("：")[0].startswith("要点"):
+                    point = point.split("：", 1)[1].strip()
+                elif "：" in point and point.split("：")[0] in ("主标题", "副标题"):
+                    point = point.split("：", 1)[1].strip()
+                current_slide["content"].append(point)
+            elif not current_slide["title"]:
+                current_slide["title"] = line
+            else:
+                # 其他行当作内容
+                current_slide["content"].append(line)
+        
+        # 添加最后一页
+        if current_slide["title"] or current_slide["content"]:
+            slides.append(current_slide)
+        
+        return slides
     
     def _add_slide(self, prs, slide_data):
         """添加页面到演示文稿"""

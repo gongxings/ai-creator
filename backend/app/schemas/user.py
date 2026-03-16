@@ -126,3 +126,29 @@ class PasswordChange(BaseModel):
                 "new_password": "newpassword123"
             }
         }
+
+
+class PasswordResetRequest(BaseModel):
+    """密码重置请求"""
+    email: EmailStr = Field(..., description="注册邮箱")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "test@example.com"
+            }
+        }
+
+
+class PasswordResetConfirm(BaseModel):
+    """密码重置确认"""
+    token: str = Field(..., description="重置令牌")
+    new_password: str = Field(..., min_length=6, max_length=50, description="新密码")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "token": "reset-token-string",
+                "new_password": "newpassword123"
+            }
+        }

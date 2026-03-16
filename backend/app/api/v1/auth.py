@@ -24,6 +24,8 @@ from app.schemas.user import (
     UserLogin,
     UserResponse,
     PasswordChange,
+    PasswordResetRequest,
+    PasswordResetConfirm,
 )
 from app.schemas.common import success_response
 
@@ -195,3 +197,89 @@ def change_password(
     db.commit()
     
     return success_response(message="密码修改成功")
+
+
+@router.post("/password-reset/request")
+def request_password_reset(
+    reset_request: PasswordResetRequest,
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    请求密码重置（发送重置令牌）
+    
+    由于当前未集成邮件服务，此接口会直接返回重置令牌。
+    生产环境应通过邮件发送令牌。
+    """
+    from jose import jwt
+    from datetime import datetime, timedelta
+    
+    user = db.query(User).filter(User.email == reset_request.email).first()
+    if not user:
+        # 为防止邮箱枚举攻击，即使用户不存在也返回成功
+        return success_response(message="如果该邮箱已注册，重置链接已发送")
+    
+    # 生成重置令牌（有效期30分钟）
+    reset_token = jwt.encode(
+        {
+            "sub": str(user.id),
+            "type": "password_reset",
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        },
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
+    
+    # TODO: 集成邮件服务后，通过邮件发送重置链接
+    # 当前开发阶段直接返回令牌
+    return success_response(
+        data={"reset_token": reset_token},
+        message="密码重置令牌已生成（开发模式下直接返回令牌）"
+    )
+
+
+@router.post("/password-reset/confirm")
+def confirm_password_reset(
+    reset_confirm: PasswordResetConfirm,
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    确认密码重置
+    """
+    from jose import JWTError, jwt
+    
+    try:
+        payload = jwt.decode(
+            reset_confirm.token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+        
+        if payload.get("type") != "password_reset":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="无效的重置令牌",
+            )
+        
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="无效的重置令牌",
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="重置令牌已过期或无效",
+        )
+    
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在",
+        )
+    
+    user.password_hash = get_password_hash(reset_confirm.new_password)
+    db.commit()
+    
+    return success_response(message="密码重置成功，请使用新密码登录")

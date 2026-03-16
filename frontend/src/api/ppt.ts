@@ -21,12 +21,12 @@ export interface PPTGenerateResponse {
 
 // 主题生成PPT
 export function generatePPT(data: PPTGenerateRequest) {
-  return request.post<{ data: PPTGenerateResponse }>('/ppt/generate', data)
+  return request.post<{ data: PPTGenerateResponse }>('/v1/ppt/generate', data)
 }
 
 // 大纲生成PPT
 export function generatePPTFromOutline(data: PPTFromOutlineRequest) {
-  return request.post<{ data: PPTGenerateResponse }>('/ppt/from-outline', data)
+  return request.post<{ data: PPTGenerateResponse }>('/v1/ppt/from-outline', data)
 }
 
 // 文档转PPT
@@ -37,7 +37,7 @@ export function convertDocToPPT(data: { file: File; style?: string }) {
     formData.append('style', data.style)
   }
   
-  return request.post<{ data: PPTGenerateResponse }>('/ppt/from-document', formData, {
+  return request.post<{ data: PPTGenerateResponse }>('/v1/ppt/from-document', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -58,5 +58,5 @@ export function downloadPPT(pptId: string) {
 
 // 获取PPT模板列表
 export function getPPTTemplates() {
-  return request.get<{ data: any[] }>('/ppt/templates')
+  return request.get<{ data: any[] }>('/v1/ppt/templates')
 }

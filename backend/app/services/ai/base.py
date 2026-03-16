@@ -2,7 +2,7 @@
 AI服务基类
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, AsyncGenerator
 
 
 class AIServiceBase(ABC):
@@ -72,3 +72,68 @@ class AIServiceBase(ABC):
             是否健康
         """
         pass
+    
+    async def chat_completion(
+        self,
+        messages: list,
+        stream: bool = False,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        **kwargs
+    ) -> dict:
+        """
+        聊天完成接口
+        
+        Args:
+            messages: 消息列表 [{"role": "user", "content": "..."}]
+            stream: 是否流式响应
+            temperature: 温度参数
+            max_tokens: 最大令牌数
+            
+        Returns:
+            {"content": "...", "usage": {...}, "finish_reason": "stop"}
+        """
+        # 默认实现：将最后一条消息作为prompt调用generate_text
+        last_message = messages[-1]["content"] if messages else ""
+        content = await self.generate_text(
+            prompt=last_message,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            **kwargs
+        )
+        return {
+            "content": content,
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0
+            },
+            "finish_reason": "stop"
+        }
+    
+    async def chat_completion_stream(
+        self,
+        messages: list,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        **kwargs
+    ) -> AsyncGenerator[str, None]:
+        """
+        流式聊天完成接口
+        
+        Yields:
+            文本片段
+        """
+        # 默认实现：获取完整响应然后分块返回
+        result = await self.chat_completion(
+            messages=messages,
+            stream=False,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        )
+        content = result.get("content", "")
+        # 按句子/段落分块
+        chunk_size = 20
+        for i in range(0, len(content), chunk_size):
+            yield content[i:i + chunk_size]

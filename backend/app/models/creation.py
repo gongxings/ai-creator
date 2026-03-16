@@ -60,10 +60,14 @@ class Creation(Base):
         comment="创作类型"
     )
     
+    tool_type = Column(String(50), index=True, comment="工具类型（细分类型）")
+    task_id = Column(String(100), unique=True, index=True, comment="异步任务ID")
+    
     title = Column(String(200), nullable=False, comment="标题")
     
     input_data = Column(JSON, comment="输入数据（JSON格式）")
     output_content = Column(Text, comment="输出内容")
+    output_data = Column(JSON, comment="输出数据（JSON格式，用于图片/视频/PPT等）")
     
     model_id = Column(
         BigInteger,

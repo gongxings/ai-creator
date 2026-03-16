@@ -190,6 +190,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
+import { requestPasswordReset } from '@/api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -257,7 +258,7 @@ const handleReset = async () => {
 
   resetLoading.value = true
   try {
-    // TODO: 调用重置密码 API
+    await requestPasswordReset({ email: resetEmail.value })
     ElMessage.success('重置链接已发送到您的邮箱，请检查收件箱')
     showForgotDialog.value = false
     resetEmail.value = ''

@@ -98,7 +98,7 @@ export const getActivities = (params?: {
   status?: string
   activity_type?: string
 }) => {
-  return request.get<Activity[]>('/api/v1/operation/activities', { params })
+  return request.get<Activity[]>('/v1/operation/activities', { params })
 }
 
 export const getActivity = (activityId: number) => {
@@ -116,7 +116,7 @@ export const createActivity = (data: {
   max_participants?: number
   rules?: any
 }) => {
-  return request.post<Activity>('/api/v1/operation/activities', data)
+  return request.post<Activity>('/v1/operation/activities', data)
 }
 
 export const updateActivity = (activityId: number, data: Partial<Activity>) => {
@@ -145,7 +145,7 @@ export const getCoupons = (params?: {
   coupon_type?: string
   is_active?: boolean
 }) => {
-  return request.get<Coupon[]>('/api/v1/operation/coupons', { params })
+  return request.get<Coupon[]>('/v1/operation/coupons', { params })
 }
 
 export const getCoupon = (couponId: number) => {
@@ -165,7 +165,7 @@ export const createCoupon = (data: {
   start_time: string
   end_time: string
 }) => {
-  return request.post<Coupon>('/api/v1/operation/coupons', data)
+  return request.post<Coupon>('/v1/operation/coupons', data)
 }
 
 export const updateCoupon = (couponId: number, data: Partial<Coupon>) => {
@@ -185,12 +185,12 @@ export const getUserCoupons = (params?: {
   limit?: number
   status?: string
 }) => {
-  return request.get<UserCoupon[]>('/api/v1/operation/coupons/my', { params })
+  return request.get<UserCoupon[]>('/v1/operation/coupons/my', { params })
 }
 
 // 推广管理
 export const getReferralCode = () => {
-  return request.get<{ referral_code: string }>('/api/v1/operation/referral/code')
+  return request.get<{ referral_code: string }>('/v1/operation/referral/code')
 }
 
 export const getReferralRecords = (params?: {
@@ -198,11 +198,11 @@ export const getReferralRecords = (params?: {
   limit?: number
   status?: string
 }) => {
-  return request.get<ReferralRecord[]>('/api/v1/operation/referral/records', { params })
+  return request.get<ReferralRecord[]>('/v1/operation/referral/records', { params })
 }
 
 export const getReferralStatistics = () => {
-  return request.get<ReferralStatistics>('/api/v1/operation/referral/statistics')
+  return request.get<ReferralStatistics>('/v1/operation/referral/statistics')
 }
 
 // 数据统计
@@ -210,7 +210,7 @@ export const getOperationStatistics = (params?: {
   start_date?: string
   end_date?: string
 }) => {
-  return request.get<OperationStatistics[]>('/api/v1/operation/statistics', { params })
+  return request.get<OperationStatistics[]>('/v1/operation/statistics', { params })
 }
 
 export const getDashboardStatistics = () => {
@@ -219,5 +219,5 @@ export const getDashboardStatistics = () => {
     yesterday: OperationStatistics
     this_month: OperationStatistics
     last_month: OperationStatistics
-  }>('/api/v1/operation/statistics/dashboard')
+  }>('/v1/operation/statistics/dashboard')
 }

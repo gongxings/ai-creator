@@ -329,31 +329,53 @@ async def _stream_openai_response(
     api_key_id: int,
     request_body: dict,
     response_time: int,
-    request: Request
+    request: Request,
+    stream_generator=None
 ) -> AsyncGenerator[str, None]:
     """流式响应生成器（OpenAI格式）"""
     try:
-        content = response.get("content", "")
-        
-        # 发送流式数据
         chunk_id = f"chatcmpl-{int(time.time())}"
+        full_content = ""
         
-        # 分块发送内容
-        for i, char in enumerate(content):
-            chunk = {
-                "id": chunk_id,
-                "object": "chat.completion.chunk",
-                "created": int(time.time()),
-                "model": model_id,
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"content": char} if i == 0 else {"content": char},
-                        "finish_reason": None
-                    }
-                ]
-            }
-            yield f"data: {json.dumps(chunk)}\n\n"
+        if stream_generator:
+            # 真正的流式响应
+            async for chunk_text in stream_generator:
+                full_content += chunk_text
+                chunk = {
+                    "id": chunk_id,
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": model_id,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {"content": chunk_text},
+                            "finish_reason": None
+                        }
+                    ]
+                }
+                yield f"data: {json.dumps(chunk)}\n\n"
+        else:
+            # 降级：从完整响应逐段发送
+            content = response.get("content", "")
+            full_content = content
+            chunk_size = 20
+            for i in range(0, len(content), chunk_size):
+                chunk_text = content[i:i + chunk_size]
+                chunk = {
+                    "id": chunk_id,
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": model_id,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {"content": chunk_text},
+                            "finish_reason": None
+                        }
+                    ]
+                }
+                yield f"data: {json.dumps(chunk)}\n\n"
         
         # 发送结束标记
         final_chunk = {
@@ -373,19 +395,19 @@ async def _stream_openai_response(
         yield "data: [DONE]\n\n"
         
         # 记录使用日志
-        usage = response.get("usage", {})
+        usage = response.get("usage", {}) if response else {}
         APIKeyService.log_api_key_usage(
             db=db,
             api_key_id=api_key_id,
             model_id=model_id,
-            model_name=response.get("model_name"),
+            model_name=response.get("model_name") if response else None,
             endpoint="/v1/chat/completions",
             method="POST",
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
             total_tokens=usage.get("total_tokens", 0),
             request_data=request_body,
-            response_data={"content": content, "usage": usage},
+            response_data={"content": full_content, "usage": usage},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             response_time=response_time,
