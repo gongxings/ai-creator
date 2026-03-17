@@ -28,6 +28,7 @@ from app.schemas.publish import (
 from app.services.publish.platforms import get_platform, PLATFORM_REGISTRY
 from app.services.publish.playwright_service import publish_playwright_service
 from app.schemas.common import success_response
+from app.services.credit_service import CreditService
 
 router = APIRouter()
 
@@ -717,6 +718,25 @@ async def publish_content(
     """发布内容到平台（创建草稿）"""
     from app.models.creation import Creation
     from app.models.template import ArticleTemplate
+    from app.models.credit import TransactionType
+    
+    # 检查并扣减积分（会员不扣积分）
+    credits_required = 10  # 每次发布需要10积分
+    credits_consumed = False
+    
+    try:
+        CreditService.check_and_consume_credits(
+            db=db,
+            user_id=current_user.id,
+            amount=credits_required,
+            description=f"发布内容 - {publish_data.title[:20] if publish_data.title else '无标题'}"
+        )
+        credits_consumed = True
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=str(e),
+        )
     
     # 获取平台账号
     account = db.query(PlatformAccount).filter(
@@ -799,6 +819,19 @@ async def publish_content(
         
         # 检查创建结果
         if not result.get("success", False):
+            # 创建失败，退还积分
+            if credits_consumed:
+                try:
+                    CreditService.add_credits(
+                        db=db,
+                        user_id=current_user.id,
+                        amount=credits_required,
+                        transaction_type=TransactionType.REFUND,
+                        description=f"发布失败退还 - {publish_data.title[:20] if publish_data.title else '无标题'}"
+                    )
+                except Exception:
+                    pass  # 退还失败不影响主流程
+            
             # 创建失败，保存失败记录
             history = PublishRecord(
                 user_id=current_user.id,
@@ -854,6 +887,19 @@ async def publish_content(
     except HTTPException:
         raise
     except Exception as e:
+        # 发布异常，退还积分
+        if credits_consumed:
+            try:
+                CreditService.add_credits(
+                    db=db,
+                    user_id=current_user.id,
+                    amount=credits_required,
+                    transaction_type=TransactionType.REFUND,
+                    description=f"发布异常退还 - {publish_data.title[:20] if publish_data.title else '无标题'}"
+                )
+            except Exception:
+                pass  # 退还失败不影响主流程
+        
         raise HTTPException(
             status_code=500,
             detail=f"创建草稿失败: {str(e)}"

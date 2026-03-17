@@ -18,6 +18,7 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User
+from app.models.credit import TransactionType
 from app.schemas.user import (
     TokenResponse,
     UserRegister,
@@ -28,6 +29,7 @@ from app.schemas.user import (
     PasswordResetConfirm,
 )
 from app.schemas.common import success_response
+from app.services.credit_service import CreditService
 
 router = APIRouter()
 
@@ -63,6 +65,20 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
     db.add(user)
     db.commit()
     db.refresh(user)
+    
+    # 新用户注册赠送1000积分
+    try:
+        CreditService.add_credits(
+            db=db,
+            user_id=user.id,
+            amount=1000,
+            transaction_type=TransactionType.REWARD,
+            description="新用户注册奖励"
+        )
+    except Exception as e:
+        # 赠送积分失败不影响注册流程
+        import logging
+        logging.error(f"新用户注册赠送积分失败: {e}")
     
     return success_response(data=UserResponse.model_validate(user).model_dump())
 

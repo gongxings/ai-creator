@@ -92,14 +92,14 @@
           <div class="type">{{ getMembershipTypeName(price.membership_type) }}</div>
           <div class="duration">{{ price.duration_days }}天</div>
           <div class="price">
-            <span class="current">¥{{ price.price }}</span>
-            <span class="original">¥{{ price.original_price }}</span>
+            <span class="current">¥{{ price.amount }}</span>
+            <span v-if="price.original_amount" class="original">¥{{ price.original_amount }}</span>
           </div>
-          <div class="discount">
-            省¥{{ (price.original_price - price.price).toFixed(0) }}
+          <div v-if="price.original_amount" class="discount">
+            省¥{{ (price.original_amount - price.amount).toFixed(0) }}
           </div>
           <div class="daily">
-            每天仅需¥{{ (price.price / price.duration_days).toFixed(2) }}
+            每天仅需¥{{ (price.amount / price.duration_days).toFixed(2) }}
           </div>
         </div>
       </div>
@@ -135,13 +135,13 @@
           <span>有效期：</span>
           <span>{{ selectedPrice.duration_days }}天</span>
         </div>
-        <div class="summary-item">
+        <div v-if="selectedPrice.original_amount" class="summary-item">
           <span>原价：</span>
-          <span class="original-price">¥{{ selectedPrice.original_price }}</span>
+          <span class="original-price">¥{{ selectedPrice.original_amount }}</span>
         </div>
         <div class="summary-item total">
           <span>实付金额：</span>
-          <span class="price-text">¥{{ selectedPrice.price }}</span>
+          <span class="price-text">¥{{ selectedPrice.amount }}</span>
         </div>
       </div>
 
@@ -173,11 +173,8 @@
               {{ getMembershipTypeName(row.membership_type) }}
             </template>
           </el-table-column>
-          <el-table-column prop="duration_days" label="有效期" width="100">
-            <template #default="{ row }">{{ row.duration_days }}天</template>
-          </el-table-column>
-          <el-table-column prop="price" label="支付金额" width="100">
-            <template #default="{ row }">¥{{ row.price }}</template>
+          <el-table-column prop="amount" label="支付金额" width="100">
+            <template #default="{ row }">¥{{ row.amount }}</template>
           </el-table-column>
           <el-table-column prop="payment_status" label="状态" width="100">
             <template #default="{ row }">
@@ -215,12 +212,8 @@
           </div>
           <div class="order-body">
             <div class="info-row">
-              <span>有效期：</span>
-              <span>{{ order.duration_days }}天</span>
-            </div>
-            <div class="info-row">
               <span>支付金额：</span>
-              <span class="price">¥{{ order.price }}</span>
+              <span class="price">¥{{ order.amount }}</span>
             </div>
             <div class="info-row">
               <span>创建时间：</span>
@@ -283,7 +276,8 @@ const loadBalance = async () => {
 const loadPrices = async () => {
   try {
     const res = await getMembershipPrices()
-    prices.value = res.data
+    // 确保返回的是数组
+    prices.value = Array.isArray(res.data) ? res.data : (res.data?.items || [])
   } catch (error) {
     console.error('加载价格失败:', error)
   }
@@ -292,7 +286,8 @@ const loadPrices = async () => {
 const loadOrders = async () => {
   try {
     const res = await getMembershipOrders({ limit: 10 })
-    orders.value = res.data
+    // API 返回分页对象 { items: [], total: ... }
+    orders.value = res.data?.items || res.data || []
   } catch (error) {
     console.error('加载订单失败:', error)
   }

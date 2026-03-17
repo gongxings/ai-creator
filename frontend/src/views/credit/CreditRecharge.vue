@@ -33,7 +33,7 @@
       <template #header>
         <div class="card-header">
           <span>选择套餐</span>
-          <span class="tip">1元 = 10积分</span>
+          <span class="tip">1元 = 100积分</span>
         </div>
       </template>
       <div class="price-list">
@@ -41,15 +41,15 @@
           v-for="price in prices"
           :key="price.id"
           class="price-item"
-          :class="{ active: selectedPrice?.id === price.id, hot: price.bonus > 0 }"
+          :class="{ active: selectedPrice?.id === price.id, hot: price.bonus_credits > 0 }"
           @click="selectPrice(price)"
         >
-          <div v-if="price.bonus > 0" class="badge">赠送</div>
-          <div class="amount">{{ price.amount }}<span class="unit">积分</span></div>
-          <div v-if="price.bonus > 0" class="bonus">+{{ price.bonus }}积分</div>
-          <div class="price">¥{{ price.price }}</div>
-          <div v-if="price.bonus > 0" class="total">
-            实得{{ price.amount + price.bonus }}积分
+          <div v-if="price.bonus_credits > 0" class="badge">赠送</div>
+          <div class="amount">{{ price.credits }}<span class="unit">积分</span></div>
+          <div v-if="price.bonus_credits > 0" class="bonus">+{{ price.bonus_credits }}积分</div>
+          <div class="price">¥{{ price.amount }}</div>
+          <div v-if="price.bonus_credits > 0" class="total">
+            实得{{ price.credits + price.bonus_credits }}积分
           </div>
         </div>
       </div>
@@ -79,15 +79,15 @@
       <div class="payment-summary">
         <div class="summary-item">
           <span>充值积分：</span>
-          <span>{{ selectedPrice.amount }}积分</span>
+          <span>{{ selectedPrice.credits }}积分</span>
         </div>
-        <div v-if="selectedPrice.bonus > 0" class="summary-item">
+        <div v-if="selectedPrice.bonus_credits > 0" class="summary-item">
           <span>赠送积分：</span>
-          <span class="bonus-text">+{{ selectedPrice.bonus }}积分</span>
+          <span class="bonus-text">+{{ selectedPrice.bonus_credits }}积分</span>
         </div>
         <div class="summary-item total">
           <span>实付金额：</span>
-          <span class="price-text">¥{{ selectedPrice.price }}</span>
+          <span class="price-text">¥{{ selectedPrice.amount }}</span>
         </div>
       </div>
 
@@ -116,12 +116,12 @@
           <el-table-column prop="order_no" label="订单号" width="200" />
           <el-table-column label="充值积分" width="120">
             <template #default="{ row }">
-              {{ row.amount }}
-              <span v-if="row.bonus > 0" class="bonus-text">+{{ row.bonus }}</span>
+              {{ row.credits }}
+              <span v-if="row.bonus_credits > 0" class="bonus-text">+{{ row.bonus_credits }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="price" label="支付金额" width="100">
-            <template #default="{ row }">¥{{ row.price }}</template>
+          <el-table-column prop="amount" label="支付金额" width="100">
+            <template #default="{ row }">¥{{ row.amount }}</template>
           </el-table-column>
           <el-table-column prop="payment_method" label="支付方式" width="100">
             <template #default="{ row }">
@@ -166,11 +166,11 @@
           <div class="order-body">
             <div class="info-row">
               <span>充值积分：</span>
-              <span>{{ order.amount }}<span v-if="order.bonus > 0" class="bonus-text">+{{ order.bonus }}</span></span>
+              <span>{{ order.credits }}<span v-if="order.bonus_credits > 0" class="bonus-text">+{{ order.bonus_credits }}</span></span>
             </div>
             <div class="info-row">
               <span>支付金额：</span>
-              <span>¥{{ order.price }}</span>
+              <span>¥{{ order.amount }}</span>
             </div>
             <div class="info-row">
               <span>创建时间：</span>
@@ -227,7 +227,8 @@ const loadBalance = async () => {
 const loadPrices = async () => {
   try {
     const res = await getCreditPrices()
-    prices.value = res.data
+    // 确保返回的是数组
+    prices.value = Array.isArray(res.data) ? res.data : (res.data?.items || [])
   } catch (error) {
     console.error('加载价格失败:', error)
   }
@@ -236,7 +237,8 @@ const loadPrices = async () => {
 const loadOrders = async () => {
   try {
     const res = await getRechargeOrders({ limit: 10 })
-    orders.value = res.data
+    // API 返回分页对象 { items: [], total: ... }
+    orders.value = res.data?.items || res.data || []
   } catch (error) {
     console.error('加载订单失败:', error)
   }

@@ -20,9 +20,11 @@ export interface CreditTransaction {
 
 export interface CreditPrice {
   id: number
-  amount: number
-  price: number
-  bonus: number
+  name: string
+  amount: number       // 金额（元）
+  credits: number      // 积分数
+  bonus_credits: number // 赠送积分
+  description: string | null
   is_active: boolean
   sort_order: number
 }
@@ -31,10 +33,9 @@ export interface RechargeOrder {
   id: number
   user_id: number
   order_no: string
-  amount: number
-  bonus: number
-  total_amount: number
-  price: number
+  amount: number        // 金额（元）
+  credits: number       // 积分数
+  bonus_credits: number // 赠送积分
   payment_method: string
   payment_status: string
   paid_at: string | null
@@ -43,10 +44,13 @@ export interface RechargeOrder {
 
 export interface MembershipPrice {
   id: number
+  name: string
   membership_type: string
   duration_days: number
-  price: number
-  original_price: number
+  amount: number
+  original_amount: number | null
+  description: string | null
+  features: string | null  // JSON 字符串格式的权益列表
   is_active: boolean
   sort_order: number
 }
@@ -56,12 +60,12 @@ export interface MembershipOrder {
   user_id: number
   order_no: string
   membership_type: string
-  duration_days: number
-  price: number
+  amount: number
+  original_amount: number | null
+  discount_amount: number
   payment_method: string
   payment_status: string
-  start_date: string | null
-  end_date: string | null
+  expired_at: string | null
   paid_at: string | null
   created_at: string
 }

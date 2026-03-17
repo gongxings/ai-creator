@@ -175,12 +175,14 @@ import 'md-editor-v3/lib/style.css'
 import { generateContent, regenerateContent, optimizeContent } from '@/api/writing'
 import { publishContent } from '@/api/publish'
 import { getAIModels } from '@/api/models'
+import { getCreation } from '@/api/creations'
 import PluginSelector from '@/components/PluginSelector.vue'
 import type { Creation, AIModel } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
 const toolType = computed(() => route.params.toolType as string)
+const editId = computed(() => route.query.id as string | undefined)
 
 const toolMetaMap: Record<string, { name: string; description: string }> = {
   wechat_article: { name: '公众号文章', description: '面向微信生态，突出可读性与传播性。' },
@@ -364,7 +366,7 @@ const handleExport = () => {
 const loadModels = async () => {
   try {
     const res = await getAIModels()
-    aiModels.value = res
+    aiModels.value = res.data || []
     if (aiModels.value.length > 0) {
       selectedModel.value = aiModels.value[0].id
     }
@@ -373,8 +375,34 @@ const loadModels = async () => {
   }
 }
 
-onMounted(() => {
-  loadModels()
+// 加载历史记录进行编辑
+const loadCreationForEdit = async (id: string) => {
+  try {
+    const res = await getCreation(parseInt(id))
+    const creation = res.data || res
+    
+    currentCreation.value = creation
+    markdownContent.value = creation.output_content || creation.content || ''
+    
+    // 尝试从 metadata 或 input_params 恢复表单数据
+    const params = creation.input_params || creation.metadata || {}
+    if (params.topic) formData.topic = params.topic
+    if (params.keywords) formData.keywords = params.keywords
+    if (params.style) formData.style = params.style
+    
+    ElMessage.success('已加载历史创作内容')
+  } catch (error: any) {
+    ElMessage.error(error.message || '加载创作记录失败')
+  }
+}
+
+onMounted(async () => {
+  await loadModels()
+  
+  // 如果有编辑 id，加载历史记录
+  if (editId.value) {
+    await loadCreationForEdit(editId.value)
+  }
 })
 </script>
 

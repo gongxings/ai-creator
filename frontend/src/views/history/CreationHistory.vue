@@ -316,11 +316,16 @@ const handleView = (row: any) => {
 
 // 编辑
 const handleEdit = (row: any) => {
+  // 确保 tool_type 存在
+  const toolType = row.tool_type || row.creation_type || 'wechat_article'
+  
   router.push({
     name: 'WritingEditor',
+    params: {
+      toolType: toolType
+    },
     query: {
-      id: row.id,
-      tool_type: row.tool_type
+      id: row.id
     }
   })
 }

@@ -1,5 +1,38 @@
 <template>
   <div class="transaction-history">
+    <!-- 积分余额卡片 -->
+    <el-card class="balance-card">
+      <div class="balance-info">
+        <div class="balance-main">
+          <div class="balance-item">
+            <span class="label">当前积分</span>
+            <span class="value">{{ balance.credits }}</span>
+          </div>
+          <div class="balance-item">
+            <span class="label">会员状态</span>
+            <span class="value">
+              <el-tag v-if="balance.is_member" type="success" effect="dark">会员</el-tag>
+              <el-tag v-else type="info">普通用户</el-tag>
+            </span>
+          </div>
+          <div v-if="balance.is_member && balance.member_expired_at" class="balance-item">
+            <span class="label">到期时间</span>
+            <span class="value date">{{ formatDate(balance.member_expired_at) }}</span>
+          </div>
+        </div>
+        <div class="balance-actions">
+          <el-button type="primary" @click="router.push('/credit/recharge')">
+            <el-icon><Wallet /></el-icon>
+            立即充值
+          </el-button>
+          <el-button @click="router.push('/credit/membership')">
+            <el-icon><Medal /></el-icon>
+            购买会员
+          </el-button>
+        </div>
+      </div>
+    </el-card>
+
     <el-card>
       <template #header>
         <div class="card-header">
@@ -77,8 +110,12 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getCreditTransactions } from '@/api/credit'
+import { Wallet, Medal } from '@element-plus/icons-vue'
+import { getCreditTransactions, getCreditBalance, type CreditBalance } from '@/api/credit'
+
+const router = useRouter()
 
 interface Transaction {
   id: number
@@ -92,6 +129,12 @@ interface Transaction {
 
 const loading = ref(false)
 const transactions = ref<Transaction[]>([])
+
+const balance = ref<CreditBalance>({
+  credits: 0,
+  is_member: false,
+  member_expired_at: null
+})
 
 const filters = reactive({
   type: '',
@@ -129,6 +172,15 @@ const formatDate = (date: string) => {
   return new Date(date).toLocaleString('zh-CN')
 }
 
+const loadBalance = async () => {
+  try {
+    const response = await getCreditBalance()
+    balance.value = response.data
+  } catch (error: any) {
+    console.error('加载余额失败:', error)
+  }
+}
+
 const loadTransactions = async () => {
   loading.value = true
   try {
@@ -152,6 +204,7 @@ const loadTransactions = async () => {
 }
 
 onMounted(() => {
+  loadBalance()
   loadTransactions()
 })
 </script>
@@ -159,6 +212,65 @@ onMounted(() => {
 <style scoped>
 .transaction-history {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.balance-card {
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.balance-card :deep(.el-card__body) {
+  padding: 24px;
+}
+
+.balance-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.balance-main {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.balance-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.balance-item .label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.balance-item .value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.balance-item .value.date {
+  font-size: 16px;
+  font-weight: normal;
+}
+
+.balance-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.balance-actions .el-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .card-header {
@@ -189,5 +301,24 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .balance-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .balance-main {
+    gap: 20px;
+  }
+  
+  .balance-actions {
+    width: 100%;
+  }
+  
+  .balance-actions .el-button {
+    flex: 1;
+  }
 }
 </style>

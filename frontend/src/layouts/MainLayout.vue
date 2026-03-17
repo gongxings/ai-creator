@@ -99,10 +99,10 @@
               <el-icon><Medal /></el-icon>
               <span>会员</span>
             </el-tag>
-            <el-tag type="warning" effect="plain">
-              <el-icon><CreditCard /></el-icon>
-              <span>{{ userStore.user?.credits || 0 }} 积分</span>
-            </el-tag>
+          <el-tag type="warning" effect="plain" @click="router.push('/credit/transactions')" style="cursor: pointer;">
+            <el-icon><CreditCard /></el-icon>
+            <span>{{ userStore.user?.credits || 0 }} 积分</span>
+          </el-tag>
           </div>
 
           <el-dropdown @command="handleCommand">
@@ -169,7 +169,7 @@
             <span class="username">{{ userStore.user?.username }}</span>
             <div class="credit-tags">
               <el-tag v-if="userStore.user?.is_member" type="success" size="small" effect="dark">会员</el-tag>
-              <el-tag type="warning" size="small" effect="plain">{{ userStore.user?.credits || 0 }} 积分</el-tag>
+              <el-tag type="warning" size="small" effect="plain" @click="router.push('/credit/transactions'); showMobileMenu = false" style="cursor: pointer;">{{ userStore.user?.credits || 0 }} 积分</el-tag>
             </div>
           </div>
         </div>
@@ -289,7 +289,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -321,6 +321,13 @@ const userStore = useUserStore()
 
 // 移动端菜单状态
 const showMobileMenu = ref(false)
+
+// 初始化时刷新积分信息
+onMounted(async () => {
+  if (userStore.isLoggedIn) {
+    await userStore.updateCreditInfo()
+  }
+})
 
 const activeMenu = computed(() => {
   const path = route.path
