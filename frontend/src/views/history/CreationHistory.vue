@@ -149,7 +149,7 @@
 
         <el-divider />
 
-        <div class="content-display" v-html="currentCreation.output_content"></div>
+        <div class="content-display" v-html="renderedContent"></div>
       </div>
 
       <template #footer>
@@ -166,11 +166,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Document, Edit } from '@element-plus/icons-vue'
 import * as creationsApi from '@/api/creations'
+import { markdownToHtml } from '@/services/markdownRenderer'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -179,6 +180,13 @@ const loading = ref(false)
 const showDetailDialog = ref(false)
 const creationList = ref<any[]>([])
 const currentCreation = ref<any>(null)
+
+// 渲染后的内容 HTML
+const renderedContent = computed(() => {
+  if (!currentCreation.value) return ''
+  const content = currentCreation.value.output_content || currentCreation.value.content || ''
+  return markdownToHtml(content)
+})
 
 const filterForm = reactive({
   toolType: '',
@@ -547,6 +555,57 @@ onMounted(() => {
           background-color: transparent;
           color: inherit;
         }
+      }
+
+      :deep(table) {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0;
+
+        th, td {
+          border: 1px solid #dcdfe6;
+          padding: 8px 12px;
+          text-align: left;
+        }
+
+        th {
+          background-color: #f5f7fa;
+          font-weight: 600;
+        }
+
+        tr:hover {
+          background-color: #f5f7fa;
+        }
+      }
+
+      :deep(img) {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin: 12px 0;
+      }
+
+      :deep(a) {
+        color: #409eff;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      :deep(hr) {
+        border: none;
+        border-top: 1px solid #dcdfe6;
+        margin: 16px 0;
+      }
+
+      :deep(strong) {
+        font-weight: 600;
+      }
+
+      :deep(em) {
+        font-style: italic;
       }
     }
   }
