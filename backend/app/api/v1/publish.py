@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.utils.deps import get_current_user
 from app.models.user import User
-from app.models.publish import PlatformAccount, PublishRecord
+from app.models.publish import PlatformAccount, PublishRecord, PlatformStatus, PublishStatus
 from app.schemas.publish import (
     PlatformInfo,
     PlatformLoginInfo,
@@ -715,15 +715,29 @@ async def publish_content(
     db: Session = Depends(get_db)
 ):
     """发布内容到平台（创建草稿）"""
+    from app.models.creation import Creation
+    
     # 获取平台账号
     account = db.query(PlatformAccount).filter(
         PlatformAccount.id == publish_data.account_id,
         PlatformAccount.user_id == current_user.id,
-        PlatformAccount.is_active == True
+        PlatformAccount.is_active == PlatformStatus.ACTIVE
     ).first()
     
     if not account:
         raise HTTPException(status_code=404, detail="平台账号不存在或未激活")
+    
+    # 获取 content_type，如果没传则从 creation 获取
+    content_type = publish_data.content_type
+    if not content_type and publish_data.creation_id:
+        creation = db.query(Creation).filter(
+            Creation.id == publish_data.creation_id,
+            Creation.user_id == current_user.id
+        ).first()
+        if creation:
+            content_type = creation.tool_type or creation.creation_type or "article"
+        else:
+            content_type = "article"  # 默认值
     
     try:
         if publish_data.scheduled_at:
@@ -732,9 +746,9 @@ async def publish_content(
                 platform_account_id=account.id,
                 creation_id=publish_data.creation_id,
                 platform=account.platform,
-                content_type=publish_data.content_type,
+                content_type=content_type,
                 title=publish_data.title,
-                status="scheduled",
+                status=PublishStatus.SCHEDULED,
                 scheduled_at=publish_data.scheduled_at
             )
             db.add(history)
@@ -753,7 +767,7 @@ async def publish_content(
         publisher = get_platform(account.platform)
         
         # 检查Cookie有效性
-        publisher.check_cookies_or_raise(account)
+        await publisher.check_cookies_or_raise(account)
         
         # 创建草稿
         result = await publisher.create_draft(
@@ -767,17 +781,40 @@ async def publish_content(
             location=publish_data.location
         )
         
-        # 保存发布历史
+        # 检查创建结果
+        if not result.get("success", False):
+            # 创建失败，保存失败记录
+            history = PublishRecord(
+                user_id=current_user.id,
+                platform_account_id=account.id,
+                creation_id=publish_data.creation_id,
+                platform=account.platform,
+                content_type=content_type,
+                title=publish_data.title,
+                status=PublishStatus.FAILED,
+                error_message=result.get("message", "创建草稿失败")
+            )
+            db.add(history)
+            db.commit()
+            db.refresh(history)
+            
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("message", "创建草稿失败")
+            )
+        
+        # 保存发布历史 - 草稿创建成功，状态设为 SUCCESS
         history = PublishRecord(
             user_id=current_user.id,
             platform_account_id=account.id,
             creation_id=publish_data.creation_id,
             platform=account.platform,
-            content_type=publish_data.content_type,
+            content_type=content_type,
             title=publish_data.title,
-            status="draft",
+            status=PublishStatus.SUCCESS,
             platform_post_id=result.get("draft_id"),
-            platform_url=result.get("draft_url")
+            platform_url=result.get("draft_url"),
+            published_at=datetime.utcnow()
         )
         
         db.add(history)
@@ -862,7 +899,7 @@ async def get_publish_history(
                 account_name=h.platform_account.account_name if h.platform_account else None,
                 content_type=h.content_type,
                 title=h.title,
-                status=h.status,
+                status=h.status if h.status else PublishStatus.PENDING,
                 platform_post_id=h.platform_post_id,
                 platform_url=h.platform_url,
                 error_message=h.error_message,

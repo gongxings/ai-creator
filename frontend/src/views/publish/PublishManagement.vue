@@ -794,7 +794,7 @@ const handleCreationChange = (creationId: number) => {
   const creation = creations.value.find((c: any) => c.id === creationId)
   if (creation) {
     selectedCreation.value = creation
-    contentPreview.value = creation.content
+    contentPreview.value = creation.output_content || creation.content
     publishForm.contentType = creation.content_type
   }
 }
@@ -815,7 +815,7 @@ const handlePublish = async () => {
                   ? publishForm.scheduledAt.toISOString()
                   : undefined,
           title: selectedCreation.value?.title,
-          content: selectedCreation.value?.content,
+          content: selectedCreation.value?.output_content || selectedCreation.value?.content,
         })
         ElMessage.success('发布成功')
         showPublishDialog.value = false

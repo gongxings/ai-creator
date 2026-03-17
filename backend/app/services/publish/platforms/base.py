@@ -11,7 +11,7 @@ import base64
 from hashlib import sha256
 from cryptography.fernet import Fernet
 
-from app.models.publish import PlatformAccount
+from app.models.publish import PlatformAccount, CookieStatus
 from app.core.config import settings
 
 
@@ -110,7 +110,7 @@ class BasePlatformPublisher(ABC):
             # 保存到账号
             account.cookies = encrypted
             account.cookies_updated_at = datetime.utcnow()
-            account.cookies_valid = "unknown"  # 需要验证
+            account.cookies_valid = CookieStatus.UNKNOWN  # 需要验证
         except Exception as e:
             self.logger.error(f"加密Cookie失败: {str(e)}")
             raise
@@ -148,14 +148,14 @@ class BasePlatformPublisher(ABC):
         
         if not is_valid:
             # 更新Cookie状态
-            account.cookies_valid = "invalid"
+            account.cookies_valid = CookieStatus.INVALID
             raise ValueError(
                 f"{self.get_platform_name()}平台Cookie已失效，请重新登录并上传Cookie。"
                 f"登录地址：{self.get_login_url()}"
             )
         
         # 更新Cookie状态
-        account.cookies_valid = "valid"
+        account.cookies_valid = CookieStatus.VALID
         return cookies
 
     def _build_cookie_list(self, login_url: str, cookies: Dict[str, str]) -> List[Dict[str, Any]]:

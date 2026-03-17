@@ -96,7 +96,7 @@ class PublishCreate(BaseModel):
     """创建发布任务"""
     account_id: int
     creation_id: int
-    content_type: str
+    content_type: Optional[str] = None  # 可选，不传则从 creation 获取
     scheduled_at: Optional[datetime] = None
     title: Optional[str] = Field(None, max_length=200)
     content: Optional[str] = None
