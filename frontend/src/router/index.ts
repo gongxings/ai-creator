@@ -104,6 +104,18 @@ const routes: RouteRecordRaw[] = [
         path: 'credit/transactions',
         name: 'TransactionHistory',
         component: () => import('@/views/credit/TransactionHistory.vue'),
+        meta: {requiresAuth: true},
+      },
+      {
+        path: 'plugins/market',
+        name: 'PluginMarket',
+        component: () => import('@/views/plugins/Market.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: 'plugins/my-plugins',
+        name: 'MyPlugins',
+        component: () => import('@/views/plugins/MyPlugins.vue'),
         meta: { requiresAuth: true },
       },
       {

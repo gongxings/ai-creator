@@ -3,9 +3,13 @@
 支持两种模式：
 1. API Key模式（传统方式）
 2. Cookie模式（通过OAuth账号使用网页版）
+3. 插件增强模式（通过插件获取实时信息）
 """
 from typing import Dict, Any, Optional, List
 import logging
+import time
+import json
+from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.creation import Creation
 from app.models.ai_model import AIModel
@@ -608,5 +612,194 @@ class WritingService:
                 "icon": "🌐",
                 "required_fields": ["source_text", "source_lang", "target_lang", "style"]
             }
-        ]
+            ]
         return tools
+    
+    @classmethod
+    async def generate_content_with_plugins(
+        cls,
+        db: Session,
+        tool_type: str,
+        user_input: Dict[str, Any],
+        ai_model: AIModel,
+        enabled_plugins: Optional[List[str]] = None,
+        user_id: Optional[int] = None,
+        creation_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        使用插件增强的内容生成
+        
+        AI 可以根据需要调用启用的插件获取实时信息，
+        例如搜索最新资讯、计算数据等。
+        
+        Args:
+            db: 数据库连接
+            tool_type: 工具类型
+            user_input: 用户输入
+            ai_model: AI模型配置
+            enabled_plugins: 启用的插件名称列表
+            user_id: 用户ID（用于日志记录）
+            creation_id: 创作ID（用于关联日志）
+            
+        Returns:
+            {
+                "content": str,  # 生成的内容
+                "plugin_invocations": list,  # 插件调用记录
+                "usage": dict  # token 使用情况
+            }
+        """
+        from app.services.plugins.plugin_manager import PluginManager
+        from app.models.plugin import PluginInvocation, UserPlugin
+        
+        # 获取提示词模板
+        if tool_type not in cls.TOOL_PROMPTS:
+            raise ValueError(f"不支持的写作工具类型: {tool_type}")
+        
+        prompt_template = cls.TOOL_PROMPTS[tool_type]
+        
+        # 合并默认参数和用户输入
+        defaults = cls.TOOL_DEFAULTS.get(tool_type, {})
+        merged_input = {**defaults, **user_input}
+        
+        # 填充提示词
+        try:
+            base_prompt = prompt_template.format(**merged_input)
+        except KeyError as e:
+            raise ValueError(f"缺少必需的输入参数: {str(e)}")
+        
+        # 如果没有启用插件，直接生成
+        if not enabled_plugins:
+            ai_service = cls.get_ai_service(ai_model)
+            content = await ai_service.generate_text(base_prompt)
+            return {
+                "content": content,
+                "plugin_invocations": [],
+                "usage": {}
+            }
+        
+        # 初始化插件管理器（单例）
+        plugin_manager = PluginManager()
+        
+        # 加载插件实例（带用户配置）
+        plugins = plugin_manager.create_plugin_instances(db, user_id, enabled_plugins)
+        
+        if not plugins:
+            # 没有有效插件，直接生成
+            ai_service = cls.get_ai_service(ai_model)
+            content = await ai_service.generate_text(base_prompt)
+            return {
+                "content": content,
+                "plugin_invocations": [],
+                "usage": {}
+            }
+        
+        # 构建 OpenAI tools 定义
+        tools = [plugin.to_openai_function() for plugin in plugins]
+        
+        # 构建增强的系统提示
+        system_prompt = """你是一位专业的内容创作助手。你可以使用以下工具来获取信息和完成任务：
+
+可用工具：
+"""
+        for plugin in plugins:
+            system_prompt += f"- {plugin.display_name}: {plugin.description}\n"
+        
+        system_prompt += """
+在创作过程中，如果需要最新信息、事实数据或计算结果，请使用相应的工具。
+工具返回的信息应该融入到你的创作中，而不是直接展示给用户。
+"""
+        
+        # 构建消息
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": base_prompt}
+        ]
+        
+        # 创建工具执行器
+        invocation_logs = []
+        
+        async def tool_executor(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+            """执行插件并记录日志"""
+            start_time = time.time()
+            error_msg = None
+            result = None
+            
+            try:
+                # 查找对应的插件
+                plugin = next((p for p in plugins if p.name == tool_name), None)
+                if not plugin:
+                    return {"success": False, "error": f"未找到插件: {tool_name}"}
+                
+                # 执行插件
+                result = await plugin.execute(**arguments)
+                return result
+                
+            except Exception as e:
+                error_msg = str(e)
+                logger.error(f"Plugin execution error: {tool_name} - {e}")
+                return {"success": False, "error": error_msg}
+            
+            finally:
+                # 记录调用日志
+                duration_ms = int((time.time() - start_time) * 1000)
+                
+                invocation_logs.append({
+                    "plugin_name": tool_name,
+                    "arguments": arguments,
+                    "result": result,
+                    "error": error_msg,
+                    "duration_ms": duration_ms
+                })
+                
+                # 持久化到数据库
+                if user_id:
+                    invocation = PluginInvocation(
+                        user_id=user_id,
+                        creation_id=creation_id,
+                        plugin_name=tool_name,
+                        arguments=arguments,
+                        result=result,
+                        error=error_msg,
+                        duration_ms=duration_ms
+                    )
+                    db.add(invocation)
+                    
+                    # 更新用户插件使用统计
+                    user_plugin = db.query(UserPlugin).filter(
+                        UserPlugin.user_id == user_id,
+                        UserPlugin.plugin_name == tool_name
+                    ).first()
+                    if user_plugin:
+                        user_plugin.usage_count = (user_plugin.usage_count or 0) + 1
+                        user_plugin.last_used_at = datetime.utcnow()
+                    
+                    db.commit()
+        
+        # 获取 AI 服务并执行带工具的聊天
+        ai_service = cls.get_ai_service(ai_model)
+        
+        # 只有 OpenAI 兼容的服务才支持工具调用
+        if not isinstance(ai_service, OpenAIService):
+            # 对于不支持工具的服务，回退到普通生成
+            logger.warning(f"AI service {type(ai_service).__name__} does not support tools, falling back to normal generation")
+            content = await ai_service.generate_text(base_prompt)
+            return {
+                "content": content,
+                "plugin_invocations": [],
+                "usage": {}
+            }
+        
+        # 使用带工具执行的聊天
+        result = await ai_service.chat_with_tool_execution(
+            messages=messages,
+            tools=tools,
+            tool_executor=tool_executor,
+            temperature=0.7,
+            max_iterations=5
+        )
+        
+        return {
+            "content": result.get("content", ""),
+            "plugin_invocations": invocation_logs,
+            "usage": result.get("usage", {})
+        }

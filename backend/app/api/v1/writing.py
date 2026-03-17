@@ -198,14 +198,39 @@ async def generate_content(
                     detail="AI模型不存在或无权访问",
                 )
             
-            content = await WritingService.generate_content(
-                db=db,
-                tool_type=request.tool_type,
-                user_input=request.parameters or {},
-                ai_model=ai_model,
-            )
+            # 检查是否启用了插件
+            if request.enabled_plugins:
+                # 使用带插件的生成方法
+                logger.info(f"Using plugins: {request.enabled_plugins}")
+                result = await WritingService.generate_content_with_plugins(
+                    db=db,
+                    tool_type=request.tool_type,
+                    user_input=request.parameters or {},
+                    ai_model=ai_model,
+                    enabled_plugins=request.enabled_plugins,
+                    user_id=current_user.id,
+                )
+                content = result["content"]
+                # 可以在 extra_data 中保存插件调用信息
+                plugin_info = {
+                    "plugin_invocations": result.get("plugin_invocations", []),
+                    "usage": result.get("usage", {})
+                }
+            else:
+                # 普通生成
+                content = await WritingService.generate_content(
+                    db=db,
+                    tool_type=request.tool_type,
+                    user_input=request.parameters or {},
+                    ai_model=ai_model,
+                )
+                plugin_info = None
         
         # 创建创作记录
+        extra_data = {}
+        if plugin_info:
+            extra_data["plugin_info"] = plugin_info
+        
         creation = Creation(
             user_id=current_user.id,
             title=f"{request.tool_type} - {(request.parameters or {}).get('topic', '未命名')}",
@@ -213,6 +238,7 @@ async def generate_content(
             creation_type=request.tool_type,
             tool_type=request.tool_type,
             input_data=request.parameters,
+            extra_data=extra_data if extra_data else None,
             model_id=ai_model.id if not request.platform else None,
             status="completed",
         )

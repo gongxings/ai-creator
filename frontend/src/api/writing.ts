@@ -10,6 +10,7 @@ export function generateContent(data: GenerateContentParams) {
     tool_type: data.tool_type,
     parameters: data.params,
     model_id: data.ai_model_id,
+    enabled_plugins: data.enabled_plugins,
   })
 }
 

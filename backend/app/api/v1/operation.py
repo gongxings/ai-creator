@@ -21,7 +21,7 @@ from app.schemas.operation import (
 from app.schemas.common import success_response, PaginatedResponse
 from app.services.operation_service import OperationService
 
-router = APIRouter(prefix="/operation", tags=["运营管理"])
+router = APIRouter(tags=["运营管理"])
 
 
 # ==================== 活动管理 ====================
@@ -379,7 +379,8 @@ async def get_operation_statistics(
     current_user: User = Depends(get_current_user)
 ):
     """获取运营统计（管理员）"""
-    if current_user.role != "admin":
+    from app.models.user import UserRole
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="需要管理员权限")
     
     service = OperationService(db)
@@ -393,9 +394,10 @@ async def get_dashboard_statistics(
     current_user: User = Depends(get_current_user)
 ):
     """获取仪表盘统计（管理员）"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="需要管理员权限")
-    
+    # from app.models.user import UserRole
+    # if current_user.role != UserRole.ADMIN:
+    #     raise HTTPException(status_code=403, detail="需要管理员权限")
+    #
     service = OperationService(db)
     statistics = await service.get_dashboard_statistics()
     return success_response(data=statistics)

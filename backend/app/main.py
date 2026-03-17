@@ -19,7 +19,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, plugins
 from app.api import openapi_proxy
 
 # 配置日志
@@ -109,6 +109,15 @@ async def startup_event():
         logger.info("数据库初始化成功")
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")
+    
+    # 发现并注册内置插件
+    try:
+        from app.services.plugins import PluginManager
+        plugin_manager = PluginManager()
+        discovered = plugin_manager.discover_builtin_plugins()
+        logger.info(f"发现并注册了 {len(discovered)} 个内置插件")
+    except Exception as e:
+        logger.error(f"插件发现失败: {e}")
     
     logger.info("应用启动完成")
 
@@ -207,7 +216,7 @@ app.include_router(
 
 app.include_router(
     operation.router,
-    prefix=f"{settings.API_V1_PREFIX}",
+    prefix=f"{settings.API_V1_PREFIX}/operation",
     tags=["运营管理"]
 )
 
@@ -227,6 +236,12 @@ app.include_router(
     ai.router,
     prefix=f"{settings.API_V1_PREFIX}/ai",
     tags=["统一AI调用"]
+)
+
+app.include_router(
+    plugins.router,
+    prefix=f"{settings.API_V1_PREFIX}/plugins",
+    tags=["插件系统"]
 )
 
 # OpenAPI代理路由（兼容OpenAI格式）

@@ -115,6 +115,7 @@ class Creation(Base):
     user = relationship("User", back_populates="creations")
     model = relationship("AIModel", back_populates="creations")
     publish_records = relationship("PublishRecord", back_populates="creation")
+    plugin_invocations = relationship("PluginInvocation", back_populates="creation")
     
     def __repr__(self):
         return f"<Creation(id={self.id}, type={self.creation_type}, status={self.status})>"

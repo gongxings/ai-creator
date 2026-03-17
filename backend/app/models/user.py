@@ -107,5 +107,11 @@ class User(Base):
     # API Key相关关系
     api_keys = relationship("APIKey", back_populates="user")
     
+    # 插件相关关系
+    plugins = relationship("UserPlugin", back_populates="user", cascade="all, delete-orphan")
+    plugin_selections = relationship("CreationPluginSelection", back_populates="user", cascade="all, delete-orphan")
+    plugin_invocations = relationship("PluginInvocation", back_populates="user", cascade="all, delete-orphan")
+    plugin_reviews = relationship("PluginReview", back_populates="user", cascade="all, delete-orphan")
+    
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, role={self.role})>"

@@ -657,3 +657,77 @@ class OperationService:
             "referrals_made": referrals_made,
             "referral_rewards": float(referral_rewards)
         }
+    
+    async def get_operation_statistics(self, query: Any) -> Dict[str, Any]:
+        """获取运营统计数据（管理员用）"""
+        start_date = query.start_date if hasattr(query, 'start_date') else None
+        end_date = query.end_date if hasattr(query, 'end_date') else None
+        return await self.get_statistics(start_date, end_date)
+    
+    async def get_dashboard_statistics(self) -> Dict[str, Any]:
+        """获取仪表盘统计数据（管理员用）"""
+        from app.models.creation import Creation
+        from app.models.credit import RechargeOrder, MembershipOrder
+        
+        # 总用户数
+        total_users = self.db.query(User).count()
+        
+        # 今日新增用户
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_new_users = self.db.query(User).filter(
+            User.created_at >= today
+        ).count()
+        
+        # 总创作数
+        total_creations = self.db.query(Creation).count()
+        
+        # 今日创作数
+        today_creations = self.db.query(Creation).filter(
+            Creation.created_at >= today
+        ).count()
+        
+        # 会员数
+        total_members = self.db.query(User).filter(
+            User.is_member == True
+        ).count()
+        
+        # 总收入（充值 + 会员）
+        total_recharge = self.db.query(func.sum(RechargeOrder.amount)).filter(
+            RechargeOrder.payment_status == 'paid'
+        ).scalar() or 0
+        
+        total_membership = self.db.query(func.sum(MembershipOrder.amount)).filter(
+            MembershipOrder.payment_status == 'paid'
+        ).scalar() or 0
+        
+        total_revenue = float(total_recharge) + float(total_membership)
+        
+        # 今日收入
+        today_recharge = self.db.query(func.sum(RechargeOrder.amount)).filter(
+            RechargeOrder.payment_status == 'paid',
+            RechargeOrder.created_at >= today
+        ).scalar() or 0
+        
+        today_membership = self.db.query(func.sum(MembershipOrder.amount)).filter(
+            MembershipOrder.payment_status == 'paid',
+            MembershipOrder.created_at >= today
+        ).scalar() or 0
+        
+        today_revenue = float(today_recharge) + float(today_membership)
+        
+        # 活跃用户数（最近7天有创作的用户）
+        week_ago = datetime.now() - timedelta(days=7)
+        active_users = self.db.query(func.count(func.distinct(Creation.user_id))).filter(
+            Creation.created_at >= week_ago
+        ).scalar() or 0
+        
+        return {
+            "total_users": total_users,
+            "today_new_users": today_new_users,
+            "total_creations": total_creations,
+            "today_creations": today_creations,
+            "total_members": total_members,
+            "total_revenue": total_revenue,
+            "today_revenue": today_revenue,
+            "active_users": active_users
+        }

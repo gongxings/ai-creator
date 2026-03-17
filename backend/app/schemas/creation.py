@@ -22,6 +22,7 @@ class CreationGenerate(BaseModel):
     parameters: Optional[Dict[str, Any]] = Field(None, description="生成参数")
     model_id: Optional[int] = Field(None, description="使用的AI模型ID")
     platform: Optional[str] = Field(None, description="使用的平台（doubao等），为空则使用API Key模式")
+    enabled_plugins: Optional[List[str]] = Field(None, description="启用的插件列表")
 
 
 class CreationRegenerate(BaseModel):

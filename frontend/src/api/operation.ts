@@ -219,5 +219,5 @@ export const getDashboardStatistics = () => {
     yesterday: OperationStatistics
     this_month: OperationStatistics
     last_month: OperationStatistics
-  }>('/v1/operation/statistics/dashboard')
+  }>('/v1/operation/dashboard')
 }

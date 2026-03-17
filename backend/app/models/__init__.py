@@ -17,6 +17,9 @@ from app.models.oauth_account import OAuthAccount
 from app.models.oauth_usage_log import OAuthUsageLog
 from app.models.platform_config import PlatformConfig
 from app.models.api_key import APIKey, APIKeyUsageLog
+from app.models.plugin import (
+    PluginMarket, UserPlugin, CreationPluginSelection, PluginInvocation, PluginReview
+)
 
 __all__ = [
     # User models
@@ -72,4 +75,11 @@ __all__ = [
     # API Key models
     "APIKey",
     "APIKeyUsageLog",
+    
+    # Plugin models
+    "PluginMarket",
+    "UserPlugin",
+    "CreationPluginSelection",
+    "PluginInvocation",
+    "PluginReview",
 ]

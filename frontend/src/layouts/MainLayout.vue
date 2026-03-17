@@ -92,6 +92,10 @@
                   <el-icon><Setting /></el-icon>
                   个人设置
                 </el-dropdown-item>
+                <el-dropdown-item command="plugins">
+                  <el-icon><Connection /></el-icon>
+                  我的插件
+                </el-dropdown-item>
 <!--                <el-dropdown-item command="oauth">-->
 <!--                  <el-icon><Connection /></el-icon>-->
 <!--                  OAuth账号-->
@@ -170,6 +174,9 @@ const handleCommand = async (command: string) => {
   switch (command) {
     case 'settings':
       router.push('/settings')
+      break
+    case 'plugins':
+      router.push('/plugins/my-plugins')
       break
     case 'oauth':
       router.push('/settings/oauth')

@@ -58,6 +58,34 @@
               </el-alert>
             </el-card>
 
+            <!-- 插件选择卡片 -->
+            <el-card shadow="never" class="plugin-card">
+              <template #header>
+                <div class="plugin-header">
+                  <span>创作插件</span>
+                  <el-button link type="primary" size="small" @click="router.push('/plugins/market')">
+                    管理插件
+                  </el-button>
+                </div>
+              </template>
+              <div class="plugin-selector-wrapper">
+                <PluginSelector
+                  v-model="selectedPlugins"
+                  :tool-type="toolType"
+                  @change="onPluginSelectionChange"
+                />
+                <span v-if="selectedPlugins.length > 0" class="plugin-hint">
+                  已选择 {{ selectedPlugins.length }} 个插件
+                </span>
+                <span v-else class="plugin-hint">
+                  启用插件可获取实时信息
+                </span>
+              </div>
+              <el-alert v-if="selectedPlugins.length > 0" type="success" :closable="false" style="margin-top: 12px">
+                <p>AI 将根据需要自动调用插件获取信息</p>
+              </el-alert>
+            </el-card>
+
             <div class="tips-card">
               <h4>创作建议</h4>
               <ul>
@@ -139,6 +167,7 @@ import 'quill/dist/quill.snow.css'
 import { generateContent, regenerateContent, optimizeContent } from '@/api/writing'
 import { publishContent } from '@/api/publish'
 import { getAIModels } from '@/api/models'
+import PluginSelector from '@/components/PluginSelector.vue'
 import type { Creation, AIModel } from '@/types'
 
 const router = useRouter()
@@ -179,6 +208,13 @@ const showPublishDialog = ref(false)
 const optimizeTypes = ref<string[]>([])
 const selectedPlatforms = ref<string[]>([])
 
+// 插件相关状态
+const selectedPlugins = ref<string[]>([])
+
+const onPluginSelectionChange = (plugins: string[]) => {
+  console.log('Selected plugins:', plugins)
+}
+
 const contentStats = computed(() => {
   const text = quillEditor?.getText()?.trim() || currentCreation.value?.output_content?.replace(/<[^>]*>/g, '').trim() || currentCreation.value?.content?.replace(/<[^>]*>/g, '').trim() || ''
   const wordCount = text.replace(/\s+/g, '').length
@@ -215,6 +251,7 @@ const handleGenerate = async () => {
       tool_type: toolType.value,
       params: { ...formData },
       ai_model_id: selectedModel.value,
+      enabled_plugins: selectedPlugins.value.length > 0 ? selectedPlugins.value : undefined,
     })
     currentCreation.value = res
     if (quillEditor) {
@@ -384,6 +421,27 @@ onMounted(() => {
 
     .model-card {
       margin-top: 20px;
+    }
+
+    .plugin-card {
+      margin-top: 16px;
+
+      .plugin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .plugin-selector-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .plugin-hint {
+          font-size: 13px;
+          color: #999;
+        }
+      }
     }
 
     .tips-card {
