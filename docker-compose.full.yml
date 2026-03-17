@@ -89,6 +89,19 @@ services:
       - ai-creator-network
     command: celery -A app.core.celery_app worker --loglevel=info
 
+  # 前端Nginx服务
+  frontend-nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.nginx
+    container_name: ai-creator-frontend
+    ports:
+      - "8080:80"  # 外部端口8080 → 容器端口80
+    depends_on:
+      - backend
+    networks:
+      - ai-creator-network
+
 volumes:
   mysql_data:
   redis_data:

@@ -1,0 +1,32 @@
+# 多阶段构建：前端 + Nginx
+# 阶段1：构建前端静态文件
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# 复制依赖文件
+COPY package*.json ./
+
+# 安装依赖（使用淘宝镜像加速）
+RUN npm config set registry https://registry.npmmirror.com && npm ci --only=production
+
+# 复制源码
+COPY . .
+
+# 构建生产版本
+RUN npm run build
+
+# 阶段2：Nginx + 静态文件
+FROM nginx:alpine
+
+# 复制前端构建产物
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# 复制Nginx配置
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# 暴露端口
+EXPOSE 80
+
+# 启动Nginx
+CMD ["nginx", "-g", "daemon off;"]
