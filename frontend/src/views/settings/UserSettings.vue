@@ -57,6 +57,14 @@
               <el-table-column prop="name" label="模型名称" />
               <el-table-column prop="provider" label="提供商" />
               <el-table-column prop="model_name" label="模型" />
+              <el-table-column label="能力" min-width="180">
+                <template #default="{ row }">
+                  <el-tag v-for="cap in (row.capabilities || [])" :key="cap" size="small" style="margin-right: 4px">
+                    {{ capabilityLabels[cap] || cap }}
+                  </el-tag>
+                  <span v-if="!row.capabilities?.length" style="color: #909399">未设置</span>
+                </template>
+              </el-table-column>
               <el-table-column label="状态">
                 <template #default="{ row }">
                   <el-tag :type="row.is_active ? 'success' : 'info'">
@@ -99,6 +107,14 @@
         <el-form-item label="模型标识">
           <el-input v-model="modelForm.model_name" placeholder="例如：gpt-4-turbo-preview" />
         </el-form-item>
+        <el-form-item label="模型能力">
+          <el-checkbox-group v-model="modelForm.capabilities">
+            <el-checkbox label="text">文本生成</el-checkbox>
+            <el-checkbox label="image">图片生成</el-checkbox>
+            <el-checkbox label="video">视频生成</el-checkbox>
+            <el-checkbox label="audio">音频生成</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="modelForm.is_active" />
         </el-form-item>
@@ -117,10 +133,18 @@ import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { updateUserInfo, changePassword } from '@/api/auth'
 import { getAIModels, addAIModel, updateAIModel, deleteAIModel } from '@/api/models'
-import type { AIModel } from '@/types'
+import type { AIModel, ModelCapability } from '@/types'
 
 const userStore = useUserStore()
 const activeTab = ref('profile')
+
+// 能力标签映射
+const capabilityLabels: Record<string, string> = {
+  text: '文本',
+  image: '图片',
+  video: '视频',
+  audio: '音频',
+}
 
 const profileForm = reactive({ username: '', email: '', phone: '' })
 
@@ -154,6 +178,7 @@ const modelForm = reactive({
   api_base: '',
   model_name: '',
   is_active: true,
+  capabilities: [] as ModelCapability[],
 })
 
 const loadUserInfo = () => {
@@ -193,7 +218,9 @@ const changePasswordHandler = async () => {
 
 const loadModels = async () => {
   try {
-    models.value = await getAIModels()
+    const res = await getAIModels()
+    // res 直接就是数组，响应拦截器已返回 response.data
+    models.value = Array.isArray(res) ? res : (res.data || [])
   } catch {
     ElMessage.error('加载AI模型失败')
   }
@@ -207,6 +234,7 @@ const showAddModelDialog = () => {
   modelForm.api_base = ''
   modelForm.model_name = ''
   modelForm.is_active = true
+  modelForm.capabilities = ['text']
   modelDialogVisible.value = true
 }
 
@@ -214,10 +242,11 @@ const editModel = (model: AIModel) => {
   modelForm.id = model.id
   modelForm.name = model.name
   modelForm.provider = model.provider
-  modelForm.api_key = model.api_key
+  modelForm.api_key = ''
   modelForm.api_base = model.api_base || ''
   modelForm.model_name = model.model_name
   modelForm.is_active = model.is_active
+  modelForm.capabilities = model.capabilities || ['text']
   modelDialogVisible.value = true
 }
 

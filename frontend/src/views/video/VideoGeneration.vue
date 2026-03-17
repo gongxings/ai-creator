@@ -4,7 +4,7 @@
       <div class="header-content">
         <div>
           <h2>AI视频生成</h2>
-          <p class="subtitle">仅支持 API Key 模式</p>
+          <p class="subtitle">选择支持视频生成的模型</p>
         </div>
       </div>
     </el-card>
@@ -18,6 +18,22 @@
               <el-button type="primary" :loading="generating" @click="generateVideo">生成视频</el-button>
             </div>
           </template>
+
+          <el-form label-position="top">
+            <el-form-item label="选择模型" required>
+              <el-select v-model="selectedModelId" placeholder="请选择视频生成模型" style="width: 100%">
+                <el-option
+                  v-for="model in videoModels"
+                  :key="model.id"
+                  :label="`${model.name} (${model.provider})`"
+                  :value="model.id"
+                />
+              </el-select>
+              <div v-if="!videoModels.length" class="model-hint">
+                暂无可用的视频生成模型，请先在 <router-link to="/settings">设置</router-link> 中添加支持视频生成的模型
+              </div>
+            </el-form-item>
+          </el-form>
 
           <el-tabs v-model="activeTab">
             <el-tab-pane label="文本生成视频" name="text">
@@ -63,10 +79,6 @@
               </el-form>
             </el-tab-pane>
           </el-tabs>
-
-          <el-alert type="info" title="API Key 模式" :closable="false">
-            <p>已移除 Cookie 授权模式，请在设置中配置可用模型 API Key。</p>
-          </el-alert>
         </el-card>
       </el-col>
 
@@ -91,11 +103,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 import type { UploadFile } from 'element-plus'
 import request from '@/api/request'
+import { getAIModels } from '@/api/models'
+import type { AIModel } from '@/types'
 
 interface TextForm { prompt: string; duration: number; aspect_ratio: string; style: string }
 interface ImageForm { image: File | null; motion_prompt: string; duration: number; image_data_url?: string }
@@ -104,10 +118,25 @@ interface VideoTask { id: string; status: 'processing' | 'completed' | 'failed';
 const activeTab = ref('text')
 const generating = ref(false)
 const currentTask = ref<VideoTask | null>(null)
+const videoModels = ref<AIModel[]>([])
+const selectedModelId = ref<number | undefined>(undefined)
 let pollTimer: number | null = null
 
 const textForm = reactive<TextForm>({ prompt: '', duration: 10, aspect_ratio: '16:9', style: 'realistic' })
 const imageForm = reactive<ImageForm>({ image: null, motion_prompt: '', duration: 5 })
+
+const loadVideoModels = async () => {
+  try {
+    const res = await getAIModels('video')
+    videoModels.value = Array.isArray(res) ? res : (res as any).data || []
+    // 默认选择第一个模型
+    if (videoModels.value.length && !selectedModelId.value) {
+      selectedModelId.value = videoModels.value[0].id
+    }
+  } catch {
+    ElMessage.error('加载视频模型失败')
+  }
+}
 
 const readFileAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -123,6 +152,10 @@ const handleImageChange = async (file: UploadFile) => {
 }
 
 const generateVideo = async () => {
+  if (!selectedModelId.value) {
+    ElMessage.warning('请选择模型')
+    return
+  }
   if (activeTab.value === 'text' && !textForm.prompt.trim()) {
     ElMessage.warning('请输入视频描述')
     return
@@ -137,11 +170,13 @@ const generateVideo = async () => {
     const response =
       activeTab.value === 'text'
         ? await request.post('/v1/video/text-to-video', {
+            model_id: selectedModelId.value,
             text: textForm.prompt,
             background_music: false,
             subtitle: true,
           })
         : await request.post('/v1/video/image-to-video', {
+            model_id: selectedModelId.value,
             images: imageForm.image_data_url ? [imageForm.image_data_url] : [],
             transition: 'fade',
             duration_per_image: imageForm.duration,
@@ -178,6 +213,10 @@ const startPolling = () => {
   }, 3000)
 }
 
+onMounted(() => {
+  loadVideoModels()
+})
+
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer)
 })
@@ -189,4 +228,6 @@ onUnmounted(() => {
 .subtitle { margin: 4px 0 0; color: #909399; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .video-element { width: 100%; border-radius: 8px; }
+.model-hint { margin-top: 8px; color: #909399; font-size: 12px; }
+.model-hint a { color: var(--el-color-primary); }
 </style>

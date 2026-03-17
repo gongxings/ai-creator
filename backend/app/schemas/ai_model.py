@@ -2,7 +2,7 @@
 AI模型配置的Pydantic模型
 """
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -14,6 +14,7 @@ class AIModelBase(BaseModel):
     base_url: Optional[str] = Field(None, description="API基础URL")
     is_active: bool = Field(True, description="是否启用")
     description: Optional[str] = Field(None, description="模型描述")
+    capabilities: List[str] = Field(default=["text"], description="模型能力列表(text/image/video/audio)")
 
 
 class AIModelCreate(AIModelBase):
@@ -30,6 +31,7 @@ class AIModelUpdate(BaseModel):
     base_url: Optional[str] = Field(None, description="API基础URL")
     is_active: Optional[bool] = Field(None, description="是否启用")
     description: Optional[str] = Field(None, description="模型描述")
+    capabilities: Optional[List[str]] = Field(None, description="模型能力列表(text/image/video/audio)")
 
 
 class AIModelResponse(AIModelBase):
@@ -37,6 +39,7 @@ class AIModelResponse(AIModelBase):
     id: int
     user_id: int
     is_default: bool
+    capabilities: List[str] = Field(default=["text"], description="模型能力列表")
     created_at: datetime
     updated_at: datetime
     

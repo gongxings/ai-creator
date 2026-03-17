@@ -53,6 +53,8 @@ export interface TokenResponse {
 }
 
 // AI模型相关
+export type ModelCapability = 'text' | 'image' | 'video' | 'audio'
+
 export interface AIModel {
   id: number
   name: string
@@ -62,16 +64,20 @@ export interface AIModel {
   is_default: boolean
   is_active: boolean
   description?: string
+  capabilities: ModelCapability[]
 }
 
 export interface AIModelForm {
+  id?: number
   name: string
   provider: string
   model_name: string
   api_key: string
   api_base?: string
   is_default?: boolean
+  is_active?: boolean
   description?: string
+  capabilities: ModelCapability[]
 }
 
 // 创作相关

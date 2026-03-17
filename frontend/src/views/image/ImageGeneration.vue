@@ -1,14 +1,27 @@
-﻿<template>
+<template>
   <div class="image-generation">
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>AI 图片生成（API Key）</span>
+          <span>AI 图片生成</span>
           <el-button type="primary" :loading="generating" @click="handleGenerate">生成</el-button>
         </div>
       </template>
 
       <el-form :model="form" label-position="top">
+        <el-form-item label="选择模型" required>
+          <el-select v-model="form.model_id" placeholder="请选择图片生成模型" style="width: 100%">
+            <el-option
+              v-for="model in imageModels"
+              :key="model.id"
+              :label="`${model.name} (${model.provider})`"
+              :value="model.id"
+            />
+          </el-select>
+          <div v-if="!imageModels.length" class="model-hint">
+            暂无可用的图片生成模型，请先在 <router-link to="/settings">设置</router-link> 中添加支持图片生成的模型
+          </div>
+        </el-form-item>
         <el-form-item label="提示词" required>
           <el-input v-model="form.prompt" type="textarea" :rows="5" maxlength="2000" show-word-limit />
         </el-form-item>
@@ -30,8 +43,6 @@
           </el-col>
         </el-row>
       </el-form>
-
-      <el-alert type="info" :closable="false" title="已移除 Cookie 授权生成模式，仅保留 API Key 模式" />
     </el-card>
 
     <el-card style="margin-top: 16px">
@@ -52,24 +63,45 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '@/api/request'
+import { getAIModels } from '@/api/models'
+import type { AIModel } from '@/types'
 
 const generating = ref(false)
 const refreshing = ref(false)
 const taskId = ref('')
 const taskStatus = ref('')
 const images = ref<string[]>([])
+const imageModels = ref<AIModel[]>([])
 
 const form = reactive({
+  model_id: undefined as number | undefined,
   prompt: '',
   width: 1024,
   height: 1024,
   num_images: 1,
 })
 
+const loadImageModels = async () => {
+  try {
+    const res = await getAIModels('image')
+    imageModels.value = Array.isArray(res) ? res : (res as any).data || []
+    // 默认选择第一个模型
+    if (imageModels.value.length && !form.model_id) {
+      form.model_id = imageModels.value[0].id
+    }
+  } catch {
+    ElMessage.error('加载图片模型失败')
+  }
+}
+
 const handleGenerate = async () => {
+  if (!form.model_id) {
+    ElMessage.warning('请选择模型')
+    return
+  }
   if (!form.prompt.trim()) {
     ElMessage.warning('请输入提示词')
     return
@@ -78,6 +110,7 @@ const handleGenerate = async () => {
   generating.value = true
   try {
     const res = await request.post('/v1/image/generate', {
+      model_id: form.model_id,
       prompt: form.prompt,
       width: form.width,
       height: form.height,
@@ -107,9 +140,15 @@ const refreshTask = async () => {
     refreshing.value = false
   }
 }
+
+onMounted(() => {
+  loadImageModels()
+})
 </script>
 
 <style scoped>
 .image-generation { padding: 20px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
+.model-hint { margin-top: 8px; color: #909399; font-size: 12px; }
+.model-hint a { color: var(--el-color-primary); }
 </style>

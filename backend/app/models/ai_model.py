@@ -1,7 +1,7 @@
 """
 AI模型配置数据模型
 """
-from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, DateTime, Enum, BigInteger
+from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, DateTime, Enum, BigInteger, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -41,6 +41,7 @@ class AIModel(Base):
     is_default = Column(Boolean, default=False, comment="是否为默认模型")
     is_active = Column(Boolean, default=True, comment="是否启用")
     description = Column(Text, nullable=True, comment="模型描述")
+    capabilities = Column(JSON, default=["text"], comment="模型能力列表(text/image/video/audio)")
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
     

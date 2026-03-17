@@ -1,9 +1,11 @@
 import request from './request'
-import type { AIModel, AIModelForm, AvailableModel, ChatRequest, ChatResponse } from '@/types'
+import type { AIModel, AIModelForm, AvailableModel, ChatRequest, ChatResponse, ModelCapability } from '@/types'
 
 // 获取AI模型列表
-export function getAIModels() {
-  return request.get<AIModel[]>('/v1/models')
+export function getAIModels(capability?: ModelCapability) {
+  return request.get<AIModel[]>('/v1/models', {
+    params: capability ? { capability } : {}
+  })
 }
 
 // 获取可用模型列表（包括OAuth和API Key模型）

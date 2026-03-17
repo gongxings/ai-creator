@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Upload, RefreshRight, MagicStick, Download } from '@element-plus/icons-vue'
@@ -366,7 +366,8 @@ const handleExport = () => {
 const loadModels = async () => {
   try {
     const res = await getAIModels()
-    aiModels.value = res.data || []
+    // res 直接就是数组，响应拦截器已返回 response.data
+    aiModels.value = Array.isArray(res) ? res : (res.data || [])
     if (aiModels.value.length > 0) {
       selectedModel.value = aiModels.value[0].id
     }

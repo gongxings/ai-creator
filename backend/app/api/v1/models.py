@@ -1,8 +1,8 @@
 """
 AI模型管理API
 """
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -23,15 +23,25 @@ router = APIRouter()
 
 @router.get("", response_model=List[AIModelResponse])
 async def get_models(
+    capability: Optional[str] = Query(None, description="按能力筛选(text/image/video/audio)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
     获取AI模型列表
     
-    返回用户配置的所有AI模型
+    返回用户配置的所有AI模型，可按能力筛选
+    
+    - **capability**: 可选，筛选支持指定能力的模型 (text/image/video/audio)
     """
-    models = db.query(AIModel).filter(AIModel.user_id == current_user.id).all()
+    query = db.query(AIModel).filter(AIModel.user_id == current_user.id)
+    
+    if capability:
+        # 筛选包含指定能力的模型
+        # JSON 字段查询，MySQL 使用 JSON_CONTAINS
+        query = query.filter(AIModel.capabilities.contains([capability]))
+    
+    models = query.all()
     return models
 
 
