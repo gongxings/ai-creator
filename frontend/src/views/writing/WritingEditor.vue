@@ -410,11 +410,14 @@ onMounted(async () => {
 .writing-editor {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  padding: 20px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 36%);
 
   .editor-hero {
-    padding: 22px 24px;
+    padding: 24px 28px;
     border-radius: 14px;
     background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
 
@@ -441,6 +444,10 @@ onMounted(async () => {
       padding: 16px 24px;
     }
 
+    :deep(.el-card__body) {
+      padding: 24px;
+    }
+
     .card-header {
       display: flex;
       justify-content: space-between;
@@ -462,6 +469,8 @@ onMounted(async () => {
   }
 
   .input-section {
+    padding-right: 12px;
+
     h3 {
       margin-bottom: 16px;
       font-size: 16px;
@@ -518,6 +527,8 @@ onMounted(async () => {
   }
 
   .preview-section {
+    padding-left: 12px;
+
     .preview-header {
       display: flex;
       justify-content: space-between;
@@ -545,7 +556,7 @@ onMounted(async () => {
     }
 
     .empty-preview {
-      min-height: 400px;
+      min-height: 450px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -558,12 +569,15 @@ onMounted(async () => {
       border: 1px solid #dbe3ef;
       border-radius: 10px;
       overflow: hidden;
+      min-height: 450px;
 
       :deep(.md-editor) {
         --md-bk-color: #fff;
+        min-height: 450px;
 
         .md-editor-toolbar {
           border-bottom: 1px solid #e5e7eb;
+          padding: 8px 12px;
         }
 
         .md-editor-content {
@@ -572,6 +586,7 @@ onMounted(async () => {
               font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
               font-size: 14px;
               line-height: 1.75;
+              padding: 16px;
             }
           }
 
@@ -579,6 +594,7 @@ onMounted(async () => {
             .md-editor-preview {
               font-size: 15px;
               line-height: 1.8;
+              padding: 16px;
 
               h1 {
                 font-size: 24px;
@@ -617,16 +633,78 @@ onMounted(async () => {
 
 @media (max-width: 992px) {
   .writing-editor {
+    padding: 16px;
+
     .editor-hero {
-      padding: 18px;
+      padding: 18px 20px;
 
       h1 {
         font-size: 22px;
       }
     }
 
+    .editor-card {
+      :deep(.el-card__body) {
+        padding: 16px;
+      }
+    }
+
     .input-section {
+      padding-right: 0;
       margin-bottom: 24px;
+    }
+
+    .preview-section {
+      padding-left: 0;
+
+      .content-editor {
+        min-height: 350px;
+
+        :deep(.md-editor) {
+          min-height: 350px;
+        }
+      }
+
+      .empty-preview {
+        min-height: 350px;
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .writing-editor {
+    padding: 12px;
+    gap: 16px;
+
+    .editor-hero {
+      padding: 16px;
+
+      h1 {
+        font-size: 20px;
+      }
+
+      p {
+        font-size: 14px;
+      }
+    }
+
+    .editor-card {
+      :deep(.el-card__header) {
+        padding: 12px 16px;
+      }
+
+      :deep(.el-card__body) {
+        padding: 12px;
+      }
+
+      .card-header {
+        .header-left {
+          h2 {
+            font-size: 16px;
+          }
+        }
+      }
     }
   }
 }
