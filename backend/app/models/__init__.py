@@ -20,6 +20,7 @@ from app.models.api_key import APIKey, APIKeyUsageLog
 from app.models.plugin import (
     PluginMarket, UserPlugin, CreationPluginSelection, PluginInvocation, PluginReview
 )
+from app.models.template import ArticleTemplate
 
 __all__ = [
     # User models
@@ -82,4 +83,7 @@ __all__ = [
     "CreationPluginSelection",
     "PluginInvocation",
     "PluginReview",
+    
+    # Template models
+    "ArticleTemplate",
 ]

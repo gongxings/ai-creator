@@ -19,7 +19,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, plugins
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, plugins, templates
 from app.api import openapi_proxy
 
 # 配置日志
@@ -242,6 +242,12 @@ app.include_router(
     plugins.router,
     prefix=f"{settings.API_V1_PREFIX}/plugins",
     tags=["插件系统"]
+)
+
+app.include_router(
+    templates.router,
+    prefix=f"{settings.API_V1_PREFIX}/templates",
+    tags=["文章模板"]
 )
 
 # OpenAPI代理路由（兼容OpenAI格式）

@@ -42,6 +42,10 @@
             <el-icon><Upload /></el-icon>
             <span>发布管理</span>
           </el-menu-item>
+          <el-menu-item v-if="userStore.isLoggedIn" index="/templates">
+            <el-icon><Files /></el-icon>
+            <span>模板管理</span>
+          </el-menu-item>
           <el-sub-menu v-if="userStore.isLoggedIn" index="/credit">
             <template #title>
               <el-icon><Wallet /></el-icon>
@@ -152,6 +156,7 @@ import {
   DataAnalysis,
   Connection,
   Key,
+  Files,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 
@@ -165,6 +170,7 @@ const activeMenu = computed(() => {
   if (path.startsWith('/writing')) return '/writing'
   if (path.startsWith('/credit')) return '/credit'
   if (path.startsWith('/operation')) return '/operation'
+  if (path.startsWith('/templates')) return '/templates'
   if (path === '/history') return '/history'
   if (path === '/publish') return '/publish'
   return path

@@ -100,7 +100,7 @@
         <el-col :xs="24" :lg="14">
           <div class="preview-section">
             <div class="preview-header">
-              <h3>内容预览</h3>
+              <h3>内容编辑</h3>
               <div class="preview-meta" v-if="currentCreation">
                 <el-tag size="small" effect="plain">字数：{{ contentStats.wordCount }}</el-tag>
                 <el-tag size="small" effect="plain">预计阅读：{{ contentStats.readingMinutes }} 分钟</el-tag>
@@ -114,8 +114,16 @@
             <div v-if="!currentCreation" class="empty-preview">
               <el-empty description="请填写信息并点击生成按钮" />
             </div>
-            <div v-else class="content-preview">
-              <div ref="editorRef" class="editor-container"></div>
+            <div v-else class="content-editor">
+              <MdEditor
+                v-model="markdownContent"
+                :theme="editorTheme"
+                :preview="true"
+                :toolbars="toolbars"
+                :footers="[]"
+                @onChange="handleContentChange"
+                style="height: 600px"
+              />
             </div>
           </div>
         </el-col>
@@ -158,12 +166,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Upload, RefreshRight, MagicStick, Download } from '@element-plus/icons-vue'
-import Quill from 'quill'
-import 'quill/dist/quill.snow.css'
+import { MdEditor, type ToolbarNames } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
 import { generateContent, regenerateContent, optimizeContent } from '@/api/writing'
 import { publishContent } from '@/api/publish'
 import { getAIModels } from '@/api/models'
@@ -197,8 +205,38 @@ const formRef = ref()
 const formData = reactive({ topic: '', keywords: '', style: 'professional' })
 const aiModels = ref<AIModel[]>([])
 const selectedModel = ref<number>()
-const editorRef = ref<HTMLElement>()
-let quillEditor: Quill | null = null
+
+// Markdown 编辑器相关
+const markdownContent = ref('')
+const editorTheme = ref<'light' | 'dark'>('light')
+const toolbars: ToolbarNames[] = [
+  'bold',
+  'underline',
+  'italic',
+  'strikeThrough',
+  '-',
+  'title',
+  'sub',
+  'sup',
+  'quote',
+  'unorderedList',
+  'orderedList',
+  'task',
+  '-',
+  'codeRow',
+  'code',
+  'link',
+  'image',
+  'table',
+  '-',
+  'revoke',
+  'next',
+  '=',
+  'preview',
+  'htmlPreview',
+  'catalog',
+]
+
 const currentCreation = ref<Creation>()
 const generating = ref(false)
 const optimizing = ref(false)
@@ -216,27 +254,16 @@ const onPluginSelectionChange = (plugins: string[]) => {
 }
 
 const contentStats = computed(() => {
-  const text = quillEditor?.getText()?.trim() || currentCreation.value?.output_content?.replace(/<[^>]*>/g, '').trim() || currentCreation.value?.content?.replace(/<[^>]*>/g, '').trim() || ''
+  // 从 Markdown 内容计算统计信息
+  const text = markdownContent.value.replace(/[#*`\[\]()_~>-]/g, '').trim()
   const wordCount = text.replace(/\s+/g, '').length
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 300))
   return { wordCount, readingMinutes }
 })
 
-const initEditor = () => {
-  if (editorRef.value && !quillEditor) {
-    quillEditor = new Quill(editorRef.value, {
-      theme: 'snow',
-      modules: {
-        toolbar: [
-          [{ header: [1, 2, 3, false] }],
-          ['bold', 'italic', 'underline'],
-          [{ list: 'ordered' }, { list: 'bullet' }],
-          ['link', 'image'],
-          ['clean']
-        ]
-      }
-    })
-  }
+const handleContentChange = (value: string) => {
+  // 可以在这里做额外处理，比如自动保存
+  console.log('Content changed, length:', value.length)
 }
 
 const handleGenerate = async () => {
@@ -254,9 +281,8 @@ const handleGenerate = async () => {
       enabled_plugins: selectedPlugins.value.length > 0 ? selectedPlugins.value : undefined,
     })
     currentCreation.value = res
-    if (quillEditor) {
-      quillEditor.root.innerHTML = res.output_content || res.content || ''
-    }
+    // 后端返回的 content 现在应该是 Markdown 格式
+    markdownContent.value = res.output_content || res.content || ''
     ElMessage.success('生成成功')
   } catch (error: any) {
     ElMessage.error(error.message || '生成失败')
@@ -271,9 +297,7 @@ const handleRegenerate = async () => {
   try {
     const res = await regenerateContent(currentCreation.value.id)
     currentCreation.value = res
-    if (quillEditor) {
-      quillEditor.root.innerHTML = res.output_content || res.content || ''
-    }
+    markdownContent.value = res.output_content || res.content || ''
     ElMessage.success('重新生成成功')
   } catch (error: any) {
     ElMessage.error(error.message || '重新生成失败')
@@ -293,9 +317,7 @@ const handleOptimize = async () => {
       optimize_types: optimizeTypes.value
     })
     currentCreation.value = res
-    if (quillEditor) {
-      quillEditor.root.innerHTML = res.output_content || res.content || ''
-    }
+    markdownContent.value = res.output_content || res.content || ''
     showOptimizeDialog.value = false
     ElMessage.success('优化成功')
   } catch (error: any) {
@@ -328,12 +350,13 @@ const handlePublish = async () => {
 
 const handleExport = () => {
   if (!currentCreation.value) return
-  const htmlContent = quillEditor?.root?.innerHTML || currentCreation.value.output_content || currentCreation.value.content || ''
-  const blob = new Blob([htmlContent], { type: 'text/html' })
+  
+  // 导出 Markdown 格式
+  const blob = new Blob([markdownContent.value], { type: 'text/markdown' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `${currentCreation.value.title || '内容'}.html`
+  a.download = `${currentCreation.value.title || '内容'}.md`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -351,7 +374,6 @@ const loadModels = async () => {
 }
 
 onMounted(() => {
-  initEditor()
   loadModels()
 })
 </script>
@@ -504,28 +526,61 @@ onMounted(() => {
       border: 1px dashed #dbe3ef;
     }
 
-    .content-preview {
-      .editor-container {
-        min-height: 500px;
-        background: #fff;
-        border: 1px solid #dbe3ef;
-        border-radius: 10px;
+    .content-editor {
+      border: 1px solid #dbe3ef;
+      border-radius: 10px;
+      overflow: hidden;
 
-        :deep(.ql-toolbar.ql-snow) {
-          border: none;
+      :deep(.md-editor) {
+        --md-bk-color: #fff;
+
+        .md-editor-toolbar {
           border-bottom: 1px solid #e5e7eb;
-          border-radius: 10px 10px 0 0;
         }
 
-        :deep(.ql-container) {
-          min-height: 450px;
-          font-size: 14px;
-          border: none;
-        }
+        .md-editor-content {
+          .md-editor-input-wrapper {
+            .md-editor-input {
+              font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+              font-size: 14px;
+              line-height: 1.75;
+            }
+          }
 
-        :deep(.ql-editor) {
-          min-height: 450px;
-          line-height: 1.75;
+          .md-editor-preview-wrapper {
+            .md-editor-preview {
+              font-size: 15px;
+              line-height: 1.8;
+
+              h1 {
+                font-size: 24px;
+                margin-bottom: 16px;
+              }
+
+              h2 {
+                font-size: 20px;
+                margin-top: 24px;
+                margin-bottom: 12px;
+              }
+
+              h3 {
+                font-size: 18px;
+                margin-top: 20px;
+                margin-bottom: 10px;
+              }
+
+              p {
+                margin-bottom: 12px;
+              }
+
+              blockquote {
+                border-left: 4px solid #409eff;
+                background: #f5f7fa;
+                padding: 12px 16px;
+                margin: 16px 0;
+              }
+            }
+          }
         }
       }
     }

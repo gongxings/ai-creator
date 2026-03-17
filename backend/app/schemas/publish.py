@@ -99,12 +99,14 @@ class PublishCreate(BaseModel):
     content_type: Optional[str] = None  # 可选，不传则从 creation 获取
     scheduled_at: Optional[datetime] = None
     title: Optional[str] = Field(None, max_length=200)
-    content: Optional[str] = None
+    content: Optional[str] = None  # 原始 Markdown 内容
+    rendered_content: Optional[str] = None  # 渲染后的 HTML 内容（前端渲染）
     cover_image: Optional[str] = Field(None, max_length=500)
     images: Optional[List[str]] = None
     video_url: Optional[str] = Field(None, max_length=500)
     tags: Optional[List[str]] = None
     location: Optional[str] = None
+    template_id: Optional[int] = None  # 文章模板ID
 
 
 class PublishUpdate(BaseModel):
@@ -124,6 +126,7 @@ class PublishRecordResponse(PublishContentBase):
     status: PublishStatus
     account_name: Optional[str] = None
     content_type: Optional[str] = None
+    rendered_content: Optional[str] = None  # 渲染后的HTML内容
     platform_post_id: Optional[str] = None
     platform_url: Optional[str] = None
     scheduled_at: Optional[datetime] = None

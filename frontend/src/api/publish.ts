@@ -60,7 +60,7 @@ export function deletePlatformAccount(id: number) {
 
 // 发布内容
 export function publishContent(data: PublishParams) {
-  return request.post<PublishRecord[]>('/v1/publish', data)
+  return request.post<PublishRecord[]>('/v1/publish/publish', data)
 }
 
 // 获取发布历史
@@ -71,6 +71,11 @@ export function getPublishHistory(params: { skip?: number; limit?: number; platf
 // 获取发布状态
 export function getPublishStatus(id: number) {
   return request.get<PublishRecord>(`/v1/publish/publish/${id}/status`)
+}
+
+// 获取发布历史详情
+export function getPublishHistoryDetail(id: number) {
+  return request.get<PublishRecord>(`/v1/publish/history/${id}`)
 }
 
 // 删除发布记录

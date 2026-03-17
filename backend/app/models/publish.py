@@ -101,7 +101,8 @@ class PublishRecord(Base):
     # 发布内容（可能经过平台适配）
     content_type = Column(String(50), comment="内容类型")
     title = Column(String(200), comment="标题")
-    content = Column(Text, comment="内容")
+    content = Column(Text, comment="原始Markdown内容")
+    rendered_content = Column(Text, comment="渲染后的HTML内容")
     cover_image = Column(String(500), comment="封面图片URL")
     media_urls = Column(JSON, comment="媒体文件URLs")
     tags = Column(JSON, comment="标签")

@@ -107,6 +107,12 @@ const routes: RouteRecordRaw[] = [
         meta: {requiresAuth: true},
       },
       {
+        path: 'templates',
+        name: 'TemplateManager',
+        component: () => import('@/views/templates/TemplateManager.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: 'plugins/market',
         name: 'PluginMarket',
         component: () => import('@/views/plugins/Market.vue'),
@@ -155,7 +161,7 @@ const router = createRouter({
 let isShowingLoginPrompt = false
 
 // 路由守卫
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const userStore = useUserStore()
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
   const requiresAdmin = to.matched.some((record) => record.meta.requiresAdmin)

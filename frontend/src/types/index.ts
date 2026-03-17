@@ -141,9 +141,12 @@ export interface PublishRecord {
   platform: string
   status: string
   title?: string
+  content?: string
+  rendered_content?: string
   account_name?: string | null
   content_type?: string | null
   platform_url?: string
+  platform_post_id?: string
   error_message?: string
   scheduled_at?: string
   published_at?: string
@@ -157,11 +160,13 @@ export interface PublishParams {
   scheduled_at?: string
   title?: string
   content?: string
+  rendered_content?: string
   cover_image?: string
   images?: string[]
   video_url?: string
   tags?: string[]
   location?: string
+  template_id?: number
 }
 
 // 可用模型相关（仅 API Key 模型）

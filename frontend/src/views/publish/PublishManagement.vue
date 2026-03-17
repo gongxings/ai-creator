@@ -225,65 +225,89 @@
     <el-dialog
         v-model="showPublishDialog"
         title="发布内容"
-        width="800px"
+        width="1200px"
         :close-on-click-modal="false"
+        class="publish-dialog"
     >
-      <el-form :model="publishForm" :rules="publishRules" ref="publishFormRef" label-width="100px">
-        <el-form-item label="选择内容" prop="creationId">
-          <el-select
-              v-model="publishForm.creationId"
-              placeholder="请选择要发布的内容"
-              style="width: 100%"
-              @change="handleCreationChange"
-          >
-            <el-option
-                v-for="creation in creations"
-                :key="creation.id"
-                :label="creation.title"
-                :value="creation.id"
-            />
-          </el-select>
-        </el-form-item>
+      <div class="publish-dialog-content">
+        <!-- 左侧：发布设置 -->
+        <div class="publish-settings">
+          <el-form :model="publishForm" :rules="publishRules" ref="publishFormRef" label-width="100px">
+            <el-form-item label="选择内容" prop="creationId">
+              <el-select
+                  v-model="publishForm.creationId"
+                  placeholder="请选择要发布的内容"
+                  style="width: 100%"
+                  @change="handleCreationChange"
+              >
+                <el-option
+                    v-for="creation in creations"
+                    :key="creation.id"
+                    :label="creation.title"
+                    :value="creation.id"
+                />
+              </el-select>
+            </el-form-item>
 
-        <el-form-item label="发布账号" prop="accountId">
-          <el-select
-              v-model="publishForm.accountId"
-              placeholder="请选择平台账号"
-              style="width: 100%"
-          >
-            <el-option
-                v-for="account in activePlatformAccounts"
-                :key="account.id"
-                :label="`${getPlatformName(account.platform)} - ${account.account_name}`"
-                :value="account.id"
-            />
-          </el-select>
-        </el-form-item>
+            <el-form-item label="发布账号" prop="accountId">
+              <el-select
+                  v-model="publishForm.accountId"
+                  placeholder="请选择平台账号"
+                  style="width: 100%"
+              >
+                <el-option
+                    v-for="account in activePlatformAccounts"
+                    :key="account.id"
+                    :label="`${getPlatformName(account.platform)} - ${account.account_name}`"
+                    :value="account.id"
+                />
+              </el-select>
+            </el-form-item>
 
-        <el-form-item label="发布方式" prop="publishType">
-          <el-radio-group v-model="publishForm.publishType">
-            <el-radio label="immediate">立即发布</el-radio>
-            <el-radio label="scheduled">定时发布</el-radio>
-          </el-radio-group>
-        </el-form-item>
+            <el-form-item label="发布方式" prop="publishType">
+              <el-radio-group v-model="publishForm.publishType">
+                <el-radio label="immediate">立即发布</el-radio>
+                <el-radio label="scheduled">定时发布</el-radio>
+              </el-radio-group>
+            </el-form-item>
 
-        <el-form-item
-            v-if="publishForm.publishType === 'scheduled'"
-            label="发布时间"
-            prop="scheduledAt"
-        >
-          <el-date-picker
-              v-model="publishForm.scheduledAt"
-              type="datetime"
-              placeholder="请选择发布时间"
-              :disabled-date="disabledDate"
+            <el-form-item
+                v-if="publishForm.publishType === 'scheduled'"
+                label="发布时间"
+                prop="scheduledAt"
+            >
+              <el-date-picker
+                  v-model="publishForm.scheduledAt"
+                  type="datetime"
+                  placeholder="请选择发布时间"
+                  :disabled-date="disabledDate"
+              />
+            </el-form-item>
+
+            <!-- 模板选择 -->
+            <el-form-item label="排版模板">
+              <TemplateSelector
+                v-model="publishForm.templateId"
+                @change="handleTemplateChange"
+                @manage="goToTemplateManagement"
+              />
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <!-- 右侧：内容预览 -->
+        <div class="publish-preview">
+          <ContentPreview
+            v-if="selectedCreation"
+            :content="selectedCreation.output_content || selectedCreation.content || ''"
+            :template="selectedTemplate"
+            :is-markdown="true"
+            :article-title="selectedCreation.title"
+            :show-copy-button="true"
           />
-        </el-form-item>
-
-        <el-form-item label="内容预览">
-          <div class="content-preview" v-html="contentPreview"></div>
-        </el-form-item>
-      </el-form>
+          <el-empty v-else description="请选择要发布的内容" />
+        </div>
+      </div>
 
       <template #footer>
         <el-button @click="showPublishDialog = false">取消</el-button>
@@ -488,7 +512,7 @@
     <el-dialog
         v-model="showDetailDialog"
         title="发布详情"
-        width="800px"
+        width="900px"
     >
       <el-descriptions :column="2" border v-if="currentRecord">
         <el-descriptions-item label="标题">
@@ -516,7 +540,25 @@
         <el-descriptions-item label="账号名称">
           {{ currentRecord.account_name || '-' }}
         </el-descriptions-item>
+        <el-descriptions-item label="平台链接" v-if="currentRecord.platform_url">
+          <a :href="currentRecord.platform_url" target="_blank" class="platform-link">
+            查看草稿
+          </a>
+        </el-descriptions-item>
       </el-descriptions>
+      
+      <!-- 发布内容预览 -->
+      <div v-if="currentRecord?.rendered_content" class="detail-content-section">
+        <div class="section-header">
+          <span class="section-title">发布内容预览</span>
+          <el-button size="small" @click="copyRenderedContent">
+            <el-icon><DocumentCopy /></el-icon>
+            复制HTML
+          </el-button>
+        </div>
+        <div class="rendered-content-preview" v-html="currentRecord.rendered_content"></div>
+      </div>
+      <el-empty v-else-if="currentRecord && !currentRecord.rendered_content" description="暂无内容预览" />
     </el-dialog>
 
   </div>
@@ -524,9 +566,14 @@
 
 <script setup lang="ts">
 import {ref, reactive, computed, onMounted, onUnmounted} from 'vue'
+import {useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {Upload, Plus, Search} from '@element-plus/icons-vue'
+import {Upload, Plus, Search, DocumentCopy} from '@element-plus/icons-vue'
 import type {FormInstance, FormRules} from 'element-plus'
+import TemplateSelector from '@/components/TemplateSelector.vue'
+import ContentPreview from '@/components/ContentPreview.vue'
+import type { ArticleTemplate } from '@/types/template'
+import { renderForWechat } from '@/services/markdownRenderer'
 
 import {
   getPlatforms,
@@ -539,11 +586,14 @@ import {
   deletePlatformAccount,
   publishContent,
   getPublishHistory,
+  getPublishHistoryDetail,
   deletePublishRecord,
   submitPublishCookies
 } from '@/api/publish'
 
 import {getCreations} from '@/api/creations'
+
+const router = useRouter()
 
 // 状态
 const loading = ref(false)
@@ -585,6 +635,7 @@ const creations = ref([])
 // 当前记录
 const currentRecord = ref(null)
 const selectedCreation = ref<any>(null)
+const selectedTemplate = ref<ArticleTemplate | null>(null)
 
 // 内容预览
 const contentPreview = ref('')
@@ -596,6 +647,7 @@ const publishForm = reactive({
   contentType: '',
   publishType: 'immediate',
   scheduledAt: null as Date | null,
+  templateId: null as number | null,
 })
 
 // 绑定表单
@@ -799,6 +851,16 @@ const handleCreationChange = (creationId: number) => {
   }
 }
 
+// 模板选择改变
+const handleTemplateChange = (template: ArticleTemplate) => {
+  selectedTemplate.value = template
+}
+
+// 跳转到模板管理页面
+const goToTemplateManagement = () => {
+  router.push('/templates')
+}
+
 // 发布
 const handlePublish = async () => {
   if (!publishFormRef.value) return
@@ -806,6 +868,12 @@ const handlePublish = async () => {
     if (valid) {
       publishing.value = true
       try {
+        // 获取原始 Markdown 内容
+        const originalContent = selectedCreation.value?.output_content || selectedCreation.value?.content || ''
+        
+        // 使用前端渲染器生成带样式的 HTML
+        const renderedContent = renderForWechat(originalContent, selectedTemplate.value)
+        
         await publishContent({
           account_id: publishForm.accountId!,
           creation_id: publishForm.creationId!,
@@ -815,12 +883,16 @@ const handlePublish = async () => {
                   ? publishForm.scheduledAt.toISOString()
                   : undefined,
           title: selectedCreation.value?.title,
-          content: selectedCreation.value?.output_content || selectedCreation.value?.content,
+          content: originalContent,
+          rendered_content: renderedContent,
+          template_id: publishForm.templateId || undefined,
         })
         ElMessage.success('发布成功')
         showPublishDialog.value = false
         publishForm.publishType = 'immediate'
         publishForm.scheduledAt = null
+        publishForm.templateId = null
+        selectedTemplate.value = null
         loadPublishHistory()
       } catch (error: any) {
         console.error('发布失败:', error)
@@ -1114,9 +1186,46 @@ const unbindPlatform = async (platformId: number) => {
 }
 
 // 查看详情
-const viewDetail = (record: any) => {
-  currentRecord.value = record
-  showDetailDialog.value = true
+const viewDetail = async (record: any) => {
+  try {
+    // 获取完整的发布记录详情（包含 rendered_content）
+    const detail = await getPublishHistoryDetail(record.id)
+    currentRecord.value = detail
+    showDetailDialog.value = true
+  } catch (error: any) {
+    console.error('获取详情失败:', error)
+    // 降级：使用列表中的记录
+    currentRecord.value = record
+    showDetailDialog.value = true
+  }
+}
+
+// 复制渲染后的内容
+const copyRenderedContent = async () => {
+  if (!currentRecord.value?.rendered_content) {
+    ElMessage.warning('没有可复制的内容')
+    return
+  }
+  
+  try {
+    await navigator.clipboard.writeText(currentRecord.value.rendered_content)
+    ElMessage.success('HTML 已复制到剪贴板')
+  } catch (error) {
+    // 降级方案
+    const textarea = document.createElement('textarea')
+    textarea.value = currentRecord.value.rendered_content
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    try {
+      document.execCommand('copy')
+      ElMessage.success('HTML 已复制到剪贴板')
+    } catch (e) {
+      ElMessage.error('复制失败，请手动复制')
+    }
+    document.body.removeChild(textarea)
+  }
 }
 
 // 删除记录
@@ -1348,6 +1457,52 @@ onMounted(() => {
     }
   }
 
+  // 发布对话框样式
+  :deep(.publish-dialog) {
+    .el-dialog__body {
+      padding: 0;
+    }
+  }
+
+  .publish-dialog-content {
+    display: flex;
+    min-height: 600px;
+
+    .publish-settings {
+      width: 400px;
+      padding: 20px;
+      border-right: 1px solid #e4e7ed;
+      overflow-y: auto;
+
+      :deep(.template-selector) {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+    }
+
+    .publish-preview {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+
+      :deep(.content-preview) {
+        height: 100%;
+        border-radius: 0;
+
+        .preview-toolbar {
+          border-radius: 0;
+        }
+      }
+
+      .el-empty {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  }
+
   .login-info {
     margin-top: 8px;
     display: flex;
@@ -1356,6 +1511,104 @@ onMounted(() => {
 
     a {
       color: #409eff;
+    }
+  }
+
+  // 详情对话框样式
+  .platform-link {
+    color: #409eff;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .detail-content-section {
+    margin-top: 20px;
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #303133;
+      }
+    }
+
+    .rendered-content-preview {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 16px;
+      background-color: #fff;
+      border: 1px solid #e4e7ed;
+      border-radius: 8px;
+      line-height: 1.8;
+
+      :deep(h1), :deep(h2), :deep(h3) {
+        margin-top: 16px;
+        margin-bottom: 8px;
+      }
+
+      :deep(h1) {
+        font-size: 22px;
+      }
+
+      :deep(h2) {
+        font-size: 18px;
+      }
+
+      :deep(h3) {
+        font-size: 16px;
+      }
+
+      :deep(p) {
+        margin-bottom: 10px;
+      }
+
+      :deep(img) {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+      }
+
+      :deep(blockquote) {
+        margin: 12px 0;
+        padding: 10px 16px;
+        background: #f5f7fa;
+        border-left: 4px solid #409eff;
+        border-radius: 4px;
+      }
+
+      :deep(pre) {
+        background-color: #282c34;
+        color: #abb2bf;
+        padding: 12px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-size: 13px;
+      }
+
+      :deep(code) {
+        background-color: #f0f0f0;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Consolas', monospace;
+        font-size: 13px;
+      }
+
+      :deep(ul), :deep(ol) {
+        padding-left: 20px;
+        margin: 10px 0;
+      }
+
+      :deep(li) {
+        margin-bottom: 4px;
+      }
     }
   }
 }

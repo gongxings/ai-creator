@@ -716,6 +716,7 @@ async def publish_content(
 ):
     """发布内容到平台（创建草稿）"""
     from app.models.creation import Creation
+    from app.models.template import ArticleTemplate
     
     # 获取平台账号
     account = db.query(PlatformAccount).filter(
@@ -739,6 +740,19 @@ async def publish_content(
         else:
             content_type = "article"  # 默认值
     
+    # 使用前端渲染的内容，如果有 rendered_content 则使用，否则使用原始 content
+    content_to_publish = publish_data.rendered_content or publish_data.content
+    
+    # 如果有模板ID，更新模板使用次数
+    if publish_data.template_id:
+        template = db.query(ArticleTemplate).filter(
+            ArticleTemplate.id == publish_data.template_id
+        ).first()
+        
+        if template:
+            template.use_count = template.use_count + 1
+            db.commit()
+    
     try:
         if publish_data.scheduled_at:
             history = PublishRecord(
@@ -748,6 +762,8 @@ async def publish_content(
                 platform=account.platform,
                 content_type=content_type,
                 title=publish_data.title,
+                content=publish_data.content,
+                rendered_content=publish_data.rendered_content,
                 status=PublishStatus.SCHEDULED,
                 scheduled_at=publish_data.scheduled_at
             )
@@ -769,10 +785,10 @@ async def publish_content(
         # 检查Cookie有效性
         await publisher.check_cookies_or_raise(account)
         
-        # 创建草稿
+        # 创建草稿（使用前端渲染的内容）
         result = await publisher.create_draft(
             account=account,
-            content=publish_data.content,
+            content=content_to_publish,
             title=publish_data.title,
             cover_image=publish_data.cover_image,
             images=publish_data.images,
@@ -791,6 +807,8 @@ async def publish_content(
                 platform=account.platform,
                 content_type=content_type,
                 title=publish_data.title,
+                content=publish_data.content,
+                rendered_content=publish_data.rendered_content,
                 status=PublishStatus.FAILED,
                 error_message=result.get("message", "创建草稿失败")
             )
@@ -811,6 +829,8 @@ async def publish_content(
             platform=account.platform,
             content_type=content_type,
             title=publish_data.title,
+            content=publish_data.content,
+            rendered_content=publish_data.rendered_content,
             status=PublishStatus.SUCCESS,
             platform_post_id=result.get("draft_id"),
             platform_url=result.get("draft_url"),
@@ -932,6 +952,8 @@ async def get_publish_history_detail(
         account_name=history.platform_account.account_name if history.platform_account else None,
         content_type=history.content_type,
         title=history.title,
+        content=history.content,
+        rendered_content=history.rendered_content,
         status=history.status,
         platform_post_id=history.platform_post_id,
         platform_url=history.platform_url,
