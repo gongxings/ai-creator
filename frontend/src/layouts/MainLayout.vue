@@ -28,29 +28,23 @@
             <span>首页</span>
           </el-menu-item>
           
-          <!-- AI创作 子菜单 -->
-          <el-sub-menu index="/create">
-            <template #title>
-              <el-icon><MagicStick /></el-icon>
-              <span>AI创作</span>
-            </template>
-            <el-menu-item index="/writing">
-              <el-icon><Edit /></el-icon>
-              AI写作
-            </el-menu-item>
-            <el-menu-item index="/image">
-              <el-icon><Picture /></el-icon>
-              图片生成
-            </el-menu-item>
-            <el-menu-item index="/video">
-              <el-icon><VideoCamera /></el-icon>
-              视频生成
-            </el-menu-item>
-            <el-menu-item index="/ppt">
-              <el-icon><Document /></el-icon>
-              PPT生成
-            </el-menu-item>
-          </el-sub-menu>
+          <!-- AI创作相关 - 一级菜单 -->
+          <el-menu-item index="/writing">
+            <el-icon><Edit /></el-icon>
+            <span>AI写作</span>
+          </el-menu-item>
+          <el-menu-item index="/image">
+            <el-icon><Picture /></el-icon>
+            <span>图片生成</span>
+          </el-menu-item>
+          <el-menu-item index="/video">
+            <el-icon><VideoCamera /></el-icon>
+            <span>视频生成</span>
+          </el-menu-item>
+          <el-menu-item index="/ppt">
+            <el-icon><Document /></el-icon>
+            <span>PPT生成</span>
+          </el-menu-item>
           
           <!-- 内容管理 子菜单 (登录后显示) -->
           <el-sub-menu v-if="userStore.isLoggedIn" index="/content">
@@ -129,10 +123,10 @@
                   <el-icon><Connection /></el-icon>
                   我的插件
                 </el-dropdown-item>
-                <el-dropdown-item command="api-keys">
-                  <el-icon><Key /></el-icon>
-                  API密钥
-                </el-dropdown-item>
+<!--                <el-dropdown-item command="api-keys">-->
+<!--                  <el-icon><Key /></el-icon>-->
+<!--                  API密钥-->
+<!--                </el-dropdown-item>-->
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>
                   退出登录
@@ -184,7 +178,6 @@
       <!-- 移动端菜单 -->
       <el-menu
         :default-active="activeMenu"
-        :default-openeds="mobileMenuOpeneds"
         class="mobile-nav-menu"
         @select="handleMobileMenuSelect"
       >
@@ -193,28 +186,23 @@
           <span>首页</span>
         </el-menu-item>
         
-        <el-sub-menu index="/create">
-          <template #title>
-            <el-icon><MagicStick /></el-icon>
-            <span>AI创作</span>
-          </template>
-          <el-menu-item index="/writing">
-            <el-icon><Edit /></el-icon>
-            AI写作
-          </el-menu-item>
-          <el-menu-item index="/image">
-            <el-icon><Picture /></el-icon>
-            图片生成
-          </el-menu-item>
-          <el-menu-item index="/video">
-            <el-icon><VideoCamera /></el-icon>
-            视频生成
-          </el-menu-item>
-          <el-menu-item index="/ppt">
-            <el-icon><Document /></el-icon>
-            PPT生成
-          </el-menu-item>
-        </el-sub-menu>
+        <!-- AI创作相关 - 一级菜单 -->
+        <el-menu-item index="/writing">
+          <el-icon><Edit /></el-icon>
+          <span>AI写作</span>
+        </el-menu-item>
+        <el-menu-item index="/image">
+          <el-icon><Picture /></el-icon>
+          <span>图片生成</span>
+        </el-menu-item>
+        <el-menu-item index="/video">
+          <el-icon><VideoCamera /></el-icon>
+          <span>视频生成</span>
+        </el-menu-item>
+        <el-menu-item index="/ppt">
+          <el-icon><Document /></el-icon>
+          <span>PPT生成</span>
+        </el-menu-item>
         
         <template v-if="userStore.isLoggedIn">
           <el-sub-menu index="/content">
@@ -266,10 +254,10 @@
               <el-icon><Connection /></el-icon>
               我的插件
             </el-menu-item>
-            <el-menu-item index="/settings/api-keys">
-              <el-icon><Key /></el-icon>
-              API密钥
-            </el-menu-item>
+<!--            <el-menu-item index="/settings/api-keys">-->
+<!--              <el-icon><Key /></el-icon>-->
+<!--              API密钥-->
+<!--            </el-menu-item>-->
           </el-menu-item-group>
         </template>
       </el-menu>
@@ -323,7 +311,6 @@ import {
   Key,
   Files,
   Menu,
-  MagicStick,
   FolderOpened,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
@@ -334,9 +321,6 @@ const userStore = useUserStore()
 
 // 移动端菜单状态
 const showMobileMenu = ref(false)
-
-// 移动端菜单默认展开项
-const mobileMenuOpeneds = ['/create']
 
 const activeMenu = computed(() => {
   const path = route.path
