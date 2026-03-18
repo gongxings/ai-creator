@@ -1,0 +1,98 @@
+/**
+ * 热点追踪 API
+ */
+import request from './request'
+
+// 热点条目
+export interface HotspotItem {
+  title: string
+  url?: string
+  hot?: number
+  index?: number
+  mobile_url?: string
+}
+
+// 热点列表响应
+export interface HotspotListResponse {
+  platform: string
+  platform_name: string
+  update_time?: string
+  items: HotspotItem[]
+}
+
+// 平台信息
+export interface PlatformInfo {
+  code: string
+  name: string
+  icon?: string
+  color?: string
+}
+
+// 平台列表响应
+export interface PlatformListResponse {
+  platforms: PlatformInfo[]
+}
+
+// 选题建议请求
+export interface TopicSuggestRequest {
+  hot_title: string
+  user_domain?: string
+  target_platforms?: string[]
+}
+
+// 创作角度
+export interface WritingAngle {
+  angle: string
+  title_suggestion: string
+  content_direction: string
+  recommended_tools: string[]
+  target_audience: string
+}
+
+// 选题建议响应
+export interface TopicSuggestResponse {
+  hot_title: string
+  background: string
+  angles: WritingAngle[]
+  keywords: string[]
+}
+
+/**
+ * 获取支持的热点平台列表
+ */
+export function getPlatforms() {
+  return request.get<PlatformListResponse>('/v1/hotspot/platforms')
+}
+
+/**
+ * 获取指定平台的热点列表
+ * @param platform 平台代码
+ * @param limit 返回数量
+ */
+export function getHotList(platform: string, limit: number = 20) {
+  return request.get<HotspotListResponse>('/v1/hotspot/list', {
+    params: { platform, limit },
+  })
+}
+
+/**
+ * 获取多个平台的热点列表
+ * @param platforms 平台代码数组
+ * @param limit 每个平台返回数量
+ */
+export function getMultiPlatformHotList(platforms: string[], limit: number = 10) {
+  return request.get<HotspotListResponse[]>('/v1/hotspot/multi', {
+    params: {
+      platforms: platforms.join(','),
+      limit,
+    },
+  })
+}
+
+/**
+ * 获取 AI 选题建议
+ * @param data 选题建议请求
+ */
+export function getTopicSuggestions(data: TopicSuggestRequest) {
+  return request.post<TopicSuggestResponse>('/v1/hotspot/suggest', data)
+}

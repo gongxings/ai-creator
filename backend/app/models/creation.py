@@ -93,6 +93,19 @@ class Creation(Base):
     
     is_favorite = Column(Boolean, nullable=False, default=False, comment="是否收藏")
     
+    # 多平台转换支持
+    parent_id = Column(
+        BigInteger,
+        ForeignKey("creations.id", ondelete="SET NULL"),
+        index=True,
+        comment="父创作ID（用于多平台转换）"
+    )
+    source_platform = Column(String(50), comment="原始平台")
+    
+    # 配图支持
+    cover_image = Column(String(500), comment="封面图URL")
+    images = Column(JSON, comment="文章配图列表（JSON数组）")
+    
     extra_data = Column(JSON, comment="额外数据（JSON格式）")
     
     created_at = Column(
@@ -116,6 +129,9 @@ class Creation(Base):
     model = relationship("AIModel", back_populates="creations")
     publish_records = relationship("PublishRecord", back_populates="creation")
     plugin_invocations = relationship("PluginInvocation", back_populates="creation")
+    
+    # 多平台转换关系（自关联）
+    parent = relationship("Creation", remote_side=[id], backref="derived_creations")
     
     def __repr__(self):
         return f"<Creation(id={self.id}, type={self.creation_type}, status={self.status})>"

@@ -8,6 +8,9 @@
       </div>
     </section>
 
+    <!-- 热点追踪模块 -->
+    <HotspotPanel />
+
     <section class="tools-filter app-panel">
       <el-input
         v-model="searchQuery"
@@ -106,6 +109,7 @@ import {
   User,
   VideoCamera,
 } from '@element-plus/icons-vue'
+import HotspotPanel from '@/components/hotspot/HotspotPanel.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
