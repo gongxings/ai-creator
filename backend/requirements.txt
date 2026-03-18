@@ -21,6 +21,13 @@ openai==1.59.7
 anthropic==0.42.0
 dashscope==1.20.11
 zhipuai==2.1.4
+
+# LangChain 核心依赖
+langchain-core>=0.3.0
+langchain-openai>=0.2.0
+langchain-anthropic>=0.2.0
+langchain-google-genai>=2.0.0
+langchain-community>=0.3.0
 python-dotenv==1.0.1
 pyyaml==6.0.2
 cryptography==44.0.0
