@@ -11,6 +11,17 @@
     <!-- 热点追踪模块 -->
     <HotspotPanel />
 
+    <!-- 爆款模仿模块 -->
+    <section class="viral-section section-block">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Viral Content</p>
+          <h3>爆款模仿</h3>
+        </div>
+      </div>
+      <ViralAnalyzer />
+    </section>
+
     <section class="tools-filter app-panel">
       <el-input
         v-model="searchQuery"
@@ -110,6 +121,7 @@ import {
   VideoCamera,
 } from '@element-plus/icons-vue'
 import HotspotPanel from '@/components/hotspot/HotspotPanel.vue'
+import ViralAnalyzer from '@/components/viral/ViralAnalyzer.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
