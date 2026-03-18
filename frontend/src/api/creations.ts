@@ -39,3 +39,16 @@ export function deleteCreation(id: number) {
 export function getCreationVersions(id: number) {
   return request.get<any[]>(`/v1/creations/${id}/versions`)
 }
+
+// URL抓取响应
+export interface UrlFetchResponse {
+  success: boolean
+  title: string
+  content: string
+  error: string
+}
+
+// 抓取URL内容
+export function fetchUrlContent(url: string) {
+  return request.post<UrlFetchResponse>('/v1/writing/fetch-url', { url })
+}

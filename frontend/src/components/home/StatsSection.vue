@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="stats-section">
     <el-row :gutter="20">
       <el-col :xs="12" :sm="6">
@@ -42,13 +42,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Document, Calendar, Upload, Link } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { getDashboardStatistics } from '@/api/operation'
+import { onMounted, ref } from 'vue'
+import { Calendar, Document, Link, Upload } from '@element-plus/icons-vue'
 import { getCreations } from '@/api/creations'
-import { getPublishHistory } from '@/api/publish'
-import { getPlatformAccounts } from '@/api/publish'
+import { getDashboardStatistics } from '@/api/operation'
+import { getPlatformAccounts, getPublishHistory } from '@/api/publish'
 import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
@@ -61,35 +59,28 @@ const stats = ref({
 })
 
 const loadStats = async () => {
-  // 只有登录用户才加载统计数据
   if (!userStore.isLoggedIn) {
     return
   }
-  
+
   try {
-    // 加载创作统计
     const creationsResponse = await getCreations({ page: 1, page_size: 1 })
     stats.value.totalCreations = creationsResponse.total || 0
-    
-    // 加载今日创作数（从dashboard统计获取）
+
     try {
       const dashboardResponse = await getDashboardStatistics()
       stats.value.todayCreations = dashboardResponse.today?.generation_count || 0
-    } catch (error) {
-      // 如果dashboard API不可用，使用默认值
+    } catch {
       stats.value.todayCreations = 0
     }
-    
-    // 加载发布统计
+
     const publishResponse = await getPublishHistory({ skip: 0, limit: 1 })
     stats.value.published = publishResponse.total || 0
-    
-    // 加载绑定平台数
+
     const platformsResponse = await getPlatformAccounts()
     stats.value.platforms = platformsResponse.length || 0
-  } catch (error: any) {
+  } catch (error) {
     console.error('加载统计数据失败:', error)
-    // 不显示错误消息，避免干扰用户体验
   }
 }
 
@@ -100,55 +91,57 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .stats-section {
-  margin-bottom: 36px;
+  :deep(.el-row) {
+    row-gap: 18px;
+  }
 
   .stat-card {
-    text-align: center;
-    transition: all 0.3s;
-    border-radius: 14px;
-    border: 1px solid #e5e7eb;
     overflow: hidden;
+    border-radius: 22px;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(14px);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 
     &::before {
       content: '';
       display: block;
-      height: 3px;
-      background: #409eff;
+      height: 4px;
+      background: linear-gradient(90deg, #2563eb, #38bdf8);
     }
-
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 22px 40px rgba(37, 99, 235, 0.12);
+      border-color: rgba(37, 99, 235, 0.2);
     }
 
     :deep(.el-card__body) {
-      padding: 22px;
+      padding: 22px 20px;
     }
 
-    :deep(.el-statistic) {
-      .el-statistic__head {
-        font-size: 14px;
-        color: #666;
-        margin-bottom: 12px;
-        font-weight: 500;
-      }
+    :deep(.el-statistic__head) {
+      margin-bottom: 12px;
+      color: #64748b;
+      font-size: 14px;
+      font-weight: 600;
+    }
 
-      .el-statistic__content {
-        font-size: 32px;
-        font-weight: 700;
-        color: #333;
+    :deep(.el-statistic__content) {
+      color: #0f172a;
+      font-size: 32px;
+      font-weight: 700;
 
-        .el-icon {
-          color: #2563eb;
-          margin-right: 8px;
-        }
+      .el-icon {
+        margin-right: 8px;
+        color: #2563eb;
       }
     }
   }
 
   .stat-card-success::before {
-    background: linear-gradient(90deg, #22c55e, #86efac);
+    background: linear-gradient(90deg, #0f9f6e, #34d399);
   }
 
   .stat-card-warning::before {
@@ -156,23 +149,13 @@ onMounted(() => {
   }
 
   .stat-card-purple::before {
-    background: linear-gradient(90deg, #8b5cf6, #c4b5fd);
+    background: linear-gradient(90deg, #2563eb, #7dd3fc);
   }
 }
 
 @media (max-width: 768px) {
-  .stats-section {
-    :deep(.el-col) {
-      margin-bottom: 16px;
-    }
-
-    .stat-card {
-      :deep(.el-statistic) {
-        .el-statistic__content {
-          font-size: 24px;
-        }
-      }
-    }
+  .stats-section :deep(.el-statistic__content) {
+    font-size: 24px;
   }
 }
 </style>

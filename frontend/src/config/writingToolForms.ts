@@ -1,0 +1,803 @@
+/**
+ * 写作工具表单配置
+ * 14 种写作工具的动态表单定义
+ */
+
+import type { ToolFormConfig } from '@/types'
+
+// 通用的「补充说明」字段，所有工具都有
+const additionalDescriptionField = {
+  name: 'additional_description',
+  label: '补充说明',
+  type: 'textarea' as const,
+  required: false,
+  placeholder: '您可以在这里补充任何额外的要求或说明，AI 会根据这些信息生成更符合您意图的内容',
+  rows: 3,
+  maxLength: 500,
+}
+
+export const writingToolForms: Record<string, ToolFormConfig> = {
+  // 1. 公众号文章
+  wechat_article: {
+    toolType: 'wechat_article',
+    name: '公众号文章',
+    description: '面向微信生态，突出可读性与传播性',
+    fields: [
+      {
+        name: 'topic',
+        label: '文章主题',
+        type: 'input',
+        required: true,
+        placeholder: '请输入文章主题，如：如何提升工作效率',
+        maxLength: 100,
+      },
+      {
+        name: 'keywords',
+        label: '关键词',
+        type: 'input',
+        required: true,
+        placeholder: '多个关键词用逗号分隔，如：效率,时间管理,职场',
+        maxLength: 200,
+      },
+      {
+        name: 'target_audience',
+        label: '目标读者',
+        type: 'input',
+        required: false,
+        placeholder: '如：职场新人、宝妈群体、大学生',
+        defaultValue: '普通读者',
+        maxLength: 50,
+      },
+      {
+        name: 'style',
+        label: '文章风格',
+        type: 'select',
+        required: false,
+        defaultValue: '专业严谨',
+        options: [
+          { label: '专业严谨', value: '专业严谨' },
+          { label: '轻松幽默', value: '轻松幽默' },
+          { label: '情感共鸣', value: '情感共鸣' },
+          { label: '干货实用', value: '干货实用' },
+        ],
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 2. 小红书笔记
+  xiaohongshu_note: {
+    toolType: 'xiaohongshu_note',
+    name: '小红书笔记',
+    description: '适合种草与经验分享，强调标题吸引力',
+    fields: [
+      {
+        name: 'topic',
+        label: '笔记主题',
+        type: 'input',
+        required: true,
+        placeholder: '如：平价护肤好物分享、旅行攻略',
+        maxLength: 100,
+      },
+      {
+        name: 'keywords',
+        label: '关键词/标签',
+        type: 'input',
+        required: true,
+        placeholder: '多个关键词用逗号分隔，如：护肤,平价,学生党',
+        maxLength: 200,
+      },
+      {
+        name: 'note_type',
+        label: '笔记类型',
+        type: 'select',
+        required: false,
+        defaultValue: '好物分享',
+        options: [
+          { label: '好物分享', value: '好物分享' },
+          { label: '教程攻略', value: '教程攻略' },
+          { label: '测评对比', value: '测评对比' },
+          { label: '日常记录', value: '日常记录' },
+          { label: '种草安利', value: '种草安利' },
+        ],
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 3. 公文写作
+  official_document: {
+    toolType: 'official_document',
+    name: '公文写作',
+    description: '结构规范、语气正式，适用于公文场景',
+    fields: [
+      {
+        name: 'topic',
+        label: '公文主题',
+        type: 'input',
+        required: true,
+        placeholder: '如：关于开展安全生产检查的通知',
+        maxLength: 100,
+      },
+      {
+        name: 'doc_type',
+        label: '公文类型',
+        type: 'select',
+        required: false,
+        defaultValue: '通知',
+        options: [
+          { label: '通知', value: '通知' },
+          { label: '通告', value: '通告' },
+          { label: '请示', value: '请示' },
+          { label: '报告', value: '报告' },
+          { label: '函件', value: '函件' },
+          { label: '批复', value: '批复' },
+          { label: '会议纪要', value: '会议纪要' },
+          { label: '工作总结', value: '工作总结' },
+          { label: '工作计划', value: '工作计划' },
+          { label: '讲话稿', value: '讲话稿' },
+        ],
+      },
+      {
+        name: 'issuer',
+        label: '发文单位',
+        type: 'input',
+        required: false,
+        placeholder: '如：XX公司办公室',
+        defaultValue: '',
+        maxLength: 50,
+      },
+      {
+        name: 'receiver',
+        label: '收文单位',
+        type: 'input',
+        required: false,
+        placeholder: '如：各部门、各分公司',
+        defaultValue: '',
+        maxLength: 50,
+      },
+      {
+        name: 'content',
+        label: '主要内容',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入公文的主要内容要点',
+        rows: 4,
+        maxLength: 1000,
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 4. 论文写作
+  academic_paper: {
+    toolType: 'academic_paper',
+    name: '论文写作',
+    description: '提供学术风格文本草稿，便于继续完善',
+    fields: [
+      {
+        name: 'title',
+        label: '论文题目',
+        type: 'input',
+        required: true,
+        placeholder: '如：人工智能在医疗诊断中的应用研究',
+        maxLength: 200,
+      },
+      {
+        name: 'field',
+        label: '研究领域',
+        type: 'input',
+        required: false,
+        placeholder: '如：计算机科学、经济学、教育学',
+        defaultValue: '通用',
+        maxLength: 50,
+      },
+      {
+        name: 'method',
+        label: '研究方法',
+        type: 'select',
+        required: false,
+        defaultValue: '文献研究',
+        options: [
+          { label: '文献研究', value: '文献研究' },
+          { label: '实验研究', value: '实验研究' },
+          { label: '调查研究', value: '调查研究' },
+          { label: '案例分析', value: '案例分析' },
+          { label: '比较研究', value: '比较研究' },
+          { label: '定量分析', value: '定量分析' },
+          { label: '定性分析', value: '定性分析' },
+        ],
+      },
+      {
+        name: 'main_points',
+        label: '核心观点',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入论文的核心观点或主要论述内容',
+        rows: 4,
+        maxLength: 1000,
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 5. 营销文案
+  marketing_copy: {
+    toolType: 'marketing_copy',
+    name: '营销文案',
+    description: '强化卖点表达，提升转化效率',
+    fields: [
+      {
+        name: 'product',
+        label: '产品/服务',
+        type: 'input',
+        required: true,
+        placeholder: '如：智能扫地机器人、在线英语课程',
+        maxLength: 100,
+      },
+      {
+        name: 'target_customer',
+        label: '目标客户',
+        type: 'input',
+        required: false,
+        placeholder: '如：年轻白领、宝妈群体、企业主',
+        defaultValue: '目标客户',
+        maxLength: 50,
+      },
+      {
+        name: 'selling_points',
+        label: '核心卖点',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入产品的核心卖点和优势，多个卖点可换行',
+        rows: 3,
+        maxLength: 500,
+      },
+      {
+        name: 'goal',
+        label: '营销目标',
+        type: 'select',
+        required: false,
+        defaultValue: '提高销量',
+        options: [
+          { label: '提高销量', value: '提高销量' },
+          { label: '品牌曝光', value: '品牌曝光' },
+          { label: '引流获客', value: '引流获客' },
+          { label: '促销活动', value: '促销活动' },
+          { label: '新品上市', value: '新品上市' },
+        ],
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 6. 新闻稿/软文
+  news_article: {
+    toolType: 'news_article',
+    name: '新闻稿/软文',
+    description: '兼顾信息传递与品牌表达',
+    fields: [
+      {
+        name: 'topic',
+        label: '新闻主题',
+        type: 'input',
+        required: true,
+        placeholder: '如：XX公司发布全新智能产品',
+        maxLength: 100,
+      },
+      {
+        name: 'news_type',
+        label: '新闻类型',
+        type: 'select',
+        required: false,
+        defaultValue: '企业新闻稿',
+        options: [
+          { label: '企业新闻稿', value: '企业新闻稿' },
+          { label: '产品发布稿', value: '产品发布稿' },
+          { label: '行业软文', value: '行业软文' },
+          { label: '品牌软文', value: '品牌软文' },
+          { label: '活动报道', value: '活动报道' },
+        ],
+      },
+      {
+        name: 'key_info',
+        label: '关键信息',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入新闻的关键信息（5W1H：何时、何地、何人、何事、为何、如何）',
+        rows: 4,
+        maxLength: 1000,
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 7. 短视频脚本
+  video_script: {
+    toolType: 'video_script',
+    name: '短视频脚本',
+    description: '快速生成结构化脚本与镜头节奏',
+    fields: [
+      {
+        name: 'topic',
+        label: '视频主题',
+        type: 'input',
+        required: true,
+        placeholder: '如：3分钟学会做红烧肉',
+        maxLength: 100,
+      },
+      {
+        name: 'duration',
+        label: '视频时长',
+        type: 'select',
+        required: false,
+        defaultValue: '1分钟',
+        options: [
+          { label: '15秒', value: '15秒' },
+          { label: '30秒', value: '30秒' },
+          { label: '1分钟', value: '1分钟' },
+          { label: '3分钟', value: '3分钟' },
+          { label: '5分钟', value: '5分钟' },
+        ],
+      },
+      {
+        name: 'platform',
+        label: '目标平台',
+        type: 'select',
+        required: false,
+        defaultValue: '抖音',
+        options: [
+          { label: '抖音', value: '抖音' },
+          { label: '快手', value: '快手' },
+          { label: '视频号', value: '视频号' },
+          { label: 'B站', value: 'B站' },
+          { label: '小红书', value: '小红书' },
+        ],
+      },
+      {
+        name: 'style',
+        label: '视频风格',
+        type: 'select',
+        required: false,
+        defaultValue: '轻松搞笑',
+        options: [
+          { label: '轻松搞笑', value: '轻松搞笑' },
+          { label: '专业讲解', value: '专业讲解' },
+          { label: '情感故事', value: '情感故事' },
+          { label: '快节奏剪辑', value: '快节奏剪辑' },
+          { label: 'Vlog风格', value: 'Vlog风格' },
+        ],
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 8. 故事/小说
+  story_novel: {
+    toolType: 'story_novel',
+    name: '故事/小说',
+    description: '激发创意叙事，搭建情节框架',
+    fields: [
+      {
+        name: 'theme',
+        label: '故事主题',
+        type: 'input',
+        required: true,
+        placeholder: '如：一段跨越时空的爱情故事',
+        maxLength: 100,
+      },
+      {
+        name: 'genre',
+        label: '故事类型',
+        type: 'select',
+        required: false,
+        defaultValue: '现代都市',
+        options: [
+          { label: '现代都市', value: '现代都市' },
+          { label: '古代历史', value: '古代历史' },
+          { label: '科幻未来', value: '科幻未来' },
+          { label: '奇幻玄幻', value: '奇幻玄幻' },
+          { label: '悬疑推理', value: '悬疑推理' },
+          { label: '言情爱情', value: '言情爱情' },
+          { label: '儿童童话', value: '儿童童话' },
+          { label: '恐怖惊悚', value: '恐怖惊悚' },
+        ],
+      },
+      {
+        name: 'characters',
+        label: '主要角色',
+        type: 'textarea',
+        required: false,
+        placeholder: '请描述主要角色的姓名、身份、性格特点等',
+        rows: 3,
+        maxLength: 500,
+      },
+      {
+        name: 'setting',
+        label: '故事背景',
+        type: 'textarea',
+        required: false,
+        placeholder: '请描述故事发生的时间、地点、环境等',
+        rows: 3,
+        maxLength: 500,
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 9. 商业计划书
+  business_plan: {
+    toolType: 'business_plan',
+    name: '商业计划书',
+    description: '输出商业方案初稿与关键模块',
+    fields: [
+      {
+        name: 'project_name',
+        label: '项目名称',
+        type: 'input',
+        required: true,
+        placeholder: '如：智能家居物联网平台',
+        maxLength: 100,
+      },
+      {
+        name: 'industry',
+        label: '行业领域',
+        type: 'input',
+        required: false,
+        placeholder: '如：人工智能、电商、医疗健康',
+        defaultValue: '通用行业',
+        maxLength: 50,
+      },
+      {
+        name: 'business_model',
+        label: '商业模式',
+        type: 'textarea',
+        required: false,
+        placeholder: '请描述项目的商业模式和盈利方式',
+        rows: 3,
+        maxLength: 500,
+      },
+      {
+        name: 'target_market',
+        label: '目标市场',
+        type: 'textarea',
+        required: false,
+        placeholder: '请描述目标市场和客户群体',
+        rows: 3,
+        maxLength: 500,
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 10. 工作报告
+  work_report: {
+    toolType: 'work_report',
+    name: '工作报告',
+    description: '提炼工作成果，形成清晰报告结构',
+    fields: [
+      {
+        name: 'main_work',
+        label: '主要工作内容',
+        type: 'textarea',
+        required: true,
+        placeholder: '请输入本阶段完成的主要工作内容',
+        rows: 4,
+        maxLength: 1000,
+      },
+      {
+        name: 'report_type',
+        label: '报告类型',
+        type: 'select',
+        required: false,
+        defaultValue: '工作总结',
+        options: [
+          { label: '工作总结', value: '工作总结' },
+          { label: '周报', value: '周报' },
+          { label: '月报', value: '月报' },
+          { label: '年终总结', value: '年终总结' },
+          { label: '项目进度报告', value: '项目进度报告' },
+          { label: '述职报告', value: '述职报告' },
+        ],
+      },
+      {
+        name: 'period',
+        label: '报告周期',
+        type: 'select',
+        required: false,
+        defaultValue: '本月',
+        options: [
+          { label: '本周', value: '本周' },
+          { label: '本月', value: '本月' },
+          { label: '本季度', value: '本季度' },
+          { label: '本年度', value: '本年度' },
+          { label: '自定义周期', value: '自定义周期' },
+        ],
+      },
+      {
+        name: 'achievements',
+        label: '工作成果',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入取得的工作成果和亮点',
+        rows: 3,
+        maxLength: 500,
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 11. 简历/求职信
+  resume: {
+    toolType: 'resume',
+    name: '简历/求职信',
+    description: '突出优势与匹配度，提升表达质量',
+    fields: [
+      {
+        name: 'position',
+        label: '应聘职位',
+        type: 'input',
+        required: true,
+        placeholder: '如：产品经理、前端开发工程师',
+        maxLength: 50,
+      },
+      {
+        name: 'name',
+        label: '姓名',
+        type: 'input',
+        required: false,
+        placeholder: '请输入您的姓名',
+        maxLength: 20,
+      },
+      {
+        name: 'experience',
+        label: '工作经验',
+        type: 'textarea',
+        required: false,
+        placeholder: '请描述您的工作经历，包括公司、职位、主要职责和成果',
+        rows: 4,
+        maxLength: 1000,
+      },
+      {
+        name: 'education',
+        label: '教育背景',
+        type: 'textarea',
+        required: false,
+        placeholder: '请描述您的教育背景，包括学校、专业、学历',
+        rows: 2,
+        maxLength: 300,
+      },
+      {
+        name: 'skills',
+        label: '技能特长',
+        type: 'textarea',
+        required: false,
+        placeholder: '请列出您的技能特长，多个技能可用逗号分隔',
+        rows: 2,
+        maxLength: 300,
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 12. 教案/课件
+  lesson_plan: {
+    toolType: 'lesson_plan',
+    name: '教案/课件',
+    description: '生成教学目标清晰的内容骨架',
+    fields: [
+      {
+        name: 'subject',
+        label: '学科/课程',
+        type: 'input',
+        required: true,
+        placeholder: '如：语文、数学、英语、物理',
+        maxLength: 50,
+      },
+      {
+        name: 'objectives',
+        label: '教学目标',
+        type: 'textarea',
+        required: true,
+        placeholder: '请描述本节课的教学目标',
+        rows: 3,
+        maxLength: 500,
+      },
+      {
+        name: 'grade',
+        label: '年级',
+        type: 'select',
+        required: false,
+        defaultValue: '',
+        options: [
+          { label: '请选择', value: '' },
+          { label: '小学低年级(1-3)', value: '小学低年级' },
+          { label: '小学高年级(4-6)', value: '小学高年级' },
+          { label: '初中', value: '初中' },
+          { label: '高中', value: '高中' },
+          { label: '大学', value: '大学' },
+          { label: '成人培训', value: '成人培训' },
+        ],
+      },
+      {
+        name: 'duration',
+        label: '课时时长',
+        type: 'select',
+        required: false,
+        defaultValue: '45分钟',
+        options: [
+          { label: '30分钟', value: '30分钟' },
+          { label: '40分钟', value: '40分钟' },
+          { label: '45分钟', value: '45分钟' },
+          { label: '60分钟', value: '60分钟' },
+          { label: '90分钟', value: '90分钟' },
+        ],
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 13. 内容改写
+  rewrite: {
+    toolType: 'rewrite',
+    name: '改写/扩写/缩写',
+    description: '对既有内容进行定向优化与重构，支持从历史记录选择或URL抓取',
+    fields: [
+      {
+        name: 'source_creation_id',
+        label: '从历史记录选择',
+        type: 'history_select' as const,
+        required: false,
+        placeholder: '选择一条历史生成记录（可选）',
+        historyConfig: {
+          contentField: 'original_text',
+        },
+      },
+      {
+        name: 'source_url',
+        label: '或从URL抓取内容',
+        type: 'url_fetch' as const,
+        required: false,
+        placeholder: '输入网页URL，点击抓取按钮获取内容',
+        urlFetchConfig: {
+          contentField: 'original_text',
+        },
+      },
+      {
+        name: 'original_text',
+        label: '原文内容',
+        type: 'textarea' as const,
+        required: true,
+        placeholder: '请粘贴需要改写的原文内容，或从上方历史记录/URL中获取',
+        rows: 8,
+        maxLength: 10000,
+      },
+      {
+        name: 'rewrite_type',
+        label: '改写类型',
+        type: 'select' as const,
+        required: true,
+        defaultValue: '改写',
+        options: [
+          { label: '改写（换一种说法）', value: '改写' },
+          { label: '扩写（增加细节内容）', value: '扩写' },
+          { label: '缩写（提炼核心内容）', value: '缩写' },
+          { label: '润色（优化表达）', value: '润色' },
+          { label: '降重（降低重复率）', value: '降重' },
+        ],
+      },
+      {
+        name: 'target_style',
+        label: '目标风格',
+        type: 'select' as const,
+        required: false,
+        defaultValue: '通用',
+        options: [
+          { label: '通用', value: '通用' },
+          { label: '正式书面', value: '正式书面' },
+          { label: '轻松口语', value: '轻松口语' },
+          { label: '学术严谨', value: '学术严谨' },
+          { label: '商务专业', value: '商务专业' },
+        ],
+      },
+      additionalDescriptionField,
+    ],
+  },
+
+  // 14. 多语言翻译
+  translation: {
+    toolType: 'translation',
+    name: '多语言翻译',
+    description: '保留语义与风格的一致性表达',
+    fields: [
+      {
+        name: 'source_text',
+        label: '原文内容',
+        type: 'textarea',
+        required: true,
+        placeholder: '请粘贴需要翻译的原文内容',
+        rows: 6,
+        maxLength: 5000,
+      },
+      {
+        name: 'source_lang',
+        label: '源语言',
+        type: 'select',
+        required: false,
+        defaultValue: '中文',
+        options: [
+          { label: '中文', value: '中文' },
+          { label: '英文', value: '英文' },
+          { label: '日文', value: '日文' },
+          { label: '韩文', value: '韩文' },
+          { label: '法文', value: '法文' },
+          { label: '德文', value: '德文' },
+          { label: '西班牙文', value: '西班牙文' },
+          { label: '俄文', value: '俄文' },
+          { label: '自动检测', value: '自动检测' },
+        ],
+      },
+      {
+        name: 'target_lang',
+        label: '目标语言',
+        type: 'select',
+        required: false,
+        defaultValue: '英文',
+        options: [
+          { label: '中文', value: '中文' },
+          { label: '英文', value: '英文' },
+          { label: '日文', value: '日文' },
+          { label: '韩文', value: '韩文' },
+          { label: '法文', value: '法文' },
+          { label: '德文', value: '德文' },
+          { label: '西班牙文', value: '西班牙文' },
+          { label: '俄文', value: '俄文' },
+        ],
+      },
+      {
+        name: 'style',
+        label: '翻译风格',
+        type: 'select',
+        required: false,
+        defaultValue: '通用',
+        options: [
+          { label: '通用', value: '通用' },
+          { label: '正式文档', value: '正式文档' },
+          { label: '口语化', value: '口语化' },
+          { label: '商务', value: '商务' },
+          { label: '学术', value: '学术' },
+          { label: '文学', value: '文学' },
+        ],
+      },
+      additionalDescriptionField,
+    ],
+  },
+}
+
+// 获取工具表单配置
+export function getToolFormConfig(toolType: string): ToolFormConfig | undefined {
+  return writingToolForms[toolType]
+}
+
+// 获取所有工具类型列表
+export function getAllToolTypes(): string[] {
+  return Object.keys(writingToolForms)
+}
+
+// 工具类型到显示名称的映射
+export const toolTypeLabels: Record<string, string> = {
+  wechat_article: '公众号文章',
+  xiaohongshu_note: '小红书笔记',
+  official_document: '公文写作',
+  academic_paper: '论文写作',
+  marketing_copy: '营销文案',
+  news_article: '新闻稿/软文',
+  video_script: '短视频脚本',
+  story_novel: '故事/小说',
+  business_plan: '商业计划书',
+  work_report: '工作报告',
+  resume: '简历/求职信',
+  lesson_plan: '教案/课件',
+  rewrite: '改写/扩写/缩写',
+  translation: '多语言翻译',
+}

@@ -1,9 +1,11 @@
 """
 写作服务
-支持两种模式：
-1. API Key模式（传统方式）
-2. Cookie模式（通过OAuth账号使用网页版）
-3. 插件增强模式（通过插件获取实时信息）
+支持三种模式：
+1. API Key模式 - 使用 LangChain 统一调用
+2. Cookie模式 - 通过OAuth账号使用网页版
+3. 插件增强模式 - 通过插件获取实时信息
+
+已改造为使用 LangChain 统一服务，支持 16 个 AI 厂商。
 """
 from typing import Dict, Any, Optional, List
 import logging
@@ -14,7 +16,8 @@ from sqlalchemy.orm import Session
 from app.models.creation import Creation
 from app.models.ai_model import AIModel
 from app.schemas.creation import CreationCreate
-from app.services.ai import OpenAIService, AnthropicService
+# 使用新的 LangChain 服务
+from app.services.langchain import LangChainService, quick_chat
 
 logger = logging.getLogger(__name__)
 
@@ -242,41 +245,55 @@ class WritingService:
 4. 专业术语准确
 5. 语言流畅自然
 
-请直接输出翻译内容。"""
+请直接输出翻译内容。""",
+
+        "lesson_plan": """你是一位经验丰富的教学设计专家。请根据以下信息设计一份完整的教案：
+
+学科/课程：{subject}
+年级：{grade}
+课时时长：{duration}
+教学目标：{objectives}
+
+要求：
+1. 包含完整的教学环节（导入、新授、练习、总结）
+2. 明确教学目标（知识、能力、情感三维）
+3. 设计合适的教学活动和互动环节
+4. 包含板书设计或PPT要点
+5. 注明时间分配
+6. 设计课堂练习和作业布置
+7. 考虑学生的认知水平和学习特点
+
+请直接输出教案内容。"""
     }
     
     @staticmethod
-    def get_ai_service(ai_model: AIModel):
-        """根据AI模型配置获取对应的服务实例"""
-        if ai_model.provider == "openai":
-            return OpenAIService(
-                api_key=ai_model.api_key,
-                config={
-                    "base_url": ai_model.base_url or "https://api.openai.com/v1",
-                    "model": ai_model.model_name or "gpt-4",
-                }
-            )
-        elif ai_model.provider == "anthropic":
-            return AnthropicService(
-                api_key=ai_model.api_key,
-                model=ai_model.model_name or "claude-3-opus-20240229",
-            )
-        else:
-            raise ValueError(f"不支持的AI服务提供商: {ai_model.provider}")
+    def get_langchain_service(ai_model: AIModel) -> LangChainService:
+        """根据AI模型配置获取 LangChain 服务实例"""
+        return LangChainService(
+            provider=ai_model.provider,
+            model=ai_model.model_name or "gpt-4",
+            api_key=ai_model.api_key,
+            api_base=ai_model.base_url,
+            # 双密钥厂商的额外参数
+            secret_key=getattr(ai_model, 'secret_key', None),
+            app_id=getattr(ai_model, 'app_id', None),
+            api_secret=getattr(ai_model, 'api_secret', None),
+            group_id=getattr(ai_model, 'group_id', None),
+        )
     
     # 各工具类型的默认参数值
     TOOL_DEFAULTS = {
         "wechat_article": {
             "target_audience": "普通读者",
-            "style": "专业",
+            "style": "专业严谨",
         },
         "xiaohongshu_note": {
-            "note_type": "分享",
+            "note_type": "好物分享",
         },
         "official_document": {
             "doc_type": "通知",
-            "issuer": "发文单位",
-            "receiver": "收文单位",
+            "issuer": "",
+            "receiver": "",
             "content": "",
         },
         "academic_paper": {
@@ -286,28 +303,28 @@ class WritingService:
             "main_points": "",
         },
         "marketing_copy": {
-            "product": "产品/服务",
+            "product": "",
             "target_customer": "目标客户",
             "selling_points": "",
             "goal": "提高销量",
         },
         "news_article": {
-            "news_type": "新闻稿",
+            "news_type": "企业新闻稿",
             "key_info": "",
         },
         "video_script": {
             "duration": "1分钟",
             "platform": "抖音",
-            "style": "轻松",
+            "style": "轻松搞笑",
         },
         "story_novel": {
-            "genre": "现代",
+            "genre": "现代都市",
             "theme": "",
             "characters": "",
             "setting": "",
         },
         "business_plan": {
-            "project_name": "项目",
+            "project_name": "",
             "industry": "通用行业",
             "business_model": "",
             "target_market": "",
@@ -324,12 +341,6 @@ class WritingService:
             "experience": "",
             "education": "",
             "skills": "",
-        },
-        "cover_letter": {
-            "position": "",
-            "company": "",
-            "background": "",
-            "reason": "",
         },
         "lesson_plan": {
             "subject": "",
@@ -365,6 +376,9 @@ class WritingService:
         
         prompt_template = cls.TOOL_PROMPTS[tool_type]
         
+        # 提取用户补充说明（不传递给模板格式化）
+        additional_description = user_input.pop('additional_description', None)
+        
         # 合并默认参数和用户输入
         defaults = cls.TOOL_DEFAULTS.get(tool_type, {})
         merged_input = {**defaults, **user_input}
@@ -375,11 +389,15 @@ class WritingService:
         except KeyError as e:
             raise ValueError(f"缺少必需的输入参数: {str(e)}")
         
-        # 调用AI服务生成内容
-        ai_service = cls.get_ai_service(ai_model)
-        content = await ai_service.generate_text(prompt)
+        # 如果用户提供了补充说明，追加到提示词末尾
+        if additional_description and additional_description.strip():
+            prompt += f"\n\n【用户补充说明】\n{additional_description.strip()}"
         
-        return content
+        # 调用 LangChain 服务生成内容
+        service = cls.get_langchain_service(ai_model)
+        response = await service.chat(prompt)
+        
+        return response.content
     
     @classmethod
     async def optimize_content(
@@ -403,11 +421,11 @@ class WritingService:
         
         prompt = optimization_prompts[optimization_type]
         
-        # 调用AI服务优化内容
-        ai_service = cls.get_ai_service(ai_model)
-        optimized_content = await ai_service.generate_text(prompt)
+        # 调用 LangChain 服务优化内容
+        service = cls.get_langchain_service(ai_model)
+        response = await service.chat(prompt)
         
-        return optimized_content
+        return response.content
     
     @classmethod
     async def generate_content_with_cookie(
@@ -440,11 +458,22 @@ class WritingService:
         
         prompt_template = cls.TOOL_PROMPTS[tool_type]
         
+        # 提取用户补充说明（不传递给模板格式化）
+        additional_description = user_input.pop('additional_description', None)
+        
+        # 合并默认参数和用户输入
+        defaults = cls.TOOL_DEFAULTS.get(tool_type, {})
+        merged_input = {**defaults, **user_input}
+        
         # 填充提示词
         try:
-            prompt = prompt_template.format(**user_input)
+            prompt = prompt_template.format(**merged_input)
         except KeyError as e:
             raise ValueError(f"缺少必需的输入参数: {str(e)}")
+        
+        # 如果用户提供了补充说明，追加到提示词末尾
+        if additional_description and additional_description.strip():
+            prompt += f"\n\n【用户补充说明】\n{additional_description.strip()}"
         
         # 使用Cookie服务调用AI
         manager = CookieAIServiceManager(db)
@@ -657,6 +686,9 @@ class WritingService:
         
         prompt_template = cls.TOOL_PROMPTS[tool_type]
         
+        # 提取用户补充说明（不传递给模板格式化）
+        additional_description = user_input.pop('additional_description', None)
+        
         # 合并默认参数和用户输入
         defaults = cls.TOOL_DEFAULTS.get(tool_type, {})
         merged_input = {**defaults, **user_input}
@@ -667,12 +699,16 @@ class WritingService:
         except KeyError as e:
             raise ValueError(f"缺少必需的输入参数: {str(e)}")
         
+        # 如果用户提供了补充说明，追加到提示词末尾
+        if additional_description and additional_description.strip():
+            base_prompt += f"\n\n【用户补充说明】\n{additional_description.strip()}"
+        
         # 如果没有启用插件，直接生成
         if not enabled_plugins:
-            ai_service = cls.get_ai_service(ai_model)
-            content = await ai_service.generate_text(base_prompt)
+            service = cls.get_langchain_service(ai_model)
+            response = await service.chat(base_prompt)
             return {
-                "content": content,
+                "content": response.content,
                 "plugin_invocations": [],
                 "usage": {}
             }
@@ -681,14 +717,14 @@ class WritingService:
         plugin_manager = PluginManager()
         
         # 加载插件实例（带用户配置）
-        plugins = plugin_manager.create_plugin_instances(db, user_id, enabled_plugins)
+        plugins = plugin_manager.create_plugin_instances(db, user_id or 0, enabled_plugins)
         
         if not plugins:
             # 没有有效插件，直接生成
-            ai_service = cls.get_ai_service(ai_model)
-            content = await ai_service.generate_text(base_prompt)
+            service = cls.get_langchain_service(ai_model)
+            response = await service.chat(base_prompt)
             return {
-                "content": content,
+                "content": response.content,
                 "plugin_invocations": [],
                 "usage": {}
             }
@@ -775,31 +811,34 @@ class WritingService:
                     
                     db.commit()
         
-        # 获取 AI 服务并执行带工具的聊天
-        ai_service = cls.get_ai_service(ai_model)
+        # 使用 LangChain 服务执行带工具的聊天
+        from app.services.langchain.tools import create_tool_from_plugin
         
-        # 只有 OpenAI 兼容的服务才支持工具调用
-        if not isinstance(ai_service, OpenAIService):
-            # 对于不支持工具的服务，回退到普通生成
-            logger.warning(f"AI service {type(ai_service).__name__} does not support tools, falling back to normal generation")
-            content = await ai_service.generate_text(base_prompt)
+        # 将插件转换为 LangChain Tools
+        langchain_tools = [create_tool_from_plugin(plugin) for plugin in plugins]
+        
+        service = cls.get_langchain_service(ai_model)
+        
+        try:
+            # 使用带工具的对话
+            response = await service.chat_with_tools(
+                message=base_prompt,
+                tools=langchain_tools,
+                system_prompt=system_prompt,
+                max_iterations=5
+            )
+            
             return {
-                "content": content,
+                "content": response.content,
+                "plugin_invocations": invocation_logs,
+                "usage": {}
+            }
+        except Exception as e:
+            # 工具调用失败时回退到普通生成
+            logger.warning(f"Tool-based generation failed, falling back to normal: {e}")
+            response = await service.chat(base_prompt)
+            return {
+                "content": response.content,
                 "plugin_invocations": [],
                 "usage": {}
             }
-        
-        # 使用带工具执行的聊天
-        result = await ai_service.chat_with_tool_execution(
-            messages=messages,
-            tools=tools,
-            tool_executor=tool_executor,
-            temperature=0.7,
-            max_iterations=5
-        )
-        
-        return {
-            "content": result.get("content", ""),
-            "plugin_invocations": invocation_logs,
-            "usage": result.get("usage", {})
-        }

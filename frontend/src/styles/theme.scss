@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+
+:root {
+  --app-font-family: 'Outfit', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --app-bg: #edf4ff;
+  --app-surface: rgba(255, 255, 255, 0.8);
+  --app-surface-strong: rgba(255, 255, 255, 0.92);
+  --app-border: rgba(37, 99, 235, 0.14);
+  --app-border-strong: rgba(37, 99, 235, 0.24);
+  --app-text: #0f172a;
+  --app-text-muted: #5b6472;
+  --app-primary: #2563eb;
+  --app-primary-soft: #38bdf8;
+  --app-accent: #0ea5e9;
+  --app-success: #0f9f6e;
+  --app-warning: #f59e0b;
+  --app-danger: #ef4444;
+  --app-shadow-sm: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --app-shadow-md: 0 18px 40px rgba(15, 23, 42, 0.12);
+  --app-shadow-lg: 0 28px 60px rgba(15, 23, 42, 0.16);
+  --app-radius-sm: 16px;
+  --app-radius-md: 22px;
+  --app-radius-lg: 28px;
+  --app-page-gradient:
+    radial-gradient(1200px circle at -10% -20%, rgba(56, 189, 248, 0.28) 0%, transparent 60%),
+    radial-gradient(900px circle at 110% 0%, rgba(37, 99, 235, 0.2) 0%, transparent 55%),
+    linear-gradient(180deg, #f5f9ff 0%, #eef5ff 38%, #f7fbff 100%);
+}
+
+html,
+body {
+  background: var(--app-page-gradient);
+  color: var(--app-text);
+}
+
+body {
+  font-family: var(--app-font-family);
+}
+
+a {
+  color: inherit;
+}
+
+.app-page-shell {
+  position: relative;
+  padding: 24px;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--app-shadow-md);
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.app-panel {
+  background: var(--app-surface-strong);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  box-shadow: var(--app-shadow-sm);
+}
+
+.app-gradient-text {
+  background: linear-gradient(135deg, var(--app-primary), var(--app-accent), var(--app-primary-soft));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (max-width: 768px) {
+  .app-page-shell {
+    padding: 16px;
+    border-radius: 20px;
+  }
+}
