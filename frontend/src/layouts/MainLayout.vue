@@ -1,108 +1,90 @@
-<template>
+﻿<template>
   <el-container class="main-layout">
-    <!-- 顶部导航 -->
     <el-header class="header">
       <div class="header-left">
-        <!-- 移动端汉堡菜单按钮 -->
-        <el-button 
-          class="mobile-menu-btn" 
-          :icon="Menu" 
-          @click="showMobileMenu = true"
-        />
-        
+        <el-button class="mobile-menu-btn" :icon="Menu" @click="showMobileMenu = true" />
+
         <div class="logo" @click="router.push('/')">
           <img src="/logo.svg" alt="Logo" />
-          <span class="logo-text">AI创作者</span>
+          <div class="logo-copy">
+            <span class="logo-text">AI创作者</span>
+            <span class="logo-subtitle">一体化创作工作台</span>
+          </div>
         </div>
-        
-        <!-- PC端导航菜单 -->
-        <el-menu
-          :default-active="activeMenu"
-          mode="horizontal"
-          :ellipsis="false"
-          router
-          class="nav-menu"
-        >
-          <el-menu-item index="/">
-            <el-icon><HomeFilled /></el-icon>
-            <span>首页</span>
-          </el-menu-item>
-          
-          <!-- AI创作相关 - 一级菜单 -->
-          <el-menu-item index="/writing">
-            <el-icon><Edit /></el-icon>
-            <span>AI写作</span>
-          </el-menu-item>
-          <el-menu-item index="/image">
-            <el-icon><Picture /></el-icon>
-            <span>图片生成</span>
-          </el-menu-item>
-          <el-menu-item index="/video">
-            <el-icon><VideoCamera /></el-icon>
-            <span>视频生成</span>
-          </el-menu-item>
-          <el-menu-item index="/ppt">
-            <el-icon><Document /></el-icon>
-            <span>PPT生成</span>
-          </el-menu-item>
-          
-          <!-- 内容管理 子菜单 (登录后显示) -->
-          <el-sub-menu v-if="userStore.isLoggedIn" index="/content">
-            <template #title>
-              <el-icon><FolderOpened /></el-icon>
-              <span>内容管理</span>
-            </template>
-            <el-menu-item index="/history">
-              <el-icon><Clock /></el-icon>
-              历史记录
+
+        <div class="nav-wrap">
+          <el-menu :default-active="activeMenu" mode="horizontal" :ellipsis="false" router class="nav-menu">
+            <el-menu-item index="/writing">
+              <el-icon><Edit /></el-icon>
+              <span>AI写作</span>
             </el-menu-item>
-            <el-menu-item index="/publish">
-              <el-icon><Upload /></el-icon>
-              发布管理
+            <el-menu-item index="/image">
+              <el-icon><Picture /></el-icon>
+              <span>图片生成</span>
             </el-menu-item>
-            <el-menu-item index="/templates">
-              <el-icon><Files /></el-icon>
-              模板管理
+            <el-menu-item index="/video">
+              <el-icon><VideoCamera /></el-icon>
+              <span>视频生成</span>
             </el-menu-item>
-          </el-sub-menu>
-          
-          <!-- 积分会员 子菜单 (登录后显示) -->
-          <el-sub-menu v-if="userStore.isLoggedIn" index="/credit">
-            <template #title>
-              <el-icon><Wallet /></el-icon>
-              <span>积分会员</span>
-            </template>
-            <el-menu-item index="/credit/recharge">积分充值</el-menu-item>
-            <el-menu-item index="/credit/membership">会员购买</el-menu-item>
-            <el-menu-item index="/credit/transactions">交易记录</el-menu-item>
-          </el-sub-menu>
-          
-          <!-- 运营管理 子菜单 (管理员显示) -->
-          <el-sub-menu v-if="userStore.isAdmin" index="/operation">
-            <template #title>
-              <el-icon><DataAnalysis /></el-icon>
-              <span>运营管理</span>
-            </template>
-            <el-menu-item index="/operation/activities">活动管理</el-menu-item>
-            <el-menu-item index="/operation/coupons">优惠券</el-menu-item>
-            <el-menu-item index="/operation/referral">推广管理</el-menu-item>
-            <el-menu-item index="/operation/statistics">数据统计</el-menu-item>
-          </el-sub-menu>
-        </el-menu>
+            <el-menu-item index="/ppt">
+              <el-icon><Document /></el-icon>
+              <span>PPT生成</span>
+            </el-menu-item>
+
+            <el-sub-menu v-if="userStore.isLoggedIn" index="/content">
+              <template #title>
+                <el-icon><FolderOpened /></el-icon>
+                <span>内容管理</span>
+              </template>
+              <el-menu-item index="/history">
+                <el-icon><Clock /></el-icon>
+                历史记录
+              </el-menu-item>
+              <el-menu-item index="/publish">
+                <el-icon><Upload /></el-icon>
+                发布管理
+              </el-menu-item>
+              <el-menu-item index="/templates">
+                <el-icon><Files /></el-icon>
+                模板管理
+              </el-menu-item>
+            </el-sub-menu>
+
+            <el-sub-menu v-if="userStore.isLoggedIn" index="/credit">
+              <template #title>
+                <el-icon><Wallet /></el-icon>
+                <span>积分会员</span>
+              </template>
+              <el-menu-item index="/credit/recharge">积分充值</el-menu-item>
+              <el-menu-item index="/credit/membership">会员购买</el-menu-item>
+              <el-menu-item index="/credit/transactions">交易记录</el-menu-item>
+            </el-sub-menu>
+
+            <el-sub-menu v-if="userStore.isAdmin" index="/operation">
+              <template #title>
+                <el-icon><DataAnalysis /></el-icon>
+                <span>运营管理</span>
+              </template>
+              <el-menu-item index="/operation/activities">活动管理</el-menu-item>
+              <el-menu-item index="/operation/coupons">优惠券</el-menu-item>
+              <el-menu-item index="/operation/referral">推广管理</el-menu-item>
+              <el-menu-item index="/operation/statistics">数据统计</el-menu-item>
+            </el-sub-menu>
+          </el-menu>
+        </div>
       </div>
 
       <div class="header-right">
         <template v-if="userStore.isLoggedIn">
-          <!-- 积分和会员状态 -->
           <div class="credit-info">
             <el-tag v-if="userStore.user?.is_member" type="success" effect="dark">
               <el-icon><Medal /></el-icon>
               <span>会员</span>
             </el-tag>
-          <el-tag type="warning" effect="plain" @click="router.push('/credit/transactions')" style="cursor: pointer;">
-            <el-icon><CreditCard /></el-icon>
-            <span>{{ userStore.user?.credits || 0 }} 积分</span>
-          </el-tag>
+            <el-tag type="warning" effect="plain" @click="router.push('/credit/transactions')" style="cursor: pointer;">
+              <el-icon><CreditCard /></el-icon>
+              <span>{{ userStore.user?.credits || 0 }} 积分</span>
+            </el-tag>
           </div>
 
           <el-dropdown @command="handleCommand">
@@ -123,10 +105,6 @@
                   <el-icon><Connection /></el-icon>
                   我的插件
                 </el-dropdown-item>
-<!--                <el-dropdown-item command="api-keys">-->
-<!--                  <el-icon><Key /></el-icon>-->
-<!--                  API密钥-->
-<!--                </el-dropdown-item>-->
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>
                   退出登录
@@ -142,7 +120,6 @@
       </div>
     </el-header>
 
-    <!-- 移动端抽屉导航 -->
     <el-drawer
       v-model="showMobileMenu"
       direction="ltr"
@@ -158,8 +135,7 @@
           </div>
         </div>
       </template>
-      
-      <!-- 移动端用户信息 -->
+
       <div v-if="userStore.isLoggedIn" class="mobile-user-section">
         <div class="mobile-user-info">
           <el-avatar :size="48" :src="userStore.user?.avatar">
@@ -169,24 +145,21 @@
             <span class="username">{{ userStore.user?.username }}</span>
             <div class="credit-tags">
               <el-tag v-if="userStore.user?.is_member" type="success" size="small" effect="dark">会员</el-tag>
-              <el-tag type="warning" size="small" effect="plain" @click="router.push('/credit/transactions'); showMobileMenu = false" style="cursor: pointer;">{{ userStore.user?.credits || 0 }} 积分</el-tag>
+              <el-tag
+                type="warning"
+                size="small"
+                effect="plain"
+                @click="router.push('/credit/transactions'); showMobileMenu = false"
+                style="cursor: pointer;"
+              >
+                {{ userStore.user?.credits || 0 }} 积分
+              </el-tag>
             </div>
           </div>
         </div>
       </div>
-      
-      <!-- 移动端菜单 -->
-      <el-menu
-        :default-active="activeMenu"
-        class="mobile-nav-menu"
-        @select="handleMobileMenuSelect"
-      >
-        <el-menu-item index="/">
-          <el-icon><HomeFilled /></el-icon>
-          <span>首页</span>
-        </el-menu-item>
-        
-        <!-- AI创作相关 - 一级菜单 -->
+
+      <el-menu :default-active="activeMenu" class="mobile-nav-menu" @select="handleMobileMenuSelect">
         <el-menu-item index="/writing">
           <el-icon><Edit /></el-icon>
           <span>AI写作</span>
@@ -203,27 +176,18 @@
           <el-icon><Document /></el-icon>
           <span>PPT生成</span>
         </el-menu-item>
-        
+
         <template v-if="userStore.isLoggedIn">
           <el-sub-menu index="/content">
             <template #title>
               <el-icon><FolderOpened /></el-icon>
               <span>内容管理</span>
             </template>
-            <el-menu-item index="/history">
-              <el-icon><Clock /></el-icon>
-              历史记录
-            </el-menu-item>
-            <el-menu-item index="/publish">
-              <el-icon><Upload /></el-icon>
-              发布管理
-            </el-menu-item>
-            <el-menu-item index="/templates">
-              <el-icon><Files /></el-icon>
-              模板管理
-            </el-menu-item>
+            <el-menu-item index="/history">历史记录</el-menu-item>
+            <el-menu-item index="/publish">发布管理</el-menu-item>
+            <el-menu-item index="/templates">模板管理</el-menu-item>
           </el-sub-menu>
-          
+
           <el-sub-menu index="/credit">
             <template #title>
               <el-icon><Wallet /></el-icon>
@@ -233,7 +197,7 @@
             <el-menu-item index="/credit/membership">会员购买</el-menu-item>
             <el-menu-item index="/credit/transactions">交易记录</el-menu-item>
           </el-sub-menu>
-          
+
           <el-sub-menu v-if="userStore.isAdmin" index="/operation">
             <template #title>
               <el-icon><DataAnalysis /></el-icon>
@@ -244,7 +208,7 @@
             <el-menu-item index="/operation/referral">推广管理</el-menu-item>
             <el-menu-item index="/operation/statistics">数据统计</el-menu-item>
           </el-sub-menu>
-          
+
           <el-menu-item-group>
             <el-menu-item index="/settings">
               <el-icon><Setting /></el-icon>
@@ -254,15 +218,10 @@
               <el-icon><Connection /></el-icon>
               我的插件
             </el-menu-item>
-<!--            <el-menu-item index="/settings/api-keys">-->
-<!--              <el-icon><Key /></el-icon>-->
-<!--              API密钥-->
-<!--            </el-menu-item>-->
           </el-menu-item-group>
         </template>
       </el-menu>
-      
-      <!-- 移动端底部操作 -->
+
       <div class="mobile-footer">
         <template v-if="userStore.isLoggedIn">
           <el-button type="danger" plain @click="handleMobileLogout">
@@ -277,7 +236,6 @@
       </div>
     </el-drawer>
 
-    <!-- 主内容区 -->
     <el-main class="main-content">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
@@ -289,29 +247,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  HomeFilled,
-  Edit,
-  Picture,
-  VideoCamera,
-  Document,
-  Clock,
-  Upload,
-  Setting,
   ArrowDown,
-  SwitchButton,
-  Wallet,
-  CreditCard,
-  Medal,
-  DataAnalysis,
+  Clock,
   Connection,
-  Key,
+  CreditCard,
+  DataAnalysis,
+  Document,
+  Edit,
   Files,
-  Menu,
   FolderOpened,
+  Medal,
+  Menu,
+  Picture,
+  Setting,
+  SwitchButton,
+  Upload,
+  VideoCamera,
+  Wallet,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 
@@ -319,10 +275,8 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-// 移动端菜单状态
 const showMobileMenu = ref(false)
 
-// 初始化时刷新积分信息
 onMounted(async () => {
   if (userStore.isLoggedIn) {
     await userStore.updateCreditInfo()
@@ -331,33 +285,25 @@ onMounted(async () => {
 
 const activeMenu = computed(() => {
   const path = route.path
-  if (path === '/') return '/'
-  // AI创作相关
   if (path.startsWith('/writing')) return '/writing'
   if (path.startsWith('/image')) return '/image'
   if (path.startsWith('/video')) return '/video'
   if (path.startsWith('/ppt')) return '/ppt'
-  // 内容管理相关
   if (path.startsWith('/history')) return '/history'
   if (path.startsWith('/publish')) return '/publish'
   if (path.startsWith('/templates')) return '/templates'
-  // 积分会员
   if (path.startsWith('/credit')) return path
-  // 运营管理
   if (path.startsWith('/operation')) return path
-  // 设置
   if (path.startsWith('/settings')) return path
   if (path.startsWith('/plugins')) return path
-  return path
+  return ''
 })
 
-// 移动端菜单选择
 const handleMobileMenuSelect = (index: string) => {
   router.push(index)
   showMobileMenu.value = false
 }
 
-// 移动端退出登录
 const handleMobileLogout = async () => {
   try {
     await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -369,7 +315,7 @@ const handleMobileLogout = async () => {
     ElMessage.success('已退出登录')
     showMobileMenu.value = false
     router.push('/')
-  } catch (error) {
+  } catch {
     // 用户取消
   }
 }
@@ -382,12 +328,6 @@ const handleCommand = async (command: string) => {
     case 'plugins':
       router.push('/plugins/my-plugins')
       break
-    case 'oauth':
-      router.push('/settings/oauth')
-      break
-    case 'api-keys':
-      router.push('/settings/api-keys')
-      break
     case 'logout':
       try {
         await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -398,7 +338,7 @@ const handleCommand = async (command: string) => {
         await userStore.logout()
         ElMessage.success('已退出登录')
         router.push('/')
-      } catch (error) {
+      } catch {
         // 用户取消
       }
       break
@@ -408,160 +348,213 @@ const handleCommand = async (command: string) => {
 
 <style scoped lang="scss">
 .main-layout {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
+  min-height: 100vh;
+  background: transparent;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  height: 60px;
+  gap: 18px;
+  height: 82px;
+  padding: 0 22px;
+  margin: 14px 14px 0;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   min-width: 0;
+  flex: 1;
+  padding: 8px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.82), rgba(241, 245, 249, 0.9));
+  border: 1px solid rgba(37, 99, 235, 0.08);
+}
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
+.mobile-menu-btn {
+  display: none;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.1);
+}
 
-    .mobile-menu-btn {
-      display: none;
-      flex-shrink: 0;
-    }
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      font-size: 18px;
-      font-weight: 600;
-      color: #1890ff;
-      white-space: nowrap;
-      flex-shrink: 0;
-
-      img {
-        width: 32px;
-        height: 32px;
-      }
-
-      &:hover {
-        opacity: 0.8;
-      }
-    }
-
-    .nav-menu {
-      flex: 1;
-      min-width: 0;
-      border: none;
-      background: transparent;
-      overflow-x: auto;
-      overflow-y: hidden;
-      
-      // 隐藏滚动条但保留滚动功能
-      &::-webkit-scrollbar {
-        display: none;
-      }
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-
-      :deep(.el-menu-item),
-      :deep(.el-sub-menu__title) {
-        border-bottom: 2px solid transparent;
-        height: 58px;
-        line-height: 58px;
-        padding: 0 16px;
-        
-        &:hover {
-          background-color: rgba(24, 144, 255, 0.1);
-          border-bottom-color: #1890ff;
-        }
-
-        &.is-active {
-          color: #1890ff;
-          border-bottom-color: #1890ff;
-        }
-      }
-      
-      :deep(.el-sub-menu) {
-        .el-sub-menu__title {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-      }
-    }
+  &:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.08);
   }
 
-  .header-right {
+  img {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+  }
+}
+
+.logo-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.logo-subtitle {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.nav-wrap {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.nav-menu {
+  border-bottom: none;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+
+  :deep(.el-menu) {
+    border-bottom: none;
+    background: transparent;
+  }
+
+  :deep(.el-menu-item),
+  :deep(.el-sub-menu__title) {
+    height: 42px;
+    line-height: 42px;
+    margin: 0 2px;
+    padding: 0 14px;
+    border-radius: 12px;
+    color: #475569;
+    border-bottom: none !important;
+    transition: all 0.25s ease;
+  }
+
+  :deep(.el-menu-item span),
+  :deep(.el-sub-menu__title span) {
+    display: inline-block;
+  }
+
+  :deep(.el-sub-menu__title) {
+    padding-right: 34px;
+  }
+
+  :deep(.el-sub-menu .el-sub-menu__icon-arrow) {
+    right: 12px;
+    margin-top: -5px;
+  }
+
+  :deep(.el-menu-item:hover),
+  :deep(.el-sub-menu__title:hover) {
+    color: #2563eb;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  :deep(.is-active) {
+    color: #2563eb !important;
+    background: #fff !important;
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.12), inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+  }
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+
+  :deep(.el-button) {
+    border-radius: 12px;
+    min-height: 40px;
+  }
+
+  :deep(.el-button--primary) {
+    border: none;
+    background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 48%, #38bdf8 100%);
+    box-shadow: 0 14px 24px rgba(37, 99, 235, 0.2);
+  }
+}
+
+.credit-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .el-tag {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+}
 
-    .credit-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.08);
+  transition: all 0.25s ease;
 
-      .el-tag {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 10px;
-        cursor: pointer;
+  &:hover {
+    background: rgba(37, 99, 235, 0.08);
+  }
 
-        &:hover {
-          opacity: 0.8;
-        }
-      }
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background 0.3s;
-
-      &:hover {
-        background: #f5f5f5;
-      }
-
-      .username {
-        font-size: 14px;
-        color: #333;
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
+  .username {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 600;
   }
 }
 
 .main-content {
-  flex: 1;
-  background: #f0f2f5;
-  padding: 24px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 18px 16px 16px;
+  background: transparent;
 }
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s;
+  transition: opacity 0.28s ease;
 }
 
 .fade-enter-from,
@@ -569,14 +562,18 @@ const handleCommand = async (command: string) => {
   opacity: 0;
 }
 
-// 移动端抽屉样式
 .mobile-drawer {
+  :deep(.el-drawer) {
+    background: rgba(245, 249, 255, 0.96);
+    backdrop-filter: blur(18px);
+  }
+
   :deep(.el-drawer__header) {
     margin-bottom: 0;
-    padding: 16px;
-    border-bottom: 1px solid #e4e7ed;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid rgba(37, 99, 235, 0.1);
   }
-  
+
   :deep(.el-drawer__body) {
     padding: 0;
     display: flex;
@@ -584,232 +581,142 @@ const handleCommand = async (command: string) => {
   }
 }
 
-.drawer-header {
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: 600;
-    color: #1890ff;
-
-    img {
-      width: 32px;
-      height: 32px;
-    }
-  }
+.drawer-header .logo {
+  padding: 0;
 }
 
 .mobile-user-section {
-  padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  
+  margin: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 55%, #38bdf8 100%);
+  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.22);
+
   .mobile-user-info {
     display: flex;
     align-items: center;
     gap: 12px;
-    
-    .user-detail {
-      flex: 1;
-      
-      .username {
-        display: block;
-        font-size: 16px;
-        font-weight: 500;
-        color: #fff;
-        margin-bottom: 6px;
-      }
-      
-      .credit-tags {
-        display: flex;
-        gap: 6px;
-      }
-    }
+  }
+
+  .user-detail {
+    flex: 1;
+  }
+
+  .username {
+    display: block;
+    margin-bottom: 6px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .credit-tags {
+    display: flex;
+    gap: 6px;
   }
 }
 
 .mobile-nav-menu {
   flex: 1;
   border: none;
-  overflow-y: auto;
-  
+  background: transparent;
+
   :deep(.el-menu-item),
   :deep(.el-sub-menu__title) {
     height: 48px;
     line-height: 48px;
-  }
-  
-  :deep(.el-menu-item-group__title) {
-    padding: 12px 20px 8px;
-    font-size: 12px;
-    color: #909399;
+    margin: 0 12px 4px;
+    border-radius: 14px;
   }
 }
 
 .mobile-footer {
   padding: 16px;
-  border-top: 1px solid #e4e7ed;
   display: flex;
   gap: 12px;
-  
+  border-top: 1px solid rgba(37, 99, 235, 0.1);
+
   .el-button {
     flex: 1;
+    min-height: 42px;
+    border-radius: 12px;
   }
 }
 
-// ============ 响应式断点 ============
-
-// 大屏幕 (> 1200px) - 完整显示
-@media (min-width: 1201px) {
-  .header {
-    .header-left {
-      .nav-menu {
-        :deep(.el-menu-item),
-        :deep(.el-sub-menu__title) {
-          padding: 0 18px;
-        }
-      }
-    }
+@media (max-width: 1280px) {
+  .logo-subtitle {
+    display: none;
   }
-}
 
-// 中等屏幕 (992px - 1200px) - 紧凑显示
-@media (max-width: 1200px) {
-  .header {
-    padding: 0 16px;
-    
-    .header-left {
-      gap: 12px;
-      
-      .nav-menu {
-        :deep(.el-menu-item),
-        :deep(.el-sub-menu__title) {
-          padding: 0 12px;
-          font-size: 14px;
-        }
-      }
-    }
-    
-    .header-right {
-      .credit-info {
-        .el-tag {
-          padding: 4px 8px;
-          font-size: 12px;
-        }
-      }
+  .nav-menu {
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+      padding: 0 12px;
+      font-size: 14px;
     }
   }
 }
 
-// 小屏幕 (768px - 992px) - 仅图标
-@media (max-width: 992px) {
-  .header {
-    .header-left {
-      .logo {
-        .logo-text {
-          display: none;
-        }
-      }
-      
-      .nav-menu {
-        :deep(.el-menu-item),
-        :deep(.el-sub-menu__title) {
-          padding: 0 10px;
-          
-          span {
-            display: none;
-          }
-          
-          .el-icon {
-            margin-right: 0;
-          }
-        }
-      }
-    }
-    
-    .header-right {
-      gap: 8px;
-      
-      .credit-info {
-        .el-tag {
-          span {
-            display: none;
-          }
-        }
-      }
-      
-      .user-info {
-        padding: 6px;
-        
-        .username {
-          display: none;
-        }
-      }
-    }
+@media (max-width: 1100px) {
+  .logo-copy {
+    display: none;
+  }
+
+  .credit-info .el-tag span,
+  .user-info .username {
+    display: none;
   }
 }
 
-// 移动端 (< 768px) - 汉堡菜单
 @media (max-width: 768px) {
   .header {
+    height: 66px;
     padding: 0 12px;
-    
-    .header-left {
-      .mobile-menu-btn {
-        display: flex;
-      }
-      
-      .logo {
-        .logo-text {
-          display: none;
-        }
-      }
-      
-      .nav-menu {
-        display: none;
-      }
-    }
-    
-    .header-right {
-      .credit-info {
-        display: none;
-      }
-      
-      .user-info {
-        .username,
-        .el-icon {
-          display: none;
-        }
-      }
-      
-      .el-button {
-        padding: 8px 12px;
-        font-size: 13px;
-      }
-    }
+    margin: 12px 12px 0;
+    border-radius: 18px;
+  }
+
+  .header-left {
+    gap: 12px;
+    padding: 0;
+    background: transparent;
+    border: none;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .logo {
+    padding: 0;
+  }
+
+  .logo-copy,
+  .nav-wrap,
+  .credit-info,
+  .user-info .el-icon,
+  .user-info .username {
+    display: none;
   }
 
   .main-content {
     padding: 12px;
   }
+
+  .header-right :deep(.el-button) {
+    padding: 8px 12px;
+    min-height: 36px;
+    font-size: 13px;
+  }
 }
 
-// 超小屏幕 (< 480px)
 @media (max-width: 480px) {
   .header {
-    .header-right {
-      gap: 6px;
-      
-      .el-button {
-        padding: 6px 10px;
-        font-size: 12px;
-      }
-    }
+    height: 62px;
   }
-  
+
   .main-content {
-    padding: 8px;
+    padding: 10px;
   }
 }
 </style>

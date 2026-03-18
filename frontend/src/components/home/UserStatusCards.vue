@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="user-status-section">
     <el-row :gutter="20">
       <el-col :xs="24" :sm="12" :md="8">
@@ -9,9 +9,7 @@
           </div>
           <div class="card-content">
             <div class="main-value">{{ userStore.user?.credits || 0 }}</div>
-            <el-button type="primary" size="small" @click="goToRecharge">
-              立即充值
-            </el-button>
+            <el-button type="primary" size="small" @click="goToRecharge">立即充值</el-button>
           </div>
         </el-card>
       </el-col>
@@ -23,30 +21,15 @@
           </div>
           <div class="card-content">
             <div class="member-status">
-              <span v-if="userStore.user?.membership_type === 'free'" class="member-badge free">
-                免费用户
-              </span>
-              <span v-else-if="userStore.user?.membership_type === 'basic'" class="member-badge basic">
-                基础会员
-              </span>
-              <span v-else-if="userStore.user?.membership_type === 'pro'" class="member-badge pro">
-                专业会员
-              </span>
-              <span v-else class="member-badge vip">
-                VIP会员
-              </span>
+              <span v-if="userStore.user?.membership_type === 'free'" class="member-badge free">免费用户</span>
+              <span v-else-if="userStore.user?.membership_type === 'basic'" class="member-badge basic">基础会员</span>
+              <span v-else-if="userStore.user?.membership_type === 'pro'" class="member-badge pro">专业会员</span>
+              <span v-else class="member-badge vip">VIP会员</span>
             </div>
-            <el-button 
-              v-if="userStore.user?.membership_type === 'free'"
-              type="warning" 
-              size="small" 
-              @click="goToMembership"
-            >
+            <el-button v-if="userStore.user?.membership_type === 'free'" type="warning" size="small" @click="goToMembership">
               开通会员
             </el-button>
-            <div v-else class="expire-info">
-              到期时间：{{ formatDate(userStore.user?.membership_expires_at) }}
-            </div>
+            <div v-else class="expire-info">到期时间：{{ formatDate(userStore.user?.membership_expires_at) }}</div>
           </div>
         </el-card>
       </el-col>
@@ -57,10 +40,8 @@
             <span class="card-title">限时优惠</span>
           </div>
           <div class="card-content">
-            <div class="activity-text">新用户首充送50%积分</div>
-            <el-button type="danger" size="small" @click="goToRecharge">
-              立即参与
-            </el-button>
+            <div class="activity-text">新用户首充赠送 10% 积分</div>
+            <el-button type="danger" size="small" @click="goToRecharge">立即参与</el-button>
           </div>
         </el-card>
       </el-col>
@@ -69,9 +50,9 @@
 </template>
 
 <script setup lang="ts">
+import { Coin, Present, Trophy } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import { Coin, Trophy, Present } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -92,112 +73,106 @@ const formatDate = (date: string | undefined) => {
 
 <style scoped lang="scss">
 .user-status-section {
-  margin-bottom: 32px;
-
   .status-card {
     height: 100%;
-    transition: all 0.3s;
+    border-radius: 22px;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(14px);
+    transition: all 0.25s ease;
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 22px 40px rgba(37, 99, 235, 0.12);
     }
 
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-
-      .card-icon {
-        font-size: 20px;
-      }
-
-      .card-title {
-        font-size: 14px;
-        color: #666;
-        font-weight: 500;
-      }
-    }
-
-    .card-content {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-
-      .main-value {
-        font-size: 32px;
-        font-weight: 600;
-        color: #333;
-      }
-
-      .member-status {
-        .member-badge {
-          display: inline-block;
-          padding: 4px 12px;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 500;
-
-          &.free {
-            background: #f0f0f0;
-            color: #666;
-          }
-
-          &.basic {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-          }
-
-          &.pro {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: #fff;
-          }
-
-          &.vip {
-            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-            color: #fff;
-          }
-        }
-      }
-
-      .expire-info {
-        font-size: 12px;
-        color: #999;
-      }
-
-      .activity-text {
-        font-size: 14px;
-        color: #333;
-        font-weight: 500;
-      }
+    :deep(.el-card__body) {
+      padding: 22px;
     }
   }
 
-  .credit-card {
-    .card-icon {
-      color: #f59e0b;
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .card-icon {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(56, 189, 248, 0.16));
+    color: #2563eb;
+    font-size: 18px;
+  }
+
+  .card-title {
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .main-value {
+    font-size: 34px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .member-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+
+    &.free {
+      background: rgba(148, 163, 184, 0.14);
+      color: #475569;
+    }
+
+    &.basic,
+    &.pro,
+    &.vip {
+      background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 50%, #38bdf8 100%);
+      color: #fff;
+      box-shadow: 0 12px 22px rgba(37, 99, 235, 0.16);
     }
   }
 
-  .member-card {
-    .card-icon {
-      color: #8b5cf6;
-    }
+  .expire-info {
+    color: #64748b;
+    font-size: 12px;
   }
 
-  .activity-card {
-    .card-icon {
-      color: #ef4444;
-    }
+  .activity-text {
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  :deep(.el-button--primary),
+  :deep(.el-button--warning),
+  :deep(.el-button--danger) {
+    border: none;
+    border-radius: 12px;
   }
 }
 
 @media (max-width: 768px) {
-  .user-status-section {
-    :deep(.el-col) {
-      margin-bottom: 16px;
-    }
+  .user-status-section :deep(.el-col) {
+    margin-bottom: 16px;
   }
 }
 </style>

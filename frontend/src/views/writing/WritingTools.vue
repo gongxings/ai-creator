@@ -1,31 +1,31 @@
-<template>
-  <div class="writing-tools">
-    <div class="page-header">
-      <h1>AI写作工具</h1>
-      <p>选择适合你的写作场景，一键生成高质量内容</p>
-    </div>
+﻿<template>
+  <div class="writing-tools page-shell">
+    <section class="page-hero">
+      <div>
+        <p class="eyebrow">Writing Workspace</p>
+        <h1>AI 写作工具</h1>
+        <p class="description">按场景选择合适的写作能力，快速生成更完整、更稳定的内容草稿。</p>
+      </div>
+    </section>
 
-    <!-- 搜索和筛选 -->
-    <div class="tools-filter">
+    <section class="tools-filter app-panel">
       <el-input
         v-model="searchQuery"
-        placeholder="搜索工具..."
-        prefix-icon="Search"
+        placeholder="搜索工具、标签或用途"
+        :prefix-icon="Search"
         class="search-box"
         clearable
       />
-      <el-segmented
-        v-model="activeCategory"
-        :options="categories"
-        block
-      />
-    </div>
+      <el-segmented v-model="activeCategory" :options="categories" block />
+    </section>
 
-    <!-- 最近使用 -->
-    <div v-if="recentTools.length > 0" class="recent-section">
+    <section v-if="recentTools.length > 0" class="recent-section section-block">
       <div class="section-header">
-        <h3>最近使用</h3>
-        <el-button type="text" @click="clearRecent">清空</el-button>
+        <div>
+          <p class="section-kicker">Recent</p>
+          <h3>最近使用</h3>
+        </div>
+        <el-button text type="primary" @click="clearRecent">清空</el-button>
       </div>
       <div class="tools-grid">
         <el-card
@@ -37,20 +37,20 @@
         >
           <div class="badge">最近</div>
           <div class="tool-icon" :style="{ '--tool-color': tool.color }">
-            <el-icon :size="30">
-              <component :is="tool.icon" />
-            </el-icon>
+            <el-icon :size="30"><component :is="tool.icon" /></el-icon>
           </div>
           <h3>{{ tool.name }}</h3>
           <p>{{ tool.description }}</p>
         </el-card>
       </div>
-    </div>
+    </section>
 
-    <!-- 推荐工具 -->
-    <div v-if="filteredTools.length > 0" class="tools-section">
+    <section v-if="filteredTools.length > 0" class="tools-section section-block">
       <div class="section-header">
-        <h3>{{ getCategoryTitle(activeCategory) }}</h3>
+        <div>
+          <p class="section-kicker">Library</p>
+          <h3>{{ getCategoryTitle(activeCategory) }}</h3>
+        </div>
         <span class="count">共 {{ filteredTools.length }} 个工具</span>
       </div>
       <div class="tools-grid">
@@ -64,20 +64,12 @@
         >
           <div v-if="tool.isHot" class="badge hot">热门</div>
           <div class="tool-icon" :style="{ '--tool-color': tool.color }">
-            <el-icon :size="30">
-              <component :is="tool.icon" />
-            </el-icon>
+            <el-icon :size="30"><component :is="tool.icon" /></el-icon>
           </div>
           <h3>{{ tool.name }}</h3>
           <p>{{ tool.description }}</p>
           <div class="tool-tags">
-            <el-tag
-              v-for="tag in tool.tags"
-              :key="tag"
-              size="small"
-              type="info"
-              effect="plain"
-            >
+            <el-tag v-for="tag in tool.tags" :key="tag" size="small" type="info" effect="plain">
               {{ tag }}
             </el-tag>
           </div>
@@ -86,34 +78,33 @@
           </div>
         </el-card>
       </div>
-    </div>
+    </section>
 
-    <!-- 空状态 -->
-    <div v-else class="empty-state">
-      <el-empty description="未找到匹配的工具" />
+    <section v-else class="empty-state app-panel">
+      <el-empty description="没有找到匹配的工具" />
       <el-button type="primary" @click="resetFilter">重置筛选</el-button>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search } from '@element-plus/icons-vue'
 import {
-  Document,
+  Briefcase,
   ChatDotRound,
+  Connection,
+  DataAnalysis,
+  Document,
+  Edit,
+  Notebook,
   Promotion,
   Reading,
-  Notebook,
-  VideoCamera,
-  Tickets,
-  Briefcase,
-  DataAnalysis,
-  User,
-  Edit,
   RefreshRight,
-  Connection,
+  Search,
+  Tickets,
+  User,
+  VideoCamera,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -124,7 +115,7 @@ const categories = [
   { label: '全部', value: 'all' },
   { label: '自媒体', value: 'social' },
   { label: '专业写作', value: 'professional' },
-  { label: '创意创作', value: 'creative' },
+  { label: '创意内容', value: 'creative' },
   { label: '内容优化', value: 'optimization' },
 ]
 
@@ -132,7 +123,7 @@ const writingTools = [
   {
     type: 'wechat_article',
     name: '公众号文章',
-    description: '创作适合微信公众号的优质文章，自动优化排版和SEO',
+    description: '适合公众号长文、观点稿和专题内容，兼顾结构和可读性。',
     icon: Document,
     color: '#07C160',
     tags: ['自媒体', '长文'],
@@ -143,7 +134,7 @@ const writingTools = [
   {
     type: 'xiaohongshu_note',
     name: '小红书笔记',
-    description: '生成吸引眼球的小红书笔记，包含标题、正文和标签',
+    description: '生成标题、正文和标签，适合种草、攻略与生活方式内容。',
     icon: ChatDotRound,
     color: '#FF2442',
     tags: ['种草', '短文'],
@@ -154,7 +145,7 @@ const writingTools = [
   {
     type: 'official_document',
     name: '公文写作',
-    description: '规范的公文格式，适用于通知、报告、函件等',
+    description: '适合通知、报告、函件等正式文稿，强调规范表达。',
     icon: Notebook,
     color: '#409EFF',
     tags: ['正式', '规范'],
@@ -165,7 +156,7 @@ const writingTools = [
   {
     type: 'academic_paper',
     name: '论文写作',
-    description: '学术论文辅助写作，包含摘要、正文、参考文献',
+    description: '支持摘要、章节结构和研究型表达，适合学术类内容。',
     icon: Reading,
     color: '#E6A23C',
     tags: ['学术', '专业'],
@@ -176,7 +167,7 @@ const writingTools = [
   {
     type: 'marketing_copy',
     name: '营销文案',
-    description: '打动人心的营销文案，提升转化率',
+    description: '适配广告、活动和品牌推广场景，突出转化和节奏。',
     icon: Promotion,
     color: '#F56C6C',
     tags: ['营销', '转化'],
@@ -186,8 +177,8 @@ const writingTools = [
   },
   {
     type: 'news_article',
-    name: '新闻稿/软文',
-    description: '专业的新闻稿和软文写作，传播品牌价值',
+    name: '新闻软文',
+    description: '适合品牌稿、活动报道和新闻型传播内容。',
     icon: Tickets,
     color: '#909399',
     tags: ['新闻', '传播'],
@@ -198,7 +189,7 @@ const writingTools = [
   {
     type: 'video_script',
     name: '短视频脚本',
-    description: '抖音、快手等短视频脚本，包含分镜和台词',
+    description: '生成分镜、口播和镜头节奏，适合短视频内容策划。',
     icon: VideoCamera,
     color: '#67C23A',
     tags: ['视频', '脚本'],
@@ -208,8 +199,8 @@ const writingTools = [
   },
   {
     type: 'story_novel',
-    name: '故事/小说',
-    description: '创意故事和小说创作，激发想象力',
+    name: '故事小说',
+    description: '适合故事设定、情节推进和角色对白创作。',
     icon: Edit,
     color: '#9C27B0',
     tags: ['创意', '文学'],
@@ -220,7 +211,7 @@ const writingTools = [
   {
     type: 'business_plan',
     name: '商业计划书',
-    description: '专业的商业计划书，助力融资和项目推进',
+    description: '适合商业方案、路演材料和项目推进文档。',
     icon: Briefcase,
     color: '#FF9800',
     tags: ['商业', '专业'],
@@ -231,7 +222,7 @@ const writingTools = [
   {
     type: 'work_report',
     name: '工作报告',
-    description: '工作总结、述职报告等，条理清晰',
+    description: '用于工作总结、周报、月报和述职内容梳理。',
     icon: DataAnalysis,
     color: '#00BCD4',
     tags: ['职场', '总结'],
@@ -241,96 +232,84 @@ const writingTools = [
   },
   {
     type: 'resume',
-    name: '简历/求职信',
-    description: '专业的简历和求职信，提升求职成功率',
+    name: '简历求职',
+    description: '用于简历、自我介绍和求职材料优化。',
     icon: User,
-    color: '#3F51B5',
-    tags: ['求职', '个人'],
+    color: '#4CAF50',
+    tags: ['求职', '简历'],
     category: 'professional',
     isHot: false,
-    usageCount: 1123,
-  },
-  {
-    type: 'lesson_plan',
-    name: '教案/课件',
-    description: '教学教案和课件内容，结构完整',
-    icon: Reading,
-    color: '#8BC34A',
-    tags: ['教育', '教学'],
-    category: 'professional',
-    isHot: false,
-    usageCount: 267,
+    usageCount: 632,
   },
   {
     type: 'content_rewrite',
-    name: '改写/扩写/缩写',
-    description: '对现有内容进行改写、扩写或缩写',
+    name: '内容改写',
+    description: '支持改写、扩写、压缩和风格调整。',
     icon: RefreshRight,
-    color: '#607D8B',
-    tags: ['优化', '改写'],
+    color: '#795548',
+    tags: ['改写', '优化'],
     category: 'optimization',
-    isHot: false,
-    usageCount: 2156,
+    isHot: true,
+    usageCount: 983,
   },
   {
     type: 'translation',
-    name: '多语言翻译',
-    description: '支持多种语言互译，保持原文风格',
+    name: '多语翻译',
+    description: '适合跨语言内容转换和语义优化。',
     icon: Connection,
-    color: '#795548',
-    tags: ['翻译', '多语言'],
+    color: '#3F51B5',
+    tags: ['翻译', '多语'],
     category: 'optimization',
     isHot: false,
-    usageCount: 876,
+    usageCount: 417,
   },
 ]
 
-const recentTools = computed(() => {
-  const recent = localStorage.getItem('recentTools')
-  if (!recent) return []
+const recentTools = ref<typeof writingTools>([])
+
+onMounted(() => {
+  const recent = localStorage.getItem('recentTools') || '[]'
   const recentIds = JSON.parse(recent) as string[]
-  return recentIds.slice(0, 3).map(id => writingTools.find(t => t.type === id)).filter(Boolean)
+  recentTools.value = recentIds
+    .map((id) => writingTools.find((tool) => tool.type === id))
+    .filter((tool): tool is (typeof writingTools)[number] => Boolean(tool))
+      .slice(0, 4)
 })
 
 const filteredTools = computed(() => {
   let filtered = writingTools
-  
-  // 分类筛选
+
   if (activeCategory.value !== 'all') {
-    filtered = filtered.filter(tool => tool.category === activeCategory.value)
+    filtered = filtered.filter((tool) => tool.category === activeCategory.value)
   }
-  
-  // 搜索筛选
+
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(tool =>
-      tool.name.toLowerCase().includes(query) ||
-      tool.description.toLowerCase().includes(query) ||
-      tool.tags.some(tag => tag.toLowerCase().includes(query))
+    filtered = filtered.filter(
+      (tool) =>
+        tool.name.toLowerCase().includes(query) ||
+        tool.description.toLowerCase().includes(query) ||
+        tool.tags.some((tag) => tag.toLowerCase().includes(query)),
     )
   }
-  
+
   return filtered.sort((a, b) => {
-    // 热门工具优先
     if (a.isHot !== b.isHot) return a.isHot ? -1 : 1
-    // 按使用次数排序
     return b.usageCount - a.usageCount
   })
 })
 
 const goToEditor = (toolType: string) => {
-  // 保存最近使用
   let recent = localStorage.getItem('recentTools') || '[]'
   let recentIds = JSON.parse(recent) as string[]
-  recentIds = recentIds.filter(id => id !== toolType)
+  recentIds = recentIds.filter((id) => id !== toolType)
   recentIds.unshift(toolType)
   localStorage.setItem('recentTools', JSON.stringify(recentIds.slice(0, 5)))
-  
   router.push(`/writing/${toolType}`)
 }
 
 const getCategoryTitle = (category: string) => {
-  return categories.find(c => c.value === category)?.label || '全部'
+  return categories.find((item) => item.value === category)?.label || '全部工具'
 }
 
 const resetFilter = () => {
@@ -340,213 +319,249 @@ const resetFilter = () => {
 
 const clearRecent = () => {
   localStorage.removeItem('recentTools')
+  recentTools.value = []
 }
 </script>
 
 <style scoped lang="scss">
-.writing-tools {
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 36%);
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
 
-  .page-header {
-    margin-bottom: 24px;
-    padding: 24px;
+.page-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 34px 30px;
+  border-radius: 28px;
+  background:
+    radial-gradient(520px circle at 0% 0%, rgba(255, 255, 255, 0.18), transparent 55%),
+    linear-gradient(135deg, #1d4ed8 0%, #0f6cde 44%, #38bdf8 100%);
+  color: #fff;
+  box-shadow: 0 24px 48px rgba(37, 99, 235, 0.22);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+  }
+
+  > div {
+    position: relative;
+    z-index: 1;
+  }
+
+  .eyebrow {
+    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: 34px;
+    font-weight: 700;
+  }
+
+  .description {
+    max-width: 680px;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.7;
+    opacity: 0.92;
+  }
+}
+
+.tools-filter {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 18px;
+
+  .search-box {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  :deep(.el-segmented) {
+    padding: 4px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    background: rgba(241, 245, 249, 0.9);
+  }
+}
+
+.section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 24px;
+    color: #0f172a;
+  }
+
+  .count {
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
+
+.section-kicker {
+  margin-bottom: 6px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.tool-card {
+  position: relative;
+  cursor: pointer;
+  border-radius: 24px;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+  transition: all 0.25s ease;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 42px rgba(37, 99, 235, 0.14);
+    border-color: rgba(37, 99, 235, 0.2);
+  }
+
+  &.hot-tool {
+    background: linear-gradient(180deg, rgba(255, 251, 235, 0.9), rgba(255, 255, 255, 0.88));
+    border-color: rgba(245, 158, 11, 0.22);
+  }
+
+  &.recent-card {
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.92), rgba(255, 255, 255, 0.88));
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.14);
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+
+    &.hot {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(245, 158, 11, 0.22);
+    }
+  }
+
+  .tool-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    color: var(--tool-color);
+    background: color-mix(in srgb, var(--tool-color) 14%, #ffffff);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+
+  h3 {
+    margin-bottom: 8px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  p {
+    min-height: 44px;
+    margin-bottom: 14px;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .tool-tags {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .tool-usage {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(37, 99, 235, 0.08);
+    color: #94a3b8;
+    font-size: 12px;
+  }
+}
+
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .page-hero {
+    padding: 28px 22px;
 
     h1 {
-      font-size: 30px;
-      font-weight: 600;
-      color: #111827;
-      margin-bottom: 8px;
-    }
-
-    p {
-      font-size: 14px;
-      color: #64748b;
-      margin: 0;
+      font-size: 28px;
     }
   }
 
   .tools-filter {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 28px;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
 
-    .search-box {
-      flex: 1;
-      min-width: 200px;
-    }
-
+    .search-box,
     :deep(.el-segmented) {
-      flex-wrap: wrap;
+      width: 100%;
     }
   }
 
-  .recent-section,
-  .tools-section {
-    margin-bottom: 32px;
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-
-      h3 {
-        font-size: 18px;
-        font-weight: 600;
-        color: #1f2937;
-        margin: 0;
-      }
-
-      .count {
-        font-size: 14px;
-        color: #64748b;
-      }
-    }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .tools-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 18px;
-
-    .tool-card {
-      cursor: pointer;
-      transition: all 0.3s;
-      border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      position: relative;
-
-      &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.14);
-        border-color: #93c5fd;
-      }
-
-      &.hot-tool {
-        border-color: #fbbf24;
-        background: linear-gradient(135deg, #fffbeb 0%, #fff8e1 100%);
-      }
-
-      &.recent-card {
-        border-color: #dbeafe;
-        background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
-      }
-
-      .badge {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 6px;
-        background: #f3f4f6;
-        color: #6b7280;
-
-        &.hot {
-          background: #fbbf24;
-          color: #78350f;
-        }
-      }
-
-      :deep(.el-card__body) {
-        padding: 20px;
-        text-align: center;
-      }
-
-      .tool-icon {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 14px;
-        color: var(--tool-color);
-        background: color-mix(in srgb, var(--tool-color) 12%, #ffffff);
-      }
-
-      h3 {
-        font-size: 17px;
-        font-weight: 600;
-        color: #1f2937;
-        margin-bottom: 8px;
-      }
-
-      p {
-        font-size: 14px;
-        color: #64748b;
-        line-height: 1.6;
-        margin-bottom: 14px;
-        min-height: 44px;
-      }
-
-      .tool-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-        margin-bottom: 12px;
-      }
-
-      .tool-usage {
-        font-size: 12px;
-        color: #9ca3af;
-        border-top: 1px solid #e5e7eb;
-        padding-top: 12px;
-        margin-top: 12px;
-
-        .usage-count {
-          display: inline-block;
-        }
-      }
-    }
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-
-    :deep(.el-empty__image) {
-      height: 180px;
-    }
-
-    :deep(.el-empty__description) {
-      margin-bottom: 16px;
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .writing-tools {
-    .page-header {
-      padding: 18px;
-
-      h1 {
-        font-size: 24px;
-      }
-    }
-
-    .tools-filter {
-      flex-direction: column;
-
-      .search-box {
-        width: 100%;
-      }
-
-      :deep(.el-segmented) {
-        width: 100%;
-      }
-    }
-
-    .tools-grid {
-      grid-template-columns: 1fr;
-    }
+    grid-template-columns: 1fr;
   }
 }
 </style>
-

@@ -496,3 +496,150 @@ async def regenerate_content(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"重新生成失败: {str(e)}",
         )
+
+
+# ============================================================================
+# URL 内容抓取
+# ============================================================================
+
+from pydantic import BaseModel, HttpUrl
+
+class UrlFetchRequest(BaseModel):
+    """URL抓取请求"""
+    url: str
+
+class UrlFetchResponse(BaseModel):
+    """URL抓取响应"""
+    success: bool
+    title: str = ""
+    content: str = ""
+    error: str = ""
+
+@router.post("/fetch-url", response_model=UrlFetchResponse)
+async def fetch_url_content(
+    request: UrlFetchRequest,
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    抓取URL内容
+    
+    从给定的URL抓取网页内容，提取正文文本。
+    用于内容改写/扩写/缩写功能。
+    """
+    import httpx
+    from bs4 import BeautifulSoup
+    import re
+    
+    url = request.url.strip()
+    
+    # 验证URL格式
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    
+    try:
+        # 设置请求头，模拟浏览器
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        }
+        
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            
+            # 检测编码
+            content_type = response.headers.get('content-type', '')
+            if 'charset=' in content_type:
+                encoding = content_type.split('charset=')[-1].split(';')[0].strip()
+            else:
+                encoding = response.encoding or 'utf-8'
+            
+            html_content = response.content.decode(encoding, errors='ignore')
+        
+        # 解析HTML
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # 获取标题
+        title = ""
+        if soup.title:
+            title = soup.title.string or ""
+        
+        # 移除不需要的标签
+        for tag in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 
+                         'iframe', 'noscript', 'form', 'button', 'input']):
+            tag.decompose()
+        
+        # 尝试找到主要内容区域
+        main_content = None
+        
+        # 常见的正文容器选择器
+        content_selectors = [
+            'article',
+            '[role="main"]',
+            '.article-content',
+            '.post-content',
+            '.entry-content',
+            '.content',
+            '.main-content',
+            '#content',
+            '#article',
+            '.article',
+            '.post',
+            'main',
+        ]
+        
+        for selector in content_selectors:
+            main_content = soup.select_one(selector)
+            if main_content:
+                break
+        
+        # 如果找不到主要内容区域，使用body
+        if not main_content:
+            main_content = soup.body or soup
+        
+        # 提取文本
+        text_parts = []
+        for element in main_content.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li']):
+            text = element.get_text(strip=True)
+            if text and len(text) > 10:  # 过滤太短的内容
+                text_parts.append(text)
+        
+        content = '\n\n'.join(text_parts)
+        
+        # 清理多余空白
+        content = re.sub(r'\n{3,}', '\n\n', content)
+        content = content.strip()
+        
+        if not content:
+            return UrlFetchResponse(
+                success=False,
+                error="无法从该页面提取有效内容"
+            )
+        
+        # 限制内容长度
+        if len(content) > 10000:
+            content = content[:10000] + "\n\n...(内容过长，已截断)"
+        
+        return UrlFetchResponse(
+            success=True,
+            title=title.strip(),
+            content=content
+        )
+        
+    except httpx.TimeoutException:
+        return UrlFetchResponse(
+            success=False,
+            error="请求超时，请检查URL是否可访问"
+        )
+    except httpx.HTTPStatusError as e:
+        return UrlFetchResponse(
+            success=False,
+            error=f"HTTP错误: {e.response.status_code}"
+        )
+    except Exception as e:
+        logger.error(f"URL fetch error: {e}")
+        return UrlFetchResponse(
+            success=False,
+            error=f"抓取失败: {str(e)}"
+        )

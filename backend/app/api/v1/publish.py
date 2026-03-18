@@ -80,7 +80,7 @@ async def get_platform_login_info(platform: str):
             platform=platform,
             name=publisher.get_platform_name(),
             login_url=publisher.get_login_url(),
-            instructions=f"请在浏览器中登录{publisher.get_platform_name()}，然后返回此页面更新Cookie"
+            instructions=f"请在浏览器中登录{publisher.get_platform_name()}，然后【F12】打开控制台，在网络中找到请求，复制Cookie"
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

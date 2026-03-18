@@ -1,19 +1,17 @@
-<template>
+﻿<template>
   <div class="login-container">
-    <!-- 背景装饰 -->
     <div class="background-decoration">
       <div class="gradient-blob blob-1"></div>
       <div class="gradient-blob blob-2"></div>
       <div class="gradient-blob blob-3"></div>
     </div>
 
-    <!-- 登录内容 -->
     <div class="login-content">
       <div class="login-card">
         <div class="login-shell">
           <section class="brand-panel">
             <div class="brand-header">
-              <div class="brand-icon">✨</div>
+              <div class="brand-icon">AI</div>
               <h2>AI创作者平台</h2>
               <p class="brand-slogan">让创作更简单，让灵感更自由</p>
             </div>
@@ -26,21 +24,21 @@
               </div>
               <ul class="brand-features">
                 <li>
-                  <span class="feature-icon">⚡</span>
-                  <span>一键生成高质量初稿与标题</span>
+                  <span class="feature-icon">1</span>
+                  <span>一站式完成写作、图片、视频与发布流程</span>
                 </li>
                 <li>
-                  <span class="feature-icon">🎯</span>
-                  <span>模板与素材库，快速开始创作</span>
+                  <span class="feature-icon">2</span>
+                  <span>模板、素材和工作流整合，开箱即可开始创作</span>
                 </li>
                 <li>
-                  <span class="feature-icon">🚀</span>
-                  <span>多平台同步发布与数据回看</span>
+                  <span class="feature-icon">3</span>
+                  <span>多平台发布与数据回看，保持内容生产连续性</span>
                 </li>
               </ul>
               <div class="brand-note">
                 <span class="note-dot"></span>
-                聚焦效率与审美，让创作流程更顺滑
+                聚焦效率与审美，让创作体验更顺滑
               </div>
             </div>
           </section>
@@ -59,7 +57,6 @@
                 class="login-form"
                 @submit.prevent="handleLogin"
               >
-                <!-- 用户名/邮箱输入 -->
                 <el-form-item prop="username">
                   <el-input
                     v-model="loginForm.username"
@@ -71,7 +68,6 @@
                   />
                 </el-form-item>
 
-                <!-- 密码输入 -->
                 <el-form-item prop="password">
                   <el-input
                     v-model="loginForm.password"
@@ -85,24 +81,17 @@
                   />
                 </el-form-item>
 
-                <!-- 记住我和忘记密码 - 分离布局 -->
                 <div class="remember-forgot-row">
                   <div class="remember-checkbox">
                     <el-checkbox v-model="loginForm.remember">
                       <span>记住我</span>
                     </el-checkbox>
                   </div>
-                  <el-link 
-                    type="primary" 
-                    :underline="false" 
-                    class="forgot-password-link"
-                    @click="goToForgotPassword"
-                  >
+                  <el-link type="primary" :underline="false" class="forgot-password-link" @click="goToForgotPassword">
                     忘记密码？
                   </el-link>
                 </div>
 
-                <!-- 登录按钮 -->
                 <el-form-item>
                   <el-button
                     type="primary"
@@ -115,22 +104,15 @@
                   </el-button>
                 </el-form-item>
 
-                <!-- 注册链接 -->
                 <div class="register-section">
                   <span>还没有账号？</span>
-                  <el-link 
-                    type="primary" 
-                    :underline="false" 
-                    class="register-link"
-                    @click="goToRegister"
-                  >
+                  <el-link type="primary" :underline="false" class="register-link" @click="goToRegister">
                     立即注册
                   </el-link>
                 </div>
               </el-form>
             </div>
 
-            <!-- 底部授权登录区域 -->
             <div class="auth-footer">
               <div class="divider">
                 <span>第三方账号登录</span>
@@ -159,21 +141,11 @@
       </div>
     </div>
 
-    <!-- 忘记密码弹窗 -->
-    <el-dialog 
-      v-model="showForgotDialog"
-      title="重置密码"
-      width="400px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="showForgotDialog" title="重置密码" width="400px" :close-on-click-modal="false">
       <p style="margin-bottom: 16px; color: #666;">
         请输入您的邮箱地址，我们将发送重置密码链接到您的邮箱。
       </p>
-      <el-input
-        v-model="resetEmail"
-        placeholder="请输入您的邮箱"
-        clearable
-      />
+      <el-input v-model="resetEmail" placeholder="请输入您的邮箱" clearable />
       <template #footer>
         <el-button @click="showForgotDialog = false">取消</el-button>
         <el-button type="primary" @click="handleReset" :loading="resetLoading">
@@ -209,9 +181,7 @@ const loginForm = reactive({
 })
 
 const loginRules: FormRules = {
-  username: [
-    { required: true, message: '请输入用户名或邮箱', trigger: 'blur' },
-  ],
+  username: [{ required: true, message: '请输入用户名或邮箱', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度不能少于6位', trigger: 'blur' },
@@ -227,10 +197,7 @@ const handleLogin = async () => {
     loading.value = true
     try {
       await userStore.login(loginForm.username, loginForm.password)
-
       ElMessage.success('登录成功')
-
-      // 跳转到之前的页面或首页
       const redirect = (route.query.redirect as string) || '/'
       router.push(redirect)
     } catch (error: any) {
@@ -271,141 +238,99 @@ const handleReset = async () => {
 </script>
 
 <style scoped lang="scss">
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
-
-// 颜色变量 - 科技蓝配色
 $primary-color: #2563eb;
 $secondary-color: #38bdf8;
 $accent-color: #0ea5e9;
 $text-primary: #0f172a;
 $text-secondary: #5b6472;
-$bg-light: #f5f7ff;
-$border-color: rgba(37, 99, 235, 0.18);
-$shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.08);
-$shadow-md: 0 16px 32px rgba(15, 23, 42, 0.12);
 $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 
 .login-container {
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
   min-height: 100dvh;
-  overflow-x: hidden;
-  font-family: 'Outfit', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  overflow: hidden;
   color: $text-primary;
   background:
     radial-gradient(1200px circle at -10% -20%, rgba(56, 189, 248, 0.28) 0%, transparent 60%),
     radial-gradient(900px circle at 110% 0%, rgba(37, 99, 235, 0.24) 0%, transparent 55%),
-    radial-gradient(800px circle at 50% 120%, rgba(14, 165, 233, 0.22) 0%, transparent 60%),
+    radial-gradient(800px circle at 50% 120%, rgba(14, 165, 233, 0.2) 0%, transparent 60%),
     linear-gradient(135deg, #f6f8ff 0%, #eef6ff 45%, #f3fbff 100%);
-  overflow: hidden;
 
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(120deg, rgba(37, 99, 235, 0.1) 0%, transparent 40%),
-        linear-gradient(to right, rgba(37, 99, 235, 0.05) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
-      background-size: auto, 48px 48px, 48px 48px;
-      opacity: 0.35;
-      pointer-events: none;
-    }
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(120deg, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
+      linear-gradient(to right, rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
+    background-size: auto, 48px 48px, 48px 48px;
+    opacity: 0.35;
+    pointer-events: none;
+  }
 }
 
-// 背景装饰
 .background-decoration {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   pointer-events: none;
   z-index: 0;
 }
 
 .gradient-blob {
   position: absolute;
+  border-radius: 50%;
   filter: blur(70px);
   opacity: 0.35;
-  border-radius: 50%;
 
   &.blob-1 {
     width: 340px;
     height: 340px;
-    background: rgba(56, 189, 248, 0.35);
     top: -120px;
     left: -120px;
+    background: rgba(56, 189, 248, 0.35);
     animation: float 8s ease-in-out infinite;
   }
 
   &.blob-2 {
     width: 280px;
     height: 280px;
-    background: rgba(37, 99, 235, 0.3);
-    bottom: -80px;
     right: -80px;
+    bottom: -80px;
+    background: rgba(37, 99, 235, 0.3);
     animation: float 10s ease-in-out infinite reverse;
   }
 
   &.blob-3 {
     width: 220px;
     height: 220px;
-    background: rgba(14, 165, 233, 0.25);
     top: 50%;
     right: 10%;
+    background: rgba(14, 165, 233, 0.25);
     animation: float 12s ease-in-out infinite;
   }
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  33% {
-    transform: translate(30px, -30px);
-  }
-  66% {
-    transform: translate(-20px, 20px);
-  }
-}
-
-// 登录内容
 .login-content {
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  height: 100dvh;
-  padding: 24px 32px;
-  box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-gutter: stable;
   position: relative;
   z-index: 1;
-
-  @media (max-width: 768px) {
-    padding: 20px;
-  }
+  min-height: 100dvh;
+  padding: 24px 32px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
 }
 
-// 统一的登录卡片
 .login-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.82);
+  width: min(800px, 100%);
+  min-height: calc(100dvh - 48px);
+  overflow: hidden;
   border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.82);
   box-shadow: $shadow-lg;
   backdrop-filter: blur(18px) saturate(1.08);
-  width: 100%;
-  max-width: 1240px;
-  min-height: 100%;
-  align-self: stretch;
-  min-width: 0;
-  box-sizing: border-box;
-  overflow: hidden;
   animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 
   &::before {
@@ -414,160 +339,74 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
     inset: 0 0 auto 0;
     height: 3px;
     background: linear-gradient(90deg, rgba(37, 99, 235, 0.1), rgba(37, 99, 235, 0.85), rgba(56, 189, 248, 0.8));
-    opacity: 0.9;
-    pointer-events: none;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: -45%;
-    right: -35%;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, transparent 70%);
-    transform: rotate(20deg);
-    pointer-events: none;
-  }
-
-  @media (max-width: 1024px) {
-    max-width: 940px;
-  }
-
-  @media (max-width: 900px) {
-    max-width: 720px;
-    min-height: auto;
-  }
-
-  @media (max-width: 768px) {
-    max-width: 100%;
-    border-radius: 20px;
-    min-height: auto;
   }
 }
 
 .login-shell {
   display: grid;
-  grid-template-columns: 1.08fr 1fr;
-  min-height: 100%;
-  height: 100%;
-  min-width: 0;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    height: auto;
-  }
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  min-height: inherit;
 }
 
 .brand-panel {
-  padding: 44px 40px;
-  min-width: 0;
-  background:
-    linear-gradient(145deg, rgba(37, 99, 235, 0.18), rgba(56, 189, 248, 0.12)),
-    radial-gradient(180px circle at 20% 15%, rgba(37, 99, 235, 0.2), transparent 70%);
   position: relative;
+  padding: 44px 40px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  background:
+    linear-gradient(145deg, rgba(37, 99, 235, 0.18), rgba(56, 189, 248, 0.12)),
+    radial-gradient(180px circle at 20% 15%, rgba(37, 99, 235, 0.2), transparent 70%);
 
   &::after {
     content: '';
     position: absolute;
-    top: 40px;
-    right: 32px;
-    width: 140px;
-    height: 140px;
-    border-radius: 28px;
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(56, 189, 248, 0.22));
-    filter: blur(8px);
-    opacity: 0.7;
+    inset: 24px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.34);
     pointer-events: none;
-  }
-
-  @media (max-width: 900px) {
-    padding: 36px 32px;
-  }
-
-  @media (max-width: 600px) {
-    padding: 32px 24px;
   }
 }
 
 .form-panel {
   padding: 44px 42px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(239, 246, 255, 0.92));
-  border-left: 1px solid rgba(37, 99, 235, 0.12);
   display: flex;
   flex-direction: column;
-  min-width: 0;
-
-  @media (max-width: 900px) {
-    border-left: none;
-    border-top: 1px solid rgba(37, 99, 235, 0.12);
-    padding: 36px 32px 40px;
-  }
-
-  @media (max-width: 600px) {
-    padding: 32px 24px;
-  }
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(239, 246, 255, 0.92));
+  border-left: 1px solid rgba(37, 99, 235, 0.12);
 }
 
-// 品牌头部 (约20%高度)
 .brand-header {
-  text-align: left;
-  margin-bottom: 24px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid rgba(37, 99, 235, 0.18);
+  margin-bottom: 4px;
 
   .brand-icon {
-    width: 56px;
-    height: 56px;
-    font-size: 28px;
-    margin: 0 0 12px;
+    width: 60px;
+    height: 60px;
+    margin-bottom: 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(56, 189, 248, 0.26));
-    border-radius: 16px;
-    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.24);
-    transition: all 0.35s ease;
-
-    &:hover {
-      transform: scale(1.08) rotate(8deg);
-    }
+    border-radius: 18px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(56, 189, 248, 0.22));
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
   }
 
   h2 {
-    font-size: 26px;
+    margin: 0 0 10px;
+    font-size: 32px;
     font-weight: 700;
-    margin: 0 0 8px 0;
-    letter-spacing: 0.4px;
-    background: linear-gradient(135deg, $primary-color, $secondary-color 70%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    line-height: 1.15;
+    letter-spacing: -0.6px;
   }
 
   .brand-slogan {
-    font-size: 13.5px;
-    color: $text-secondary;
     margin: 0;
-    letter-spacing: 0.4px;
-  }
-}
-
-@media (max-width: 900px) {
-  .brand-header {
-    text-align: center;
-
-    .brand-icon {
-      margin: 0 auto 12px;
-    }
-  }
-
-  .brand-tags {
-    justify-content: center;
+    font-size: 15px;
+    line-height: 1.6;
+    color: $text-secondary;
   }
 }
 
@@ -575,13 +414,12 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
   display: flex;
   flex-direction: column;
   gap: 20px;
-  flex: 1;
 }
 
 .brand-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 
   .tag {
     padding: 6px 12px;
@@ -608,7 +446,6 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
     align-items: flex-start;
     gap: 12px;
     font-size: 14px;
-    color: $text-primary;
     line-height: 1.5;
   }
 }
@@ -616,24 +453,26 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 .feature-icon {
   width: 28px;
   height: 28px;
+  flex-shrink: 0;
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.84);
   color: $primary-color;
   box-shadow: 0 6px 12px rgba(37, 99, 235, 0.12);
-  flex-shrink: 0;
 }
 
 .brand-note {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
-  color: $text-secondary;
   padding: 10px 14px;
   border-radius: 12px;
+  font-size: 13px;
+  color: $text-secondary;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(37, 99, 235, 0.12);
 }
@@ -650,10 +489,9 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
   margin-bottom: 20px;
 
   h3 {
-    margin: 0 0 6px 0;
+    margin: 0 0 6px;
     font-size: 22px;
     font-weight: 700;
-    color: $text-primary;
   }
 
   p {
@@ -663,7 +501,6 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
   }
 }
 
-// 表单容器 (约60%高度)
 .form-container {
   margin-bottom: 20px;
 }
@@ -671,16 +508,12 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 .login-form {
   width: 100%;
 
-  :deep(.el-form-item__content) {
-    width: 100%;
-  }
-
+  :deep(.el-form-item__content),
   :deep(.el-input) {
     width: 100%;
   }
 
   .el-form-item {
-    width: 100%;
     margin-bottom: 18px;
 
     &:last-child {
@@ -688,24 +521,21 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
     }
 
     :deep(.el-input__wrapper) {
-      width: 100%;
-      box-sizing: border-box;
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.86);
       border: 1px solid rgba(37, 99, 235, 0.14);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4),
-        0 8px 16px rgba(37, 99, 235, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 8px 16px rgba(37, 99, 235, 0.08);
       transition: all 0.3s ease;
 
       &:hover {
         border-color: rgba(37, 99, 235, 0.4);
-        background: #ffffff;
+        background: #fff;
       }
 
       &.is-focus {
         border-color: rgba(37, 99, 235, 0.6);
         box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.22);
-        background: #ffffff;
+        background: #fff;
       }
     }
 
@@ -721,104 +551,41 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
     :deep(.el-input__prefix) {
       color: rgba(37, 99, 235, 0.75);
     }
-
-    :deep(.el-input__suffix) {
-      display: inline-flex;
-      flex: 0 0 52px;
-      width: 52px;
-      justify-content: flex-end;
-    }
-
-    :deep(.el-input__suffix-inner) {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
   }
 
-  // 记住我和忘记密码
   .remember-forgot-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 18px 0 8px;
     gap: 12px;
-
-    @media (max-width: 480px) {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
+    margin: 18px 0 8px;
   }
 
   .remember-checkbox {
     :deep(.el-checkbox__label) {
       font-size: 14px;
       color: $text-secondary;
-      user-select: none;
-    }
-
-    :deep(.el-checkbox) {
-      &.is-checked .el-checkbox__inner {
-        background-color: $primary-color;
-        border-color: $primary-color;
-      }
     }
   }
 
   .forgot-password-link {
     font-size: 14px;
     white-space: nowrap;
-    transition: all 0.3s ease;
-
-    &:hover {
-      color: $primary-color;
-      text-decoration: underline;
-    }
   }
 
-  // 登录按钮
   .login-button {
     width: 100%;
     height: 46px;
+    margin: 18px 0 16px;
+    border: none;
+    border-radius: 12px;
     font-size: 16px;
     font-weight: 600;
-    border-radius: 12px;
+    color: #fff;
     background: linear-gradient(135deg, $primary-color 0%, $accent-color 45%, $secondary-color 100%);
-    border: none;
-    color: white;
-    transition: all 0.3s ease;
-    margin: 18px 0 16px 0;
-    position: relative;
-    overflow: hidden;
-
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 2px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 60%);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      pointer-events: none;
-    }
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 14px 28px rgba(37, 99, 235, 0.35);
-
-      &::after {
-        opacity: 1;
-      }
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
+    box-shadow: 0 16px 28px rgba(37, 99, 235, 0.2);
   }
 
-  // 注册链接
   .register-section {
     text-align: center;
     font-size: 14px;
@@ -830,26 +597,19 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
 
     .register-link {
       font-weight: 600;
-      transition: all 0.3s ease;
-
-      &:hover {
-        color: $primary-color;
-      }
     }
   }
 }
 
-// 底部授权区域 (约20%高度)
 .auth-footer {
   padding-top: 20px;
   border-top: 1px solid rgba(37, 99, 235, 0.12);
 
-  // 分割线
   .divider {
-    text-align: center;
     margin-bottom: 16px;
-    color: $text-secondary;
+    text-align: center;
     font-size: 12px;
+    color: $text-secondary;
 
     span {
       position: relative;
@@ -876,54 +636,286 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
     }
   }
 
-  // 社交登录
   .social-login {
     display: flex;
-    gap: 12px;
     justify-content: center;
+    gap: 12px;
+  }
 
-    .social-btn {
-      width: 48px;
-      height: 48px;
-      padding: 0;
-      border-radius: 14px;
-      border: 1px solid rgba(37, 99, 235, 0.2);
-      color: rgba(37, 99, 235, 0.85);
-      background: rgba(255, 255, 255, 0.75);
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 8px 14px rgba(37, 99, 235, 0.12);
-
-      &:hover {
-        border-color: rgba(37, 99, 235, 0.55);
-        color: $primary-color;
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(56, 189, 248, 0.12));
-        transform: translateY(-3px);
-        box-shadow: 0 12px 20px rgba(37, 99, 235, 0.22);
-      }
-
-      svg {
-        display: block;
-      }
-    }
+  .social-btn {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    background: rgba(255, 255, 255, 0.75);
+    color: rgba(37, 99, 235, 0.85);
+    box-shadow: 0 8px 14px rgba(37, 99, 235, 0.12);
   }
 }
 
-// 动画
 @keyframes fadeInUp {
   from {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-// 暗模式支持
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  33% {
+    transform: translate(30px, -30px);
+  }
+
+  66% {
+    transform: translate(-20px, 20px);
+  }
+}
+
+@media (max-width: 900px) {
+  .login-content {
+    padding: 20px;
+  }
+
+  .login-card {
+    min-height: auto;
+  }
+
+  .login-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .form-panel {
+    order: 1;
+    padding: 34px 32px 26px;
+    border-left: none;
+  }
+
+  .brand-panel {
+    order: 2;
+    padding: 30px 32px 32px;
+  }
+
+  .brand-header {
+    margin-bottom: 0;
+    text-align: center;
+
+    .brand-icon {
+      margin: 0 auto 10px;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+  }
+
+  .brand-body {
+    margin-top: 18px;
+  }
+
+  .brand-tags {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .background-decoration {
+    opacity: 0.55;
+  }
+
+  .gradient-blob {
+    filter: blur(60px);
+
+    &.blob-1 {
+      width: 220px;
+      height: 220px;
+      top: -80px;
+      left: -90px;
+    }
+
+    &.blob-2 {
+      width: 180px;
+      height: 180px;
+      right: -50px;
+      bottom: -40px;
+    }
+
+    &.blob-3 {
+      display: none;
+    }
+  }
+
+  .login-content {
+    min-height: auto;
+    padding: 12px;
+    display: block;
+  }
+
+  .login-card {
+    min-height: auto;
+    border-radius: 18px;
+  }
+
+  .form-panel {
+    padding: 22px 20px 18px;
+  }
+
+  .brand-panel {
+    padding: 20px;
+    background:
+      linear-gradient(145deg, rgba(37, 99, 235, 0.14), rgba(56, 189, 248, 0.08)),
+      radial-gradient(160px circle at 20% 10%, rgba(37, 99, 235, 0.14), transparent 70%);
+  }
+
+  .brand-header {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+
+    h2 {
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .brand-slogan {
+      font-size: 13px;
+    }
+  }
+
+  .brand-body {
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .brand-tags {
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  .brand-features {
+    gap: 10px;
+
+    li {
+      font-size: 13px;
+    }
+  }
+
+  .feature-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+
+  .brand-note {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .form-header {
+    margin-bottom: 16px;
+
+    h3 {
+      font-size: 20px;
+    }
+  }
+
+  .form-container {
+    margin-bottom: 16px;
+  }
+
+  .login-form {
+    .el-form-item {
+      margin-bottom: 14px;
+    }
+
+    .remember-forgot-row {
+      margin-top: 12px;
+    }
+
+    .login-button {
+      height: 44px;
+      margin: 14px 0;
+    }
+  }
+
+  .auth-footer {
+    padding-top: 16px;
+
+    .divider span {
+      &::before,
+      &::after {
+        width: 32px;
+      }
+    }
+
+    .social-login {
+      gap: 10px;
+    }
+
+    .social-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+    }
+  }
+}
+
+@media (max-width: 420px) {
+  .login-content {
+    padding: 10px;
+  }
+
+  .login-card {
+    border-radius: 16px;
+  }
+
+  .brand-header h2 {
+    font-size: 20px;
+  }
+
+  .form-header h3 {
+    font-size: 18px;
+  }
+
+  .brand-body {
+    gap: 12px;
+  }
+
+  .login-form {
+    .remember-forgot-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .forgot-password-link {
+      white-space: normal;
+    }
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .login-card {
     background: rgba(17, 24, 39, 0.85);
@@ -939,59 +931,10 @@ $shadow-lg: 0 32px 60px rgba(15, 23, 42, 0.16);
   .form-panel {
     background: rgba(15, 23, 42, 0.8);
     border-left-color: rgba(255, 255, 255, 0.12);
-    border-top-color: rgba(255, 255, 255, 0.12);
-  }
-
-  .brand-header {
-    border-bottom-color: rgba(255, 255, 255, 0.12);
   }
 
   .auth-footer {
     border-top-color: rgba(255, 255, 255, 0.12);
-  }
-
-  .brand-tags .tag {
-    background: rgba(15, 23, 42, 0.6);
-    color: rgba(147, 197, 253, 0.9);
-    border-color: rgba(147, 197, 253, 0.25);
-  }
-
-  .feature-icon,
-  .brand-note {
-    background: rgba(30, 41, 59, 0.8);
-    color: rgba(147, 197, 253, 0.9);
-    border-color: rgba(148, 163, 184, 0.2);
-  }
-
-  .login-form {
-    :deep(.el-input__wrapper) {
-      background: rgba(30, 41, 59, 0.6);
-      border-color: rgba(255, 255, 255, 0.12);
-
-      &:hover {
-        background: rgba(30, 41, 59, 0.85);
-      }
-    }
-  }
-
-  .social-btn {
-    background: rgba(30, 41, 59, 0.7);
-    color: rgba(147, 197, 253, 0.85);
-    border-color: rgba(147, 197, 253, 0.2);
-  }
-}
-
-@media (max-width: 420px) {
-  .login-card {
-    border-radius: 18px;
-  }
-
-  .brand-header h2 {
-    font-size: 22px;
-  }
-
-  .form-header h3 {
-    font-size: 20px;
   }
 }
 

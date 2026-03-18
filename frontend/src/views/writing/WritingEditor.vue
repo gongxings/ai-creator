@@ -1,9 +1,12 @@
-<template>
+﻿<template>
   <div class="writing-editor">
-    <div class="editor-hero">
-      <h1>{{ toolInfo.name }}</h1>
-      <p>{{ toolInfo.description }}</p>
-    </div>
+    <section class="editor-hero">
+      <div>
+        <p class="eyebrow">Writing Studio</p>
+        <h1>{{ toolInfo.name }}</h1>
+        <p>{{ toolInfo.description }}</p>
+      </div>
+    </section>
 
     <el-card class="editor-card">
       <template #header>
@@ -23,75 +26,53 @@
         <el-col :xs="24" :lg="10">
           <div class="input-section">
             <h3>输入信息</h3>
-            <el-form ref="formRef" :model="formData" label-position="top">
-              <el-form-item label="主题" prop="topic">
-                <el-input v-model="formData.topic" placeholder="请输入创作主题" />
-              </el-form-item>
-              <el-form-item label="关键词">
-                <el-input v-model="formData.keywords" placeholder="多个关键词用逗号分隔" />
-              </el-form-item>
-              <el-form-item label="风格">
-                <el-select v-model="formData.style" placeholder="选择风格" style="width: 100%">
-                  <el-option label="专业严谨" value="professional" />
-                  <el-option label="轻松幽默" value="humorous" />
-                  <el-option label="情感共鸣" value="emotional" />
-                </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" :loading="generating" @click="handleGenerate" style="width: 100%">
-                  <el-icon v-if="!generating"><MagicStick /></el-icon>
-                  {{ generating ? '生成中...' : '一键生成' }}
-                </el-button>
-              </el-form-item>
-            </el-form>
 
-            <el-card shadow="never" class="model-card">
-              <template #header><span>AI服务</span></template>
-              
+            <DynamicToolForm ref="dynamicFormRef" :tool-type="toolType" v-model="formData" />
+
+            <div class="generate-block">
+              <el-button type="primary" :loading="generating" @click="handleGenerate" class="generate-button">
+                <el-icon v-if="!generating"><MagicStick /></el-icon>
+                {{ generating ? '生成中...' : '一键生成' }}
+              </el-button>
+            </div>
+
+            <el-card shadow="never" class="side-card model-card">
+              <template #header><span>AI 服务</span></template>
+
               <el-form-item label="选择模型" prop="selectedModel">
-                <el-select v-model="selectedModel" placeholder="选择AI模型" style="width: 100%">
+                <el-select v-model="selectedModel" placeholder="选择 AI 模型" style="width: 100%">
                   <el-option v-for="model in aiModels" :key="model.id" :label="`${model.name} (${model.provider})`" :value="model.id" />
                 </el-select>
               </el-form-item>
-              <el-alert type="info" title="API Key模式说明" :closable="false" style="margin-bottom: 12px">
-                <p>使用配置的API Key调用官方API，需要消耗积分</p>
+              <el-alert type="info" title="API Key 模式说明" :closable="false">
+                <p>使用已配置的 API Key 调用官方接口时，通常会消耗积分。</p>
               </el-alert>
             </el-card>
 
-            <!-- 插件选择卡片 -->
-            <el-card shadow="never" class="plugin-card">
+            <el-card shadow="never" class="side-card plugin-card">
               <template #header>
                 <div class="plugin-header">
                   <span>创作插件</span>
-                  <el-button link type="primary" size="small" @click="router.push('/plugins/market')">
-                    管理插件
-                  </el-button>
+                  <el-button link type="primary" size="small" @click="router.push('/plugins/market')">管理插件</el-button>
                 </div>
               </template>
               <div class="plugin-selector-wrapper">
-                <PluginSelector
-                  v-model="selectedPlugins"
-                  :tool-type="toolType"
-                  @change="onPluginSelectionChange"
-                />
-                <span v-if="selectedPlugins.length > 0" class="plugin-hint">
-                  已选择 {{ selectedPlugins.length }} 个插件
-                </span>
-                <span v-else class="plugin-hint">
-                  启用插件可获取实时信息
+                <PluginSelector v-model="selectedPlugins" :tool-type="toolType" @change="onPluginSelectionChange" />
+                <span class="plugin-hint">
+                  {{ selectedPlugins.length > 0 ? `已选择 ${selectedPlugins.length} 个插件` : '启用插件后可补充实时信息与外部能力' }}
                 </span>
               </div>
-              <el-alert v-if="selectedPlugins.length > 0" type="success" :closable="false" style="margin-top: 12px">
-                <p>AI 将根据需要自动调用插件获取信息</p>
+              <el-alert v-if="selectedPlugins.length > 0" type="success" :closable="false" class="plugin-alert">
+                <p>生成过程中，AI 会按需自动调用已启用插件。</p>
               </el-alert>
             </el-card>
 
             <div class="tips-card">
               <h4>创作建议</h4>
               <ul>
-                <li>主题尽量具体，能提升生成质量。</li>
-                <li>关键词建议 3~6 个，帮助模型聚焦。</li>
-                <li>完成后可用"优化"进一步提升可读性。</li>
+                <li>填写的信息越详细，生成结果通常越稳定。</li>
+                <li>补充说明里可以写额外要求、口吻和结构偏好。</li>
+                <li>完成初稿后可继续优化，提高可读性和表达质量。</li>
               </ul>
             </div>
           </div>
@@ -100,10 +81,12 @@
         <el-col :xs="24" :lg="14">
           <div class="preview-section">
             <div class="preview-header">
-              <h3>内容编辑</h3>
-              <div class="preview-meta" v-if="currentCreation">
-                <el-tag size="small" effect="plain">字数：{{ contentStats.wordCount }}</el-tag>
-                <el-tag size="small" effect="plain">预计阅读：{{ contentStats.readingMinutes }} 分钟</el-tag>
+              <div>
+                <h3>内容编辑</h3>
+                <div class="preview-meta" v-if="currentCreation">
+                  <el-tag size="small" effect="plain">字数：{{ contentStats.wordCount }}</el-tag>
+                  <el-tag size="small" effect="plain">预计阅读：{{ contentStats.readingMinutes }} 分钟</el-tag>
+                </div>
               </div>
               <div class="preview-actions">
                 <el-button v-if="currentCreation" :icon="RefreshRight" @click="handleRegenerate" :loading="generating">重新生成</el-button>
@@ -112,7 +95,7 @@
               </div>
             </div>
             <div v-if="!currentCreation" class="empty-preview">
-              <el-empty description="请填写信息并点击生成按钮" />
+              <el-empty description="请先填写信息并生成内容" />
             </div>
             <div v-else class="content-editor">
               <MdEditor
@@ -134,9 +117,9 @@
       <el-form label-position="top">
         <el-form-item label="优化类型">
           <el-checkbox-group v-model="optimizeTypes">
-            <el-checkbox label="seo">SEO优化</el-checkbox>
+            <el-checkbox label="seo">SEO 优化</el-checkbox>
             <el-checkbox label="readability">可读性</el-checkbox>
-            <el-checkbox label="style">文风</el-checkbox>
+            <el-checkbox label="style">文风调整</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
       </el-form>
@@ -166,79 +149,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Upload, RefreshRight, MagicStick, Download } from '@element-plus/icons-vue'
+import { ArrowLeft, Download, MagicStick, RefreshRight, Upload } from '@element-plus/icons-vue'
 import { MdEditor, type ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import { generateContent, regenerateContent, optimizeContent } from '@/api/writing'
+import { generateContent, optimizeContent, regenerateContent } from '@/api/writing'
 import { publishContent } from '@/api/publish'
 import { getAIModels } from '@/api/models'
 import { getCreation } from '@/api/creations'
 import PluginSelector from '@/components/PluginSelector.vue'
-import type { Creation, AIModel } from '@/types'
+import DynamicToolForm from '@/components/writing/DynamicToolForm.vue'
+import { getToolFormConfig } from '@/config/writingToolForms'
+import type { AIModel, Creation } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
 const toolType = computed(() => route.params.toolType as string)
 const editId = computed(() => route.query.id as string | undefined)
 
-const toolMetaMap: Record<string, { name: string; description: string }> = {
-  wechat_article: { name: '公众号文章', description: '面向微信生态，突出可读性与传播性。' },
-  xiaohongshu_note: { name: '小红书笔记', description: '适合种草与经验分享，强调标题吸引力。' },
-  official_document: { name: '公文写作', description: '结构规范、语气正式，适用于公文场景。' },
-  academic_paper: { name: '论文写作', description: '提供学术风格文本草稿，便于继续完善。' },
-  marketing_copy: { name: '营销文案', description: '强化卖点表达，提升转化效率。' },
-  news_article: { name: '新闻稿/软文', description: '兼顾信息传递与品牌表达。' },
-  video_script: { name: '短视频脚本', description: '快速生成结构化脚本与镜头节奏。' },
-  story_novel: { name: '故事/小说', description: '激发创意叙事，搭建情节框架。' },
-  business_plan: { name: '商业计划书', description: '输出商业方案初稿与关键模块。' },
-  work_report: { name: '工作报告', description: '提炼工作成果，形成清晰报告结构。' },
-  resume: { name: '简历/求职信', description: '突出优势与匹配度，提升表达质量。' },
-  lesson_plan: { name: '教案/课件', description: '生成教学目标清晰的内容骨架。' },
-  content_rewrite: { name: '改写/扩写/缩写', description: '对既有内容进行定向优化与重构。' },
-  translation: { name: '多语言翻译', description: '保留语义与风格的一致性表达。' },
-}
+const toolInfo = computed(() => {
+  const config = getToolFormConfig(toolType.value)
+  if (config) {
+    return { name: config.name, description: config.description }
+  }
+  return { name: 'AI 写作工具', description: '智能生成高质量写作内容。' }
+})
 
-const toolInfo = computed(() => toolMetaMap[toolType.value] || { name: 'AI写作工具', description: '智能生成高质量写作内容。' })
-
-const formRef = ref()
-const formData = reactive({ topic: '', keywords: '', style: 'professional' })
+const dynamicFormRef = ref<InstanceType<typeof DynamicToolForm>>()
+const formData = ref<Record<string, any>>({})
 const aiModels = ref<AIModel[]>([])
 const selectedModel = ref<number>()
-
-// Markdown 编辑器相关
 const markdownContent = ref('')
 const editorTheme = ref<'light' | 'dark'>('light')
-const toolbars: ToolbarNames[] = [
-  'bold',
-  'underline',
-  'italic',
-  'strikeThrough',
-  '-',
-  'title',
-  'sub',
-  'sup',
-  'quote',
-  'unorderedList',
-  'orderedList',
-  'task',
-  '-',
-  'codeRow',
-  'code',
-  'link',
-  'image',
-  'table',
-  '-',
-  'revoke',
-  'next',
-  '=',
-  'preview',
-  'htmlPreview',
-  'catalog',
-]
-
+const toolbars: ToolbarNames[] = ['bold','underline','italic','strikeThrough','-','title','sub','sup','quote','unorderedList','orderedList','task','-','codeRow','code','link','image','table','-','revoke','next','=','preview','htmlPreview','catalog']
 const currentCreation = ref<Creation>()
 const generating = ref(false)
 const optimizing = ref(false)
@@ -247,8 +192,6 @@ const showOptimizeDialog = ref(false)
 const showPublishDialog = ref(false)
 const optimizeTypes = ref<string[]>([])
 const selectedPlatforms = ref<string[]>([])
-
-// 插件相关状态
 const selectedPlugins = ref<string[]>([])
 
 const onPluginSelectionChange = (plugins: string[]) => {
@@ -256,7 +199,6 @@ const onPluginSelectionChange = (plugins: string[]) => {
 }
 
 const contentStats = computed(() => {
-  // 从 Markdown 内容计算统计信息
   const text = markdownContent.value.replace(/[#*`\[\]()_~>-]/g, '').trim()
   const wordCount = text.replace(/\s+/g, '').length
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 300))
@@ -264,26 +206,23 @@ const contentStats = computed(() => {
 })
 
 const handleContentChange = (value: string) => {
-  // 可以在这里做额外处理，比如自动保存
   console.log('Content changed, length:', value.length)
 }
 
 const handleGenerate = async () => {
-  if (!formData.topic) {
-    ElMessage.warning('请输入主题')
-    return
+  if (dynamicFormRef.value) {
+    const valid = await dynamicFormRef.value.validate()
+    if (!valid) {
+      ElMessage.warning('请填写必填字段')
+      return
+    }
   }
-  
+
+  const params = dynamicFormRef.value?.getFormData() || {}
   generating.value = true
   try {
-    const res = await generateContent({
-      tool_type: toolType.value,
-      params: { ...formData },
-      ai_model_id: selectedModel.value,
-      enabled_plugins: selectedPlugins.value.length > 0 ? selectedPlugins.value : undefined,
-    })
+    const res = await generateContent({ tool_type: toolType.value, params, ai_model_id: selectedModel.value, enabled_plugins: selectedPlugins.value.length > 0 ? selectedPlugins.value : undefined })
     currentCreation.value = res
-    // 后端返回的 content 现在应该是 Markdown 格式
     markdownContent.value = res.output_content || res.content || ''
     ElMessage.success('生成成功')
   } catch (error: any) {
@@ -315,9 +254,7 @@ const handleOptimize = async () => {
   }
   optimizing.value = true
   try {
-    const res = await optimizeContent(currentCreation.value.id, {
-      optimize_types: optimizeTypes.value
-    })
+    const res = await optimizeContent(currentCreation.value.id, { optimize_types: optimizeTypes.value })
     currentCreation.value = res
     markdownContent.value = res.output_content || res.content || ''
     showOptimizeDialog.value = false
@@ -336,10 +273,7 @@ const handlePublish = async () => {
   }
   publishing.value = true
   try {
-    await publishContent({
-      creation_id: currentCreation.value.id,
-      platforms: selectedPlatforms.value
-    })
+    await publishContent({ creation_id: currentCreation.value.id, platforms: selectedPlatforms.value } as any)
     showPublishDialog.value = false
     selectedPlatforms.value = []
     ElMessage.success('发布成功')
@@ -352,8 +286,6 @@ const handlePublish = async () => {
 
 const handleExport = () => {
   if (!currentCreation.value) return
-  
-  // 导出 Markdown 格式
   const blob = new Blob([markdownContent.value], { type: 'text/markdown' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -365,8 +297,7 @@ const handleExport = () => {
 
 const loadModels = async () => {
   try {
-    const res = await getAIModels()
-    // res 直接就是数组，响应拦截器已返回 response.data
+    const res = await getAIModels('text')
     aiModels.value = Array.isArray(res) ? res : (res.data || [])
     if (aiModels.value.length > 0) {
       selectedModel.value = aiModels.value[0].id
@@ -376,21 +307,14 @@ const loadModels = async () => {
   }
 }
 
-// 加载历史记录进行编辑
 const loadCreationForEdit = async (id: string) => {
   try {
     const res = await getCreation(parseInt(id))
     const creation = res.data || res
-    
     currentCreation.value = creation
     markdownContent.value = creation.output_content || creation.content || ''
-    
-    // 尝试从 metadata 或 input_params 恢复表单数据
-    const params = creation.input_params || creation.metadata || {}
-    if (params.topic) formData.topic = params.topic
-    if (params.keywords) formData.keywords = params.keywords
-    if (params.style) formData.style = params.style
-    
+    const params = creation.input_params || creation.metadata || creation.input_data || {}
+    formData.value = { ...params }
     ElMessage.success('已加载历史创作内容')
   } catch (error: any) {
     ElMessage.error(error.message || '加载创作记录失败')
@@ -399,8 +323,6 @@ const loadCreationForEdit = async (id: string) => {
 
 onMounted(async () => {
   await loadModels()
-  
-  // 如果有编辑 id，加载历史记录
   if (editId.value) {
     await loadCreationForEdit(editId.value)
   }
@@ -411,302 +333,236 @@ onMounted(async () => {
 .writing-editor {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px 24px;
-  max-width: 1400px;
+  gap: 24px;
+  padding: 28px;
+  max-width: 1440px;
   margin: 0 auto;
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 36%);
+}
 
-  .editor-hero {
-    padding: 24px 28px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+.editor-hero {
+  padding: 30px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(125, 211, 252, 0.38), transparent 28%),
+    linear-gradient(135deg, rgba(239, 246, 255, 0.94), rgba(255, 255, 255, 0.92));
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
 
-    h1 {
-      margin: 0 0 8px;
-      font-size: 26px;
-      color: #1f2937;
-    }
+.eyebrow {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #2563eb;
+}
 
-    p {
-      margin: 0;
-      color: #64748b;
-    }
-  }
+.editor-hero h1 {
+  margin: 0 0 10px;
+  font-size: clamp(30px, 4vw, 42px);
+  color: #12304a;
+}
 
-  :deep(.el-card) {
-    border-radius: 14px;
-    border: 1px solid #edf2f7;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
-  }
+.editor-hero p {
+  margin: 0;
+  max-width: 760px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #60758e;
+}
 
-  .editor-card {
-    :deep(.el-card__header) {
-      padding: 16px 24px;
-    }
+:deep(.el-card) {
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.07);
+}
 
-    :deep(.el-card__body) {
-      padding: 24px;
-    }
+.editor-card :deep(.el-card__header) {
+  padding: 18px 24px;
+}
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+.editor-card :deep(.el-card__body) {
+  padding: 24px;
+}
 
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+.card-header,
+.header-left,
+.plugin-header,
+.preview-header,
+.preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 
-        h2 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 600;
-          color: #1f2937;
-        }
-      }
-    }
-  }
+.header-left h2,
+.input-section h3,
+.preview-header h3 {
+  margin: 0;
+  color: #12304a;
+}
 
-  .input-section {
-    padding-right: 12px;
+.input-section,
+.preview-section {
+  height: 100%;
+}
 
-    h3 {
-      margin-bottom: 16px;
-      font-size: 16px;
-      font-weight: 600;
-      color: #1f2937;
-    }
+.generate-block {
+  margin-top: 20px;
+}
 
-    .model-card {
-      margin-top: 20px;
-    }
+.generate-button {
+  width: 100%;
+}
 
-    .plugin-card {
-      margin-top: 16px;
+.side-card {
+  margin-top: 18px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(239, 246, 255, 0.82));
+}
 
-      .plugin-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+.plugin-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-      .plugin-selector-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+.plugin-hint {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #64748b;
+}
 
-        .plugin-hint {
-          font-size: 13px;
-          color: #999;
-        }
-      }
-    }
+.plugin-alert {
+  margin-top: 12px;
+}
 
-    .tips-card {
-      margin-top: 16px;
-      padding: 14px 16px;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      background: #f8fafc;
+.tips-card {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(239, 246, 255, 0.82));
+}
 
-      h4 {
-        margin: 0 0 8px;
-        color: #334155;
-        font-size: 14px;
-      }
+.tips-card h4 {
+  margin: 0 0 10px;
+  color: #12304a;
+}
 
-      ul {
-        margin: 0;
-        padding-left: 18px;
-        color: #64748b;
-        font-size: 13px;
-        line-height: 1.7;
-      }
-    }
-  }
+.tips-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #60758e;
+  line-height: 1.8;
+}
 
-  .preview-section {
-    padding-left: 12px;
+.preview-header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
 
-    .preview-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 16px;
+.preview-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
 
-      h3 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: #1f2937;
-      }
+.preview-section .preview-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
 
-      .preview-meta {
-        display: flex;
-        gap: 8px;
-      }
+.empty-preview {
+  min-height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(148, 163, 184, 0.32);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(239, 246, 255, 0.7));
+}
 
-      .preview-actions {
-        display: flex;
-        gap: 8px;
-      }
-    }
+.content-editor {
+  min-height: 520px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 22px;
+  overflow: hidden;
+}
 
-    .empty-preview {
-      min-height: 450px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f8fafc;
-      border-radius: 10px;
-      border: 1px dashed #dbe3ef;
-    }
+.content-editor :deep(.md-editor) {
+  --md-bk-color: #fff;
+  min-height: 520px;
+}
 
-    .content-editor {
-      border: 1px solid #dbe3ef;
-      border-radius: 10px;
-      overflow: hidden;
-      min-height: 450px;
+.content-editor :deep(.md-editor-toolbar) {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(248, 250, 252, 0.92);
+}
 
-      :deep(.md-editor) {
-        --md-bk-color: #fff;
-        min-height: 450px;
+.content-editor :deep(.md-editor-input),
+.content-editor :deep(.md-editor-preview) {
+  padding: 18px;
+  line-height: 1.8;
+}
 
-        .md-editor-toolbar {
-          border-bottom: 1px solid #e5e7eb;
-          padding: 8px 12px;
-        }
-
-        .md-editor-content {
-          .md-editor-input-wrapper {
-            .md-editor-input {
-              font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-              font-size: 14px;
-              line-height: 1.75;
-              padding: 16px;
-            }
-          }
-
-          .md-editor-preview-wrapper {
-            .md-editor-preview {
-              font-size: 15px;
-              line-height: 1.8;
-              padding: 16px;
-
-              h1 {
-                font-size: 24px;
-                margin-bottom: 16px;
-              }
-
-              h2 {
-                font-size: 20px;
-                margin-top: 24px;
-                margin-bottom: 12px;
-              }
-
-              h3 {
-                font-size: 18px;
-                margin-top: 20px;
-                margin-bottom: 10px;
-              }
-
-              p {
-                margin-bottom: 12px;
-              }
-
-              blockquote {
-                border-left: 4px solid #409eff;
-                background: #f5f7fa;
-                padding: 12px 16px;
-                margin: 16px 0;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+.content-editor :deep(blockquote) {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-left: 4px solid #3b82f6;
+  border-radius: 0 14px 14px 0;
+  background: rgba(239, 246, 255, 0.9);
 }
 
 @media (max-width: 992px) {
   .writing-editor {
     padding: 16px;
+  }
 
-    .editor-hero {
-      padding: 18px 20px;
+  .editor-card :deep(.el-card__body) {
+    padding: 16px;
+  }
 
-      h1 {
-        font-size: 22px;
-      }
-    }
+  .preview-section {
+    margin-top: 24px;
+  }
 
-    .editor-card {
-      :deep(.el-card__body) {
-        padding: 16px;
-      }
-    }
-
-    .input-section {
-      padding-right: 0;
-      margin-bottom: 24px;
-    }
-
-    .preview-section {
-      padding-left: 0;
-
-      .content-editor {
-        min-height: 350px;
-
-        :deep(.md-editor) {
-          min-height: 350px;
-        }
-      }
-
-      .empty-preview {
-        min-height: 350px;
-      }
-    }
+  .content-editor,
+  .empty-preview,
+  .content-editor :deep(.md-editor) {
+    min-height: 380px;
   }
 }
 
 @media (max-width: 576px) {
   .writing-editor {
-    padding: 12px;
     gap: 16px;
+    padding: 12px;
+  }
 
-    .editor-hero {
-      padding: 16px;
+  .editor-hero,
+  .editor-card :deep(.el-card__body) {
+    padding: 16px;
+  }
 
-      h1 {
-        font-size: 20px;
-      }
+  .editor-card :deep(.el-card__header) {
+    padding: 14px 16px;
+  }
 
-      p {
-        font-size: 14px;
-      }
-    }
+  .card-header,
+  .header-left,
+  .preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-    .editor-card {
-      :deep(.el-card__header) {
-        padding: 12px 16px;
-      }
-
-      :deep(.el-card__body) {
-        padding: 12px;
-      }
-
-      .card-header {
-        .header-left {
-          h2 {
-            font-size: 16px;
-          }
-        }
-      }
-    }
+  .preview-section .preview-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 </style>

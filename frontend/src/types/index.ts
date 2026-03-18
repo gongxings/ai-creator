@@ -60,7 +60,7 @@ export interface AIModel {
   name: string
   provider: string
   model_name: string
-  api_base?: string
+  base_url?: string
   is_default: boolean
   is_active: boolean
   description?: string
@@ -73,7 +73,7 @@ export interface AIModelForm {
   provider: string
   model_name: string
   api_key: string
-  api_base?: string
+  base_url?: string
   is_default?: boolean
   is_active?: boolean
   description?: string
@@ -263,4 +263,73 @@ export interface APIKeyStats {
   requests_by_model: Record<string, number>
   tokens_by_model: Record<string, number>
   recent_logs: APIKeyUsageLog[]
+}
+
+// ============================================================================
+// 写作工具表单相关类型
+// ============================================================================
+
+// 表单字段类型
+export type FormFieldType = 'input' | 'textarea' | 'select' | 'radio' | 'number' | 'history_select' | 'url_fetch'
+
+// 下拉选项
+export interface SelectOption {
+  label: string
+  value: string
+}
+
+// 表单字段定义
+export interface FormField {
+  name: string
+  label: string
+  type: FormFieldType
+  required: boolean
+  placeholder?: string
+  options?: SelectOption[]
+  defaultValue?: any
+  rows?: number
+  maxLength?: number
+  // history_select 类型专用
+  historyConfig?: {
+    contentField: string  // 选中后填充到哪个字段
+    filterToolTypes?: string[]  // 筛选哪些工具类型的历史记录，不设置则显示全部
+  }
+  // url_fetch 类型专用
+  urlFetchConfig?: {
+    contentField: string  // 抓取后填充到哪个字段
+  }
+}
+
+// 工具表单配置
+export interface ToolFormConfig {
+  toolType: string
+  name: string
+  description: string
+  fields: FormField[]
+}
+
+// ============================================================================
+// AI 厂商配置相关类型
+// ============================================================================
+
+// 厂商认证类型
+export type AuthType = 'api_key' | 'dual_key' | 'triple_key' | 'api_key_group'
+
+// 厂商配置（前端用）
+export interface ProviderOption {
+  value: string
+  label: string
+  authType: AuthType
+  defaultBaseUrl: string
+  capabilities: ModelCapability[]
+  supportsCustomUrl: boolean
+}
+
+// 扩展 AIModelForm 以支持多种认证方式
+export interface AIModelFormExtended extends Omit<AIModelForm, 'api_key'> {
+  api_key?: string
+  secret_key?: string      // 用于 dual_key (百度、腾讯)
+  app_id?: string          // 用于 triple_key (讯飞)
+  api_secret?: string      // 用于 triple_key (讯飞)
+  group_id?: string        // 用于 api_key_group (MiniMax)
 }
