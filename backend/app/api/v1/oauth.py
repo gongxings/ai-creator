@@ -2,7 +2,6 @@
 OAuth账号管理API
 """
 import os
-from datetime import datetime
 from typing import List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from pydantic import BaseModel
@@ -11,7 +10,6 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.utils.deps import get_current_user
 from app.models.user import User
-from app.models.oauth_account import OAuthAccount
 from app.schemas.oauth import (
     OAuthAccountCreate,
     OAuthAccountManualCreate,
@@ -25,7 +23,6 @@ from app.schemas.oauth import (
 )
 from app.schemas.common import success_response
 from app.services.oauth.oauth_service import oauth_service
-from app.services.oauth.litellm_proxy import litellm_proxy
 from app.services.oauth.oauth_session import oauth_session_manager
 from app.models.platform_config import PlatformConfig
 from app.services.oauth.adapters import get_supported_platforms, get_adapter, PLATFORM_ADAPTERS
@@ -949,6 +946,10 @@ async def get_available_models(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     
+    # 延迟创建 LiteLLMProxy 实例，避免循环导入
+    from app.services.oauth.litellm_proxy import LiteLLMProxy
+    litellm_proxy = LiteLLMProxy()
+    
     models = litellm_proxy.get_available_models(
         db=db,
         account_id=account_id,
@@ -964,9 +965,9 @@ async def chat_completion(
     current_user: User = Depends(get_current_user),
 ):
     """
-    执行聊天完成（使用OAuth账号）
+    执行聊天完成（使用 OAuth 账号）
     
-    这个接口使用用户绑定的OAuth账号调用AI模型
+    这个接口使用用户绑定的 OAuth 账号调用 AI 模型
     """
     # 验证账号所有权
     account = oauth_service.get_account(
@@ -979,6 +980,10 @@ async def chat_completion(
         raise HTTPException(status_code=404, detail="Account not found")
     
     try:
+        # 延迟创建 LiteLLMProxy 实例，避免循环导入
+        from app.services.oauth.litellm_proxy import LiteLLMProxy
+        litellm_proxy = LiteLLMProxy()
+        
         response = await litellm_proxy.chat_completion(
             db=db,
             account_id=data.account_id,

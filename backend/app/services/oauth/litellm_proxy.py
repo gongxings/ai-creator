@@ -2,24 +2,22 @@
 LiteLLM代理服务
 用于代理AI模型调用
 """
-import asyncio
 from typing import Dict, Any, Optional, AsyncIterator
 from sqlalchemy.orm import Session
 from loguru import logger
-import litellm
-from litellm import completion, acompletion
-
 from app.services.oauth.oauth_service import oauth_service
 from app.services.oauth.adapters import get_adapter
 from app.models.platform_config import PlatformConfig
 
 
 class LiteLLMProxy:
-    """LiteLLM代理服务"""
+    """LiteLLM 代理服务"""
     
     def __init__(self):
         """初始化代理服务"""
-        # 配置LiteLLM
+        # 延迟导入 litellm，避免循环导入
+        import litellm
+        # 配置 LiteLLM
         litellm.drop_params = True  # 自动删除不支持的参数
         litellm.set_verbose = False  # 关闭详细日志
     
@@ -140,14 +138,18 @@ class LiteLLMProxy:
         
         Args:
             db: 数据库会话
-            account_id: 账号ID
+            account_id: 账号 ID
             request_params: 请求参数
             
         Returns:
             完成结果
         """
         try:
-            # 调用LiteLLM
+            # 延迟导入 litellm，避免循环导入
+            from litellm import acompletion
+            from app.services.oauth.oauth_service import oauth_service
+            
+            # 调用 LiteLLM
             response = await acompletion(**request_params)
             
             # 提取使用量信息
@@ -187,7 +189,7 @@ class LiteLLMProxy:
         
         Args:
             db: 数据库会话
-            account_id: 账号ID
+            account_id: 账号 ID
             request_params: 请求参数
             
         Yields:
@@ -198,11 +200,15 @@ class LiteLLMProxy:
         completion_tokens = 0
         
         try:
-            # 调用LiteLLM流式API
+            # 延迟导入 litellm，避免循环导入
+            from litellm import acompletion
+            from app.services.oauth.oauth_service import oauth_service
+            
+            # 调用 LiteLLM 流式 API
             response = await acompletion(**request_params)
             
             async for chunk in response:
-                # 累计tokens
+                # 累计 tokens
                 if hasattr(chunk, "usage") and chunk.usage:
                     prompt_tokens = chunk.usage.get("prompt_tokens", 0)
                     completion_tokens = chunk.usage.get("completion_tokens", 0)
@@ -250,11 +256,15 @@ class LiteLLMProxy:
         
         Args:
             db: 数据库会话
-            account_id: 账号ID
+            account_id: 账号 ID
             
         Returns:
             模型列表
         """
+        # 延迟导入，避免循环导入
+        from app.services.oauth.oauth_service import oauth_service
+        from app.services.oauth.adapters import get_adapter
+        
         try:
             # 获取账号信息
             account = oauth_service.get_account(db, account_id)
@@ -293,5 +303,17 @@ class LiteLLMProxy:
             return []
 
 
-# 全局LiteLLM代理实例
-litellm_proxy = LiteLLMProxy()
+# 全局 LiteLLM 代理实例（延迟初始化）
+_litellm_proxy_instance = None
+
+
+def get_litellm_proxy() -> LiteLLMProxy:
+    """获取 LiteLLM 代理实例（延迟初始化，避免循环导入）"""
+    global _litellm_proxy_instance
+    if _litellm_proxy_instance is None:
+        _litellm_proxy_instance = LiteLLMProxy()
+    return _litellm_proxy_instance
+
+
+# 注意：不要在这里直接创建 litellm_proxy 实例，否则会导致循环导入
+# 使用时应通过 LiteLLMProxy() 或 get_litellm_proxy() 创建/获取实例

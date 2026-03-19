@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app import models
 from app.schemas.api_key import APIKeyResponse
-from app.core.deps import get_db, get_current_admin_user
+from app.utils.deps import get_db, get_admin_user as get_current_admin_user
 from app.services.api_key_service import APIKeyService
 from app.schemas.common import success_response
 
