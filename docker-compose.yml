@@ -1,5 +1,5 @@
 version: '3.8'
-# 使用外部数据库和Redis（不启动容器）
+# 后端部署配置（使用外部数据库和Redis）
 # 请确保 .env 文件已正确配置 DATABASE_URL 和 REDIS_URL
 
 services:
@@ -18,20 +18,7 @@ services:
     networks:
       - ai-creator-network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-  # Celery Worker
-  celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: ai-creator-celery-worker
-    env_file:
-      - .env
-    volumes:
-      - ./backend:/app
-    networks:
-      - ai-creator-network
-    command: celery -A app.core.celery_app worker --loglevel=info
+    restart: unless-stopped
 
 networks:
   ai-creator-network:

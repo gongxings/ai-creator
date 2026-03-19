@@ -46,8 +46,8 @@
 
 ### 环境要求
 
-- Python 3.10+
-- Node.js 18+
+- Python 3.13+
+- Node.js 22+
 - MySQL 8.0+
 - Redis 6.0+
 
@@ -95,10 +95,9 @@ chmod +x start.sh
 ## 🏗️ 技术架构
 
 ### 后端技术栈
-- **框架**：FastAPI (Python 3.10+)
+- **框架**：FastAPI (Python 3.13+)
 - **数据库**：MySQL 8.0+ (SQLAlchemy ORM)
 - **缓存**：Redis
-- **任务队列**：Celery
 - **认证**：JWT
 - **AI集成**：OpenAI、Anthropic、阿里云、百度、智谱
 
@@ -313,30 +312,84 @@ WECHAT_MCH_ID=your-wechat-mch-id
 
 ## 🐳 Docker部署
 
-### 使用Docker Compose部署
+### 部署方式选择
+
+项目提供两种 Docker 部署方式：
+
+#### 方式一：后端独立部署（推荐生产环境）
+
+使用外部 MySQL 和 Redis 服务，前后端分离部署：
 
 ```bash
-# 构建并启动所有服务
+# 1. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，配置 DATABASE_URL 和 REDIS_URL 指向外部服务
+
+# 2. 启动后端服务
 docker-compose up -d
 
+# 服务启动后会自动：
+# - 创建所有数据库表（22张表）
+# - 初始化积分价格、会员价格、系统模板、平台配置等基础数据
+```
+
+#### 方式二：完整部署（适合快速体验）
+
+包含 MySQL + Redis + 后端 + 前端 的一体化部署：
+
+```bash
+# 1. 配置环境变量
+cp .env.example .env
+
+# 2. 启动所有服务
+docker-compose -f docker-compose.full.yml up -d
+
+# 访问地址：
+# - 前端：http://localhost:8080
+# - 后端API：http://localhost:8000
+# - API文档：http://localhost:8000/docs
+```
+
+### 常用命令
+
+```bash
 # 查看服务状态
 docker-compose ps
 
 # 查看日志
-docker-compose logs -f
+docker-compose logs -f backend
+
+# 重启服务
+docker-compose restart backend
 
 # 停止服务
 docker-compose down
+
+# 完全重建
+docker-compose up -d --build
 ```
 
-### Docker Compose配置说明
+### 数据库初始化说明
 
-项目包含完整的 `docker-compose.yml` 配置，包括：
-- **backend**: FastAPI后端服务
-- **frontend**: Vue前端服务
-- **mysql**: MySQL数据库
-- **redis**: Redis缓存
-- **nginx**: 反向代理服务器
+应用启动时会自动完成以下初始化：
+
+1. **创建数据库表**（共22张表）
+   - 用户相关：users
+   - AI模型：ai_models
+   - 创作相关：creations, creation_versions
+   - 发布相关：platform_accounts, publish_records
+   - 积分会员：credit_transactions, membership_orders, recharge_orders, credit_prices, membership_prices
+   - OAuth相关：oauth_accounts, oauth_usage_logs, platform_configs
+   - API Key：api_keys, api_key_usage_logs
+   - 运营相关：activities, activity_participations, coupons, user_coupons, referral_records, operation_statistics
+   - 插件相关：plugin_market, user_plugins, creation_plugin_selections, plugin_invocations, plugin_reviews
+   - 模板相关：article_templates
+
+2. **初始化基础数据**
+   - 积分价格套餐（10元/50元/100元/200元）
+   - 会员价格套餐（月度/季度/年度）
+   - 系统预设模板（5个样式模板）
+   - OAuth平台配置（6个AI平台）
 
 ## 📦 生产环境部署
 
@@ -347,8 +400,10 @@ docker-compose down
 - **内存**: 4GB以上
 - **硬盘**: 20GB以上
 - **网络**: 公网IP，开放80/443端口
+- **Python**: 3.13+（如果不使用Docker）
+- **Node.js**: 22+（如果不使用Docker）
 
-### 2. 部署步骤
+### 2. 快速部署步骤
 
 ```bash
 # 1. 安装Docker和Docker Compose
@@ -362,16 +417,37 @@ cd ai-creator
 
 # 3. 配置环境变量
 cp .env.example .env
-# 编辑.env文件，填入实际配置
+# 编辑.env文件，填入实际配置（数据库、Redis、AI API密钥等）
 
-# 4. 启动服务
+# 4. 启动服务（完整部署，包含数据库）
+docker-compose -f docker-compose.full.yml up -d
+
+# 或者使用外部数据库（推荐生产环境）
 docker-compose up -d
 
-# 5. 初始化数据库
-docker-compose exec backend python scripts/init_db.py
+# 5. 查看启动日志确认初始化完成
+docker-compose logs -f backend
+```
 
-# 6. 配置SSL证书（可选）
-# 使用Let's Encrypt自动获取SSL证书
+### 3. 前后端分离部署（推荐）
+
+**后端部署：**
+```bash
+# 使用 docker-compose.yml，配置外部数据库
+docker-compose up -d
+```
+
+**前端部署：**
+```bash
+cd frontend
+
+# 安装依赖
+npm install
+
+# 构建生产版本
+npm run build
+
+# dist 目录部署到 Nginx 或 CDN
 ```
 
 ### 3. Nginx配置
@@ -412,11 +488,7 @@ sudo systemctl reload nginx
    - API响应缓存
    - 静态资源CDN
 
-3. **异步处理**
-   - 使用Celery处理耗时任务
-   - 消息队列解耦服务
-
-4. **负载均衡**
+3. **负载均衡**
    - 多实例部署
    - Nginx负载均衡
    - 数据库读写分离

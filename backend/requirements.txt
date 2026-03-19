@@ -1,5 +1,5 @@
-# Python version requirement
-python>=3.13
+# AI Creator Backend Dependencies
+# Python version requirement: 3.13+
 
 fastapi==0.116.0
 uvicorn[standard]==0.34.0
@@ -42,3 +42,4 @@ imageio==2.36.1
 psutil==6.1.1
 python-pptx==1.0.2
 beautifulsoup4==4.12.3
+nest-asyncio>=1.5.0
