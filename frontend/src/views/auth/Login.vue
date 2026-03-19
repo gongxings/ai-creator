@@ -200,8 +200,8 @@ const handleLogin = async () => {
       ElMessage.success('登录成功')
       const redirect = (route.query.redirect as string) || '/'
       router.push(redirect)
-    } catch (error: any) {
-      ElMessage.error(error.message || '登录失败，请检查用户名和密码')
+    } catch {
+      // 错误已在 request.ts 拦截器中处理，这里不再重复提示
     } finally {
       loading.value = false
     }
