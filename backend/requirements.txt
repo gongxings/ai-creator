@@ -1,6 +1,9 @@
 # AI Creator Backend Dependencies
 # Python version requirement: 3.13+
 
+# Python 3.12+ 需要显式安装 setuptools (litellm 依赖 pkg_resources)
+setuptools>=70.0.0
+
 fastapi==0.116.0
 uvicorn[standard]==0.34.0
 pydantic==2.10.5
