@@ -2,7 +2,7 @@
 AI模型配置数据模型
 """
 from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, Enum, BigInteger, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from datetime import datetime
 import enum
 
@@ -46,8 +46,8 @@ class AIModel(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="ai_models", primaryjoin="AIModel.user_id == User.id")
-    creations = relationship("Creation", back_populates="model", primaryjoin="AIModel.id == Creation.model_id")
+    user = relationship("User", back_populates="ai_models", primaryjoin="AIModel.user_id == foreign(User.id)")
+    creations = relationship("Creation", back_populates="model", primaryjoin="AIModel.id == foreign(Creation.model_id)")
     
     def __repr__(self):
         return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"

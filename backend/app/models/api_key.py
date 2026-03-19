@@ -2,7 +2,7 @@
 API Key管理模型
 """
 from datetime import datetime
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, Index, JSON
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, Index, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 

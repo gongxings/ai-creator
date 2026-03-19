@@ -2,7 +2,7 @@
 创作记录模型
 """
 from sqlalchemy import Column, BigInteger, String, Enum, Integer, DateTime, Text, JSON, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from sqlalchemy.sql import func
 from app.core.database import Base
 import enum
@@ -123,10 +123,10 @@ class Creation(Base):
     deleted_at = Column(DateTime, comment="删除时间（软删除）")
     
     # 关系（不使用外键，通过 primaryjoin 指定关联条件）
-    user = relationship("User", back_populates="creations", primaryjoin="Creation.user_id == User.id")
-    model = relationship("AIModel", back_populates="creations", primaryjoin="Creation.model_id == AIModel.id")
-    publish_records = relationship("PublishRecord", back_populates="creation", primaryjoin="Creation.id == PublishRecord.creation_id")
-    plugin_invocations = relationship("PluginInvocation", back_populates="creation", primaryjoin="Creation.id == PluginInvocation.creation_id")
+    user = relationship("User", back_populates="creations", primaryjoin="Creation.user_id == foreign(User.id)")
+    model = relationship("AIModel", back_populates="creations", primaryjoin="Creation.model_id == foreign(AIModel.id)")
+    publish_records = relationship("PublishRecord", back_populates="creation", primaryjoin="Creation.id == foreign(PublishRecord.creation_id)")
+    plugin_invocations = relationship("PluginInvocation", back_populates="creation", primaryjoin="Creation.id == foreign(PluginInvocation.creation_id)")
     
     def __repr__(self):
         return f"<Creation(id={self.id}, type={self.creation_type}, status={self.status})>"

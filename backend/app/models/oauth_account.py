@@ -3,7 +3,7 @@ OAuth账号模型
 """
 from datetime import datetime
 from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from app.core.database import Base
 
 
@@ -26,8 +26,8 @@ class OAuthAccount(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
 
     # 关系（不使用外键）
-    user = relationship("User", back_populates="oauth_accounts", primaryjoin="OAuthAccount.user_id == User.id")
-    usage_logs = relationship("OAuthUsageLog", back_populates="account", cascade="all, delete-orphan", primaryjoin="OAuthAccount.id == OAuthUsageLog.account_id")
+    user = relationship("User", back_populates="oauth_accounts", primaryjoin="OAuthAccount.user_id == foreign(User.id)")
+    usage_logs = relationship("OAuthUsageLog", back_populates="account", cascade="all, delete-orphan", primaryjoin="OAuthAccount.id == foreign(OAuthUsageLog.account_id)")
 
     # 索引
     __table_args__ = (

@@ -3,7 +3,7 @@ OAuth使用日志模型
 """
 from datetime import datetime
 from sqlalchemy import Column, BigInteger, String, Text, Integer, DateTime, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from app.core.database import Base
 
 
@@ -26,8 +26,8 @@ class OAuthUsageLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
 
     # 关系（不使用外键）
-    user = relationship("User", primaryjoin="OAuthUsageLog.user_id == User.id")
-    account = relationship("OAuthAccount", back_populates="usage_logs", primaryjoin="OAuthUsageLog.account_id == OAuthAccount.id")
+    user = relationship("User", primaryjoin="OAuthUsageLog.user_id == foreign(User.id)")
+    account = relationship("OAuthAccount", back_populates="usage_logs", primaryjoin="OAuthUsageLog.account_id == foreign(OAuthAccount.id)")
 
     # 索引
     __table_args__ = (

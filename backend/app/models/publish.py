@@ -2,7 +2,7 @@
 发布管理数据模型
 """
 from sqlalchemy import Column, BigInteger, String, Text, JSON, DateTime, Enum as SQLEnum, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from datetime import datetime
 import enum
 
@@ -74,8 +74,8 @@ class PlatformAccount(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="platform_accounts", primaryjoin="PlatformAccount.user_id == User.id")
-    publish_records = relationship("PublishRecord", back_populates="platform_account", cascade="all, delete-orphan", primaryjoin="PlatformAccount.id == PublishRecord.platform_account_id")
+    user = relationship("User", back_populates="platform_accounts", primaryjoin="PlatformAccount.user_id == foreign(User.id)")
+    publish_records = relationship("PublishRecord", back_populates="platform_account", cascade="all, delete-orphan", primaryjoin="PlatformAccount.id == foreign(PublishRecord.platform_account_id)")
     
     __table_args__ = (
         Index("idx_platform_account_user_platform", "user_id", "platform"),
@@ -123,9 +123,9 @@ class PublishRecord(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="publish_records", primaryjoin="PublishRecord.user_id == User.id")
-    creation = relationship("Creation", back_populates="publish_records", primaryjoin="PublishRecord.creation_id == Creation.id")
-    platform_account = relationship("PlatformAccount", back_populates="publish_records", primaryjoin="PublishRecord.platform_account_id == PlatformAccount.id")
+    user = relationship("User", back_populates="publish_records", primaryjoin="PublishRecord.user_id == foreign(User.id)")
+    creation = relationship("Creation", back_populates="publish_records", primaryjoin="PublishRecord.creation_id == foreign(Creation.id)")
+    platform_account = relationship("PlatformAccount", back_populates="publish_records", primaryjoin="PublishRecord.platform_account_id == foreign(PlatformAccount.id)")
     
     __table_args__ = (
         Index("idx_user_status", "user_id", "status"),

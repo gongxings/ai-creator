@@ -2,7 +2,7 @@
 用户模型
 """
 from sqlalchemy import Column, BigInteger, String, Enum, Integer, DateTime, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from sqlalchemy.sql import func
 from app.core.database import Base
 import enum
@@ -87,31 +87,31 @@ class User(Base):
     referred_by = Column(BigInteger, comment="推荐人ID")
     
     # 关系
-    creations = relationship("Creation", back_populates="user", primaryjoin="User.id == Creation.user_id")
-    ai_models = relationship("AIModel", back_populates="user", primaryjoin="User.id == AIModel.user_id")
-    publish_records = relationship("PublishRecord", back_populates="user", primaryjoin="User.id == PublishRecord.user_id")
-    platform_accounts = relationship("PlatformAccount", back_populates="user", primaryjoin="User.id == PlatformAccount.user_id")
-    credit_transactions = relationship("CreditTransaction", back_populates="user", primaryjoin="User.id == CreditTransaction.user_id")
-    membership_orders = relationship("MembershipOrder", back_populates="user", primaryjoin="User.id == MembershipOrder.user_id")
-    recharge_orders = relationship("RechargeOrder", back_populates="user", primaryjoin="User.id == RechargeOrder.user_id")
+    creations = relationship("Creation", back_populates="user", primaryjoin="User.id == foreign(Creation.user_id)")
+    ai_models = relationship("AIModel", back_populates="user", primaryjoin="User.id == foreign(AIModel.user_id)")
+    publish_records = relationship("PublishRecord", back_populates="user", primaryjoin="User.id == foreign(PublishRecord.user_id)")
+    platform_accounts = relationship("PlatformAccount", back_populates="user", primaryjoin="User.id == foreign(PlatformAccount.user_id)")
+    credit_transactions = relationship("CreditTransaction", back_populates="user", primaryjoin="User.id == foreign(CreditTransaction.user_id)")
+    membership_orders = relationship("MembershipOrder", back_populates="user", primaryjoin="User.id == foreign(MembershipOrder.user_id)")
+    recharge_orders = relationship("RechargeOrder", back_populates="user", primaryjoin="User.id == foreign(RechargeOrder.user_id)")
     
     # 运营相关关系
-    activity_participations = relationship("ActivityParticipation", back_populates="user", primaryjoin="User.id == ActivityParticipation.user_id")
-    user_coupons = relationship("UserCoupon", back_populates="user", primaryjoin="User.id == UserCoupon.user_id")
-    referrals_made = relationship("ReferralRecord", foreign_keys="ReferralRecord.referrer_id", back_populates="referrer", primaryjoin="User.id == ReferralRecord.referrer_id")
-    referrals_received = relationship("ReferralRecord", foreign_keys="ReferralRecord.referee_id", back_populates="referee", primaryjoin="User.id == ReferralRecord.referee_id")
+    activity_participations = relationship("ActivityParticipation", back_populates="user", primaryjoin="User.id == foreign(ActivityParticipation.user_id)")
+    user_coupons = relationship("UserCoupon", back_populates="user", primaryjoin="User.id == foreign(UserCoupon.user_id)")
+    referrals_made = relationship("ReferralRecord", foreign_keys="ReferralRecord.referrer_id", back_populates="referrer", primaryjoin="User.id == foreign(ReferralRecord.referrer_id)")
+    referrals_received = relationship("ReferralRecord", foreign_keys="ReferralRecord.referee_id", back_populates="referee", primaryjoin="User.id == foreign(ReferralRecord.referee_id)")
     
     # OAuth相关关系
-    oauth_accounts = relationship("OAuthAccount", back_populates="user", primaryjoin="User.id == OAuthAccount.user_id")
+    oauth_accounts = relationship("OAuthAccount", back_populates="user", primaryjoin="User.id == foreign(OAuthAccount.user_id)")
     
     # API Key相关关系
-    api_keys = relationship("APIKey", back_populates="user", primaryjoin="User.id == APIKey.user_id")
+    api_keys = relationship("APIKey", back_populates="user", primaryjoin="User.id == foreign(APIKey.user_id)")
     
     # 插件相关关系
-    plugins = relationship("UserPlugin", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == UserPlugin.user_id")
-    plugin_selections = relationship("CreationPluginSelection", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == CreationPluginSelection.user_id")
-    plugin_invocations = relationship("PluginInvocation", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == PluginInvocation.user_id")
-    plugin_reviews = relationship("PluginReview", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == PluginReview.user_id")
+    plugins = relationship("UserPlugin", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == foreign(UserPlugin.user_id)")
+    plugin_selections = relationship("CreationPluginSelection", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == foreign(CreationPluginSelection.user_id)")
+    plugin_invocations = relationship("PluginInvocation", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == foreign(PluginInvocation.user_id)")
+    plugin_reviews = relationship("PluginReview", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == foreign(PluginReview.user_id)")
     
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, role={self.role})>"
