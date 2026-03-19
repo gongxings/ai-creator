@@ -393,9 +393,16 @@ const clearRecent = () => {
     border-radius: 14px;
     background: rgba(241, 245, 249, 0.9);
 
-    .el-segmented__item {
-      min-width: 80px;
-      padding: 8px 16px;
+    .el-segmented__group {
+      .el-segmented__item {
+        min-width: 90px !important;
+        padding: 8px 20px !important;
+      }
+
+      .el-segmented__item-label {
+        min-width: 60px;
+        white-space: nowrap;
+      }
     }
   }
 }
