@@ -76,7 +76,7 @@ class PlatformAccount(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="platform_accounts", primaryjoin="PlatformAccount.user_id == foreign(User.id)", remote_side=[User.id])
+     user = relationship("User", back_populates="platform_accounts", primaryjoin="PlatformAccount.user_id == foreign(User.id)", remote_side="User.id")
     publish_records = relationship("PublishRecord", back_populates="platform_account", cascade="all, delete-orphan", primaryjoin="PlatformAccount.id == foreign(PublishRecord.platform_account_id)")
     
     __table_args__ = (
@@ -125,9 +125,9 @@ class PublishRecord(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="publish_records", primaryjoin="PublishRecord.user_id == foreign(User.id)", remote_side=[User.id])
-    creation = relationship("Creation", back_populates="publish_records", primaryjoin="PublishRecord.creation_id == foreign(Creation.id)", remote_side=[Creation.id])
-    platform_account = relationship("PlatformAccount", back_populates="publish_records", primaryjoin="PublishRecord.platform_account_id == foreign(PlatformAccount.id)", remote_side=[PlatformAccount.id])
+     user = relationship("User", back_populates="publish_records", primaryjoin="PublishRecord.user_id == foreign(User.id)", remote_side="User.id")
+     creation = relationship("Creation", back_populates="publish_records", primaryjoin="PublishRecord.creation_id == foreign(Creation.id)", remote_side="Creation.id")
+     platform_account = relationship("PlatformAccount", back_populates="publish_records", primaryjoin="PublishRecord.platform_account_id == foreign(PlatformAccount.id)", remote_side="PlatformAccount.id")
     
     __table_args__ = (
         Index("idx_user_status", "user_id", "status"),

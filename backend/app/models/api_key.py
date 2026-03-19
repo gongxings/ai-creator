@@ -40,8 +40,8 @@ class APIKey(Base):
     user = relationship(
         "User",
         back_populates="api_keys",
-        primaryjoin="APIKey.user_id == foreign(User.id)",
-        remote_side=[User.id]
+         primaryjoin="APIKey.user_id == foreign(User.id)",
+         remote_side="User.id"
     )
     usage_logs = relationship(
         "APIKeyUsageLog",
@@ -96,12 +96,12 @@ class APIKeyUsageLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
 
     # 关系 - 使用 primaryjoin 替代外键
-    api_key = relationship(
-        "APIKey",
-        back_populates="usage_logs",
-        primaryjoin="APIKeyUsageLog.api_key_id == foreign(APIKey.id)",
-        remote_side=[APIKey.id]
-    )
+     api_key = relationship(
+         "APIKey",
+         back_populates="usage_logs",
+         primaryjoin="APIKeyUsageLog.api_key_id == foreign(APIKey.id)",
+         remote_side="APIKey.id"
+     )
 
     # 索引
     __table_args__ = (

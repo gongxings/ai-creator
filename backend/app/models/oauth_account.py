@@ -26,7 +26,7 @@ class OAuthAccount(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
 
     # 关系（不使用外键）
-    user = relationship("User", back_populates="oauth_accounts", primaryjoin="OAuthAccount.user_id == foreign(User.id)", remote_side=[User.id])
+     user = relationship("User", back_populates="oauth_accounts", primaryjoin="OAuthAccount.user_id == foreign(User.id)", remote_side="User.id")
     usage_logs = relationship("OAuthUsageLog", back_populates="account", cascade="all, delete-orphan", primaryjoin="OAuthAccount.id == foreign(OAuthUsageLog.account_id)")
 
     # 索引
