@@ -772,6 +772,85 @@ export const writingToolForms: Record<string, ToolFormConfig> = {
       additionalDescriptionField,
     ],
   },
+
+  // 15. 爆款模仿
+  viral_imitate: {
+    toolType: 'viral_imitate',
+    name: '爆款模仿',
+    description: '分析爆款文章风格，围绕新主题生成类似风格内容',
+    fields: [
+      {
+        name: 'reference_content',
+        label: '参考爆款内容',
+        type: 'textarea',
+        required: true,
+        placeholder: '粘贴一篇爆款文章的正文内容（至少50字），AI 将分析其风格并模仿',
+        rows: 8,
+        maxLength: 20000,
+      },
+      {
+        name: 'reference_title',
+        label: '参考标题',
+        type: 'input',
+        required: false,
+        placeholder: '输入参考文章的标题（可选）',
+        maxLength: 100,
+      },
+      {
+        name: 'new_topic',
+        label: '新主题',
+        type: 'input',
+        required: true,
+        placeholder: '输入你想写的新主题，如：如何高效学习英语',
+        maxLength: 200,
+      },
+      {
+        name: 'platform',
+        label: '目标平台',
+        type: 'select',
+        required: false,
+        placeholder: '选择目标平台（可选）',
+        options: [
+          { label: '微信公众号', value: 'wechat' },
+          { label: '小红书', value: 'xiaohongshu' },
+          { label: '抖音', value: 'douyin' },
+          { label: '知乎', value: 'zhihu' },
+          { label: '微博', value: 'weibo' },
+          { label: '今日头条', value: 'toutiao' },
+          { label: 'B站', value: 'bilibili' },
+        ],
+      },
+      {
+        name: 'style_strength',
+        label: '风格模仿强度',
+        type: 'slider',
+        required: false,
+        defaultValue: 80,
+        sliderConfig: {
+          min: 0,
+          max: 100,
+          step: 10,
+          marks: {
+            0: '原创',
+            50: '适中',
+            100: '高度模仿',
+          },
+        },
+      },
+      {
+        name: 'keep_structure',
+        label: '结构保持',
+        type: 'radio',
+        required: false,
+        defaultValue: true,
+        options: [
+          { label: '保持相同结构', value: true },
+          { label: '可调整结构', value: false },
+        ],
+      },
+      additionalDescriptionField,
+    ],
+  },
 }
 
 // 获取工具表单配置
@@ -800,4 +879,5 @@ export const toolTypeLabels: Record<string, string> = {
   lesson_plan: '教案/课件',
   rewrite: '改写/扩写/缩写',
   translation: '多语言翻译',
+  viral_imitate: '爆款模仿',
 }

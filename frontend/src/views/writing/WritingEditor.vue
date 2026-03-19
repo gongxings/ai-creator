@@ -199,6 +199,7 @@ import { generateContent, optimizeContent, regenerateContent } from '@/api/writi
 import { publishContent } from '@/api/publish'
 import { getAIModels } from '@/api/models'
 import { getCreation } from '@/api/creations'
+import { imitateContent } from '@/api/viralAnalyzer'
 import PluginSelector from '@/components/PluginSelector.vue'
 import DynamicToolForm from '@/components/writing/DynamicToolForm.vue'
 import TitleOptimizer from '@/components/title/TitleOptimizer.vue'
@@ -280,7 +281,35 @@ const handleGenerate = async () => {
   const params = dynamicFormRef.value?.getFormData() || {}
   generating.value = true
   try {
-    const res = await generateContent({ tool_type: toolType.value, params, ai_model_id: selectedModel.value, enabled_plugins: selectedPlugins.value.length > 0 ? selectedPlugins.value : undefined })
+    let res: Creation
+    
+    // 爆款模仿使用专用 API
+    if (toolType.value === 'viral_imitate') {
+      const imitateRes = await imitateContent({
+        reference_content: params.reference_content,
+        reference_title: params.reference_title || undefined,
+        new_topic: params.new_topic,
+        platform: params.platform || undefined,
+        style_strength: params.style_strength || 80,
+        keep_structure: params.keep_structure !== false,
+        additional_requirements: params.additional_description || undefined,
+      })
+      // 将模仿结果转换为 Creation 格式
+      res = {
+        id: imitateRes.creation_id || 0,
+        user_id: 0,
+        tool_type: 'viral_imitate',
+        title: imitateRes.title,
+        output_content: imitateRes.content,
+        status: 'completed',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as Creation
+    } else {
+      // 其他工具使用通用写作 API
+      res = await generateContent({ tool_type: toolType.value, params, ai_model_id: selectedModel.value, enabled_plugins: selectedPlugins.value.length > 0 ? selectedPlugins.value : undefined })
+    }
+    
     currentCreation.value = res
     markdownContent.value = res.output_content || res.content || ''
     ElMessage.success('生成成功')
