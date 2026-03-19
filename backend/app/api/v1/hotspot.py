@@ -15,6 +15,8 @@ from app.schemas.hotspot import (
     HotspotListResponse,
     PlatformInfo,
     PlatformListResponse,
+    CategoryInfo,
+    CategoryListResponse,
     TopicSuggestRequest,
     TopicSuggestResponse,
 )
@@ -22,6 +24,17 @@ from app.services.hotspot_service import HotspotService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+@router.get("/categories", response_model=CategoryListResponse)
+async def get_categories():
+    """
+    获取热点分类列表
+    
+    无需登录即可访问
+    """
+    categories = HotspotService.get_categories()
+    return CategoryListResponse(categories=categories)
 
 
 @router.get("/platforms", response_model=PlatformListResponse)
@@ -39,26 +52,34 @@ async def get_platforms():
 async def get_hot_list(
     platform: str = Query(..., description="平台代码，如 weibo, baidu, zhihu 等"),
     limit: int = Query(20, ge=1, le=50, description="返回数量，默认20，最大50"),
+    type: Optional[str] = Query(None, description="子类型，如百度的 realtime/car/game/movie/novel/teleplay"),
 ):
     """
     获取指定平台的热点列表
     
     无需登录即可访问
     
-    支持的平台：
-    - weibo: 微博热搜
-    - baidu: 百度热搜
-    - zhihu: 知乎热榜
-    - douyin: 抖音热搜
-    - bilibili: B站热搜
-    - toutiao: 头条热榜
-    - 36kr: 36氪热榜
-    - sspai: 少数派
-    - juejin: 掘金热榜
-    - tieba: 百度贴吧
+    支持的平台分类：
+    - social: 社交媒体（微博、抖音、快手、B站、A站）
+    - news: 新闻资讯（百度、头条、澎湃、新浪、网易、腾讯）
+    - tech: 科技数码（36氪、IT之家、少数派、酷安等）
+    - dev: 开发者（GitHub、掘金、CSDN、V2EX等）
+    - knowledge: 知识社区（知乎、贴吧、豆瓣、简书等）
+    - game: 游戏动漫（米游社、原神、NGA等）
+    - entertainment: 影音娱乐（豆瓣电影、微信读书、虎扑等）
+    - international: 国际媒体（TheVerge、TechCrunch、纽约时报等）
+    - other: 其他（吾爱破解、虎嗅、气象预警等）
+    
+    百度支持子类型（type参数）：
+    - realtime: 热搜（默认）
+    - car: 汽车
+    - game: 游戏
+    - movie: 电影
+    - novel: 小说
+    - teleplay: 电视剧
     """
     try:
-        result = await HotspotService.get_hot_list(platform=platform, limit=limit)
+        result = await HotspotService.get_hot_list(platform=platform, limit=limit, subtype=type)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

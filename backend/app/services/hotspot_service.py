@@ -12,6 +12,7 @@ from app.schemas.hotspot import (
     HotspotItem,
     HotspotListResponse,
     PlatformInfo,
+    CategoryInfo,
     WritingAngle,
     TopicSuggestResponse,
 )
@@ -25,58 +26,112 @@ class HotspotService:
     # DailyHotApi 基础 URL（可自部署）
     BASE_URL = "https://apinews.geekaso.com"
     
-    # 支持的平台列表
+    # 分类定义
+    CATEGORIES = {
+        "all": {"name": "全部", "order": 0},
+        "social": {"name": "社交媒体", "order": 1},
+        "news": {"name": "新闻资讯", "order": 2},
+        "tech": {"name": "科技数码", "order": 3},
+        "dev": {"name": "开发者", "order": 4},
+        "knowledge": {"name": "知识社区", "order": 5},
+        "game": {"name": "游戏动漫", "order": 6},
+        "entertainment": {"name": "影音娱乐", "order": 7},
+        "international": {"name": "国际媒体", "order": 8},
+        "other": {"name": "其他", "order": 9},
+    }
+    
+    # 支持的平台列表（约60个）
     PLATFORMS = {
-        "weibo": {
-            "name": "微博热搜",
-            "icon": "weibo",
-            "color": "#E6162D",
-        },
+        # === 社交媒体 ===
+        "weibo": {"name": "微博", "category": "social", "color": "#E6162D"},
+        "douyin": {"name": "抖音", "category": "social", "color": "#000000"},
+        "kuaishou": {"name": "快手", "category": "social", "color": "#FF5722"},
+        "bilibili": {"name": "B站", "category": "social", "color": "#FB7299"},
+        "acfun": {"name": "A站", "category": "social", "color": "#FD4C5D"},
+        
+        # === 新闻资讯 ===
         "baidu": {
-            "name": "百度热搜",
-            "icon": "baidu",
+            "name": "百度",
+            "category": "news",
             "color": "#2932E1",
+            "subtypes": {
+                "realtime": "热搜",
+                "car": "汽车",
+                "game": "游戏",
+                "movie": "电影",
+                "novel": "小说",
+                "teleplay": "电视剧",
+            }
         },
-        "zhihu": {
-            "name": "知乎热榜",
-            "icon": "zhihu",
-            "color": "#0084FF",
-        },
-        "douyin": {
-            "name": "抖音热搜",
-            "icon": "douyin",
-            "color": "#000000",
-        },
-        "bilibili": {
-            "name": "B站热搜",
-            "icon": "bilibili",
-            "color": "#FB7299",
-        },
-        "toutiao": {
-            "name": "头条热榜",
-            "icon": "toutiao",
-            "color": "#F85959",
-        },
-        "36kr": {
-            "name": "36氪热榜",
-            "icon": "36kr",
-            "color": "#0078FF",
-        },
-        "sspai": {
-            "name": "少数派",
-            "icon": "sspai",
-            "color": "#DA282A",
-        },
-        "juejin": {
-            "name": "掘金热榜",
-            "icon": "juejin",
-            "color": "#1E80FF",
-        },
-        "tieba": {
-            "name": "百度贴吧",
-            "icon": "tieba",
-            "color": "#4A8FE2",
-        },
+        "toutiao": {"name": "头条", "category": "news", "color": "#F85959"},
+        "thepaper": {"name": "澎湃新闻", "category": "news", "color": "#1A1A1A"},
+        "sina": {"name": "新浪", "category": "news", "color": "#E6162D"},
+        "sina-news": {"name": "新浪新闻", "category": "news", "color": "#E6162D"},
+        "netease-news": {"name": "网易新闻", "category": "news", "color": "#C4282D"},
+        "qq-news": {"name": "腾讯新闻", "category": "news", "color": "#0066FF"},
+        
+        # === 科技数码 ===
+        "36kr": {"name": "36氪", "category": "tech", "color": "#0078FF"},
+        "ithome": {"name": "IT之家", "category": "tech", "color": "#D32F2F"},
+        "ithome-xijiayi": {"name": "喜加一", "category": "tech", "color": "#4CAF50"},
+        "sspai": {"name": "少数派", "category": "tech", "color": "#DA282A"},
+        "dgtle": {"name": "数字尾巴", "category": "tech", "color": "#00BCD4"},
+        "ifanr": {"name": "爱范儿", "category": "tech", "color": "#E91E63"},
+        "geekpark": {"name": "极客公园", "category": "tech", "color": "#00C853"},
+        "coolapk": {"name": "酷安", "category": "tech", "color": "#11A96D"},
+        
+        # === 开发者 ===
+        "github": {"name": "GitHub", "category": "dev", "color": "#24292F"},
+        "juejin": {"name": "掘金", "category": "dev", "color": "#1E80FF"},
+        "csdn": {"name": "CSDN", "category": "dev", "color": "#FC5531"},
+        "v2ex": {"name": "V2EX", "category": "dev", "color": "#333333"},
+        "nodeseek": {"name": "NodeSeek", "category": "dev", "color": "#5C6BC0"},
+        "hostloc": {"name": "全球主机", "category": "dev", "color": "#2196F3"},
+        "51cto": {"name": "51CTO", "category": "dev", "color": "#E53935"},
+        "hellogithub": {"name": "HelloGitHub", "category": "dev", "color": "#3F51B5"},
+        "hackernews": {"name": "HackerNews", "category": "dev", "color": "#FF6600"},
+        "producthunt": {"name": "ProductHunt", "category": "dev", "color": "#DA552F"},
+        
+        # === 知识社区 ===
+        "zhihu": {"name": "知乎", "category": "knowledge", "color": "#0084FF"},
+        "zhihu-daily": {"name": "知乎日报", "category": "knowledge", "color": "#0084FF"},
+        "tieba": {"name": "贴吧", "category": "knowledge", "color": "#4A8FE2"},
+        "douban-group": {"name": "豆瓣小组", "category": "knowledge", "color": "#00B51D"},
+        "jianshu": {"name": "简书", "category": "knowledge", "color": "#EA6F5A"},
+        "guokr": {"name": "果壳", "category": "knowledge", "color": "#87C040"},
+        "linuxdo": {"name": "LinuxDo", "category": "knowledge", "color": "#FFA500"},
+        "newsmth": {"name": "水木社区", "category": "knowledge", "color": "#006400"},
+        
+        # === 游戏动漫 ===
+        "miyoushe": {"name": "米游社", "category": "game", "color": "#00BFFF"},
+        "genshin": {"name": "原神", "category": "game", "color": "#00BFFF"},
+        "honkai": {"name": "崩坏3", "category": "game", "color": "#FF6B81"},
+        "starrail": {"name": "星穹铁道", "category": "game", "color": "#6B5CE7"},
+        "lol": {"name": "英雄联盟", "category": "game", "color": "#C89B3C"},
+        "ngabbs": {"name": "NGA", "category": "game", "color": "#7B1FA2"},
+        "gameres": {"name": "GameRes", "category": "game", "color": "#FF5722"},
+        "yystv": {"name": "游研社", "category": "game", "color": "#FF4081"},
+        
+        # === 影音娱乐 ===
+        "douban-movie": {"name": "豆瓣电影", "category": "entertainment", "color": "#00B51D"},
+        "weread": {"name": "微信读书", "category": "entertainment", "color": "#1AAD19"},
+        "hupu": {"name": "虎扑", "category": "entertainment", "color": "#E31E26"},
+        "smzdm": {"name": "什么值得买", "category": "entertainment", "color": "#E53935"},
+        
+        # === 国际媒体 ===
+        "theverge": {"name": "TheVerge", "category": "international", "color": "#E91E63"},
+        "engadget": {"name": "Engadget", "category": "international", "color": "#FF5500"},
+        "techcrunch": {"name": "TechCrunch", "category": "international", "color": "#0A9E01"},
+        "nytimes": {"name": "纽约时报", "category": "international", "color": "#000000"},
+        "theguardian": {"name": "卫报", "category": "international", "color": "#052962"},
+        "economist": {"name": "经济学人", "category": "international", "color": "#E3120B"},
+        
+        # === 其他 ===
+        "52pojie": {"name": "吾爱破解", "category": "other", "color": "#1E88E5"},
+        "huxiu": {"name": "虎嗅", "category": "other", "color": "#FF9800"},
+        "weatheralarm": {"name": "气象预警", "category": "other", "color": "#FF5722"},
+        "earthquake": {"name": "地震速报", "category": "other", "color": "#B71C1C"},
+        "history": {"name": "历史上的今天", "category": "other", "color": "#795548"},
     }
     
     # 写作工具与热点类型的匹配关系
@@ -94,14 +149,28 @@ class HotspotService:
     }
     
     @classmethod
+    def get_categories(cls) -> List[CategoryInfo]:
+        """获取分类列表"""
+        return [
+            CategoryInfo(
+                code=code,
+                name=info["name"],
+                order=info["order"],
+            )
+            for code, info in sorted(cls.CATEGORIES.items(), key=lambda x: x[1]["order"])
+        ]
+    
+    @classmethod
     def get_platforms(cls) -> List[PlatformInfo]:
         """获取支持的平台列表"""
         return [
             PlatformInfo(
                 code=code,
                 name=info["name"],
+                category=info["category"],
                 icon=info.get("icon"),
                 color=info.get("color"),
+                subtypes=info.get("subtypes"),
             )
             for code, info in cls.PLATFORMS.items()
         ]
@@ -110,7 +179,8 @@ class HotspotService:
     async def get_hot_list(
         cls,
         platform: str,
-        limit: int = 20
+        limit: int = 20,
+        subtype: Optional[str] = None,
     ) -> HotspotListResponse:
         """
         获取指定平台的热点列表
@@ -118,6 +188,7 @@ class HotspotService:
         Args:
             platform: 平台代码
             limit: 返回数量限制
+            subtype: 子类型（如百度的 realtime/car/game 等）
             
         Returns:
             HotspotListResponse
@@ -125,11 +196,17 @@ class HotspotService:
         if platform not in cls.PLATFORMS:
             raise ValueError(f"不支持的平台: {platform}")
         
+        # 构建 URL
         url = f"{cls.BASE_URL}/{platform}"
+        params = {}
+        
+        # 百度特殊处理：支持 type 参数
+        if platform == "baidu" and subtype:
+            params["type"] = subtype
         
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(url)
+                response = await client.get(url, params=params if params else None)
                 response.raise_for_status()
                 data = response.json()
                 
@@ -138,18 +215,34 @@ class HotspotService:
                 raw_items = data.get("data", [])
                 
                 for idx, item in enumerate(raw_items[:limit]):
+                    # 处理热度值
+                    hot_value = item.get("hot")
+                    if hot_value is not None:
+                        try:
+                            hot_value = int(hot_value)
+                        except (ValueError, TypeError):
+                            hot_value = None
+                    
                     items.append(HotspotItem(
                         title=item.get("title", ""),
                         url=item.get("url", ""),
-                        hot=item.get("hot"),
+                        hot=hot_value,
                         index=idx + 1,
                         mobile_url=item.get("mobileUrl"),
                     ))
                 
+                # 获取平台名称（如果有 subtype，添加子类型名称）
+                platform_name = cls.PLATFORMS[platform]["name"]
+                if platform == "baidu" and subtype:
+                    subtypes = cls.PLATFORMS[platform].get("subtypes", {})
+                    subtype_name = subtypes.get(subtype, "")
+                    if subtype_name:
+                        platform_name = f"百度{subtype_name}"
+                
                 return HotspotListResponse(
                     platform=platform,
-                    platform_name=cls.PLATFORMS[platform]["name"],
-                    update_time=data.get("update_time"),
+                    platform_name=platform_name,
+                    update_time=data.get("updateTime") or data.get("update_time"),
                     items=items,
                 )
                 
@@ -213,14 +306,16 @@ class HotspotService:
             items.append(HotspotItem(
                 title=title,
                 url="",
-                hot=str((limit - idx) * 10000),
+                hot=(limit - idx) * 10000,
                 index=idx + 1,
                 mobile_url=None,
             ))
         
+        platform_info = cls.PLATFORMS.get(platform, {"name": platform, "category": "other"})
+        
         return HotspotListResponse(
             platform=platform,
-            platform_name=cls.PLATFORMS[platform]["name"],
+            platform_name=platform_info["name"],
             update_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " (模拟数据)",
             items=items,
         )

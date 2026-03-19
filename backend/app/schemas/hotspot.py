@@ -1,7 +1,7 @@
 """
 热点追踪相关 Schema
 """
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
 
 
@@ -22,12 +22,26 @@ class HotspotListResponse(BaseModel):
     items: List[HotspotItem] = Field(default_factory=list, description="热点列表")
 
 
+class CategoryInfo(BaseModel):
+    """分类信息"""
+    code: str = Field(..., description="分类代码")
+    name: str = Field(..., description="分类中文名")
+    order: int = Field(..., description="排序顺序")
+
+
+class CategoryListResponse(BaseModel):
+    """分类列表响应"""
+    categories: List[CategoryInfo] = Field(..., description="分类列表")
+
+
 class PlatformInfo(BaseModel):
     """平台信息"""
     code: str = Field(..., description="平台代码")
     name: str = Field(..., description="平台中文名")
+    category: str = Field(..., description="所属分类")
     icon: Optional[str] = Field(None, description="平台图标")
     color: Optional[str] = Field(None, description="平台主题色")
+    subtypes: Optional[Dict[str, str]] = Field(None, description="子类型（如百度的热搜/汽车/游戏等）")
 
 
 class PlatformListResponse(BaseModel):

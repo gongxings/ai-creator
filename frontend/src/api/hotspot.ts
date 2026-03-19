@@ -20,12 +20,26 @@ export interface HotspotListResponse {
   items: HotspotItem[]
 }
 
+// 分类信息
+export interface CategoryInfo {
+  code: string
+  name: string
+  order: number
+}
+
+// 分类列表响应
+export interface CategoryListResponse {
+  categories: CategoryInfo[]
+}
+
 // 平台信息
 export interface PlatformInfo {
   code: string
   name: string
+  category: string // 所属分类
   icon?: string
   color?: string
+  subtypes?: Record<string, string> // 子类型（如百度的热搜/汽车/游戏等）
 }
 
 // 平台列表响应
@@ -58,6 +72,13 @@ export interface TopicSuggestResponse {
 }
 
 /**
+ * 获取热点分类列表
+ */
+export function getCategories() {
+  return request.get<CategoryListResponse>('/v1/hotspot/categories')
+}
+
+/**
  * 获取支持的热点平台列表
  */
 export function getPlatforms() {
@@ -68,10 +89,11 @@ export function getPlatforms() {
  * 获取指定平台的热点列表
  * @param platform 平台代码
  * @param limit 返回数量
+ * @param type 子类型（百度专用：realtime/car/game/movie/novel/teleplay）
  */
-export function getHotList(platform: string, limit: number = 20) {
+export function getHotList(platform: string, limit: number = 20, type?: string) {
   return request.get<HotspotListResponse>('/v1/hotspot/list', {
-    params: { platform, limit },
+    params: { platform, limit, type },
   })
 }
 
