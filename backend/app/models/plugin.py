@@ -1,7 +1,7 @@
 """
 插件系统模型
 """
-from sqlalchemy import Column, BigInteger, String, Integer, DateTime, Text, JSON, Boolean, DECIMAL, Index, foreign
+from sqlalchemy import Column, BigInteger, String, Integer, DateTime, Text, JSON, Boolean, DECIMAL, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -45,13 +45,13 @@ class PluginMarket(Base):
     user_plugins = relationship(
         "UserPlugin",
         back_populates="plugin_market",
-        primaryjoin="PluginMarket.name == foreign(UserPlugin.plugin_name)",
+        primaryjoin="PluginMarket.name == UserPlugin.plugin_name",
         cascade="all, delete-orphan"
     )
     reviews = relationship(
         "PluginReview",
         back_populates="plugin_market",
-        primaryjoin="PluginMarket.name == foreign(PluginReview.plugin_name)",
+        primaryjoin="PluginMarket.name == PluginReview.plugin_name",
         cascade="all, delete-orphan"
     )
 
@@ -78,13 +78,13 @@ class UserPlugin(Base):
     user = relationship(
         "User",
         back_populates="plugins",
-        primaryjoin="UserPlugin.user_id == foreign(User.id)",
+        primaryjoin="UserPlugin.user_id == User.id",
         viewonly=True
     )
     plugin_market = relationship(
         "PluginMarket",
         back_populates="user_plugins",
-        primaryjoin="UserPlugin.plugin_name == foreign(PluginMarket.name)",
+        primaryjoin="UserPlugin.plugin_name == PluginMarket.name",
         viewonly=True
     )
     
@@ -109,7 +109,7 @@ class CreationPluginSelection(Base):
     user = relationship(
         "User",
         back_populates="plugin_selections",
-        primaryjoin="CreationPluginSelection.user_id == foreign(User.id)",
+        primaryjoin="CreationPluginSelection.user_id == User.id",
         viewonly=True
     )
     
@@ -138,13 +138,13 @@ class PluginInvocation(Base):
     user = relationship(
         "User",
         back_populates="plugin_invocations",
-        primaryjoin="PluginInvocation.user_id == foreign(User.id)",
+        primaryjoin="PluginInvocation.user_id == User.id",
         viewonly=True
     )
     creation = relationship(
         "Creation",
         back_populates="plugin_invocations",
-        primaryjoin="PluginInvocation.creation_id == foreign(Creation.id)",
+        primaryjoin="PluginInvocation.creation_id == Creation.id",
         viewonly=True
     )
     
@@ -171,13 +171,13 @@ class PluginReview(Base):
     user = relationship(
         "User",
         back_populates="plugin_reviews",
-        primaryjoin="PluginReview.user_id == foreign(User.id)",
+        primaryjoin="PluginReview.user_id == User.id",
         viewonly=True
     )
     plugin_market = relationship(
         "PluginMarket",
         back_populates="reviews",
-        primaryjoin="PluginReview.plugin_name == foreign(PluginMarket.name)",
+        primaryjoin="PluginReview.plugin_name == PluginMarket.name",
         viewonly=True
     )
     

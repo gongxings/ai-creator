@@ -2,7 +2,7 @@
 API Key管理模型
 """
 from datetime import datetime
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, Index, JSON, foreign
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, Index, JSON
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -38,19 +38,13 @@ class APIKey(Base):
     user = relationship(
         "User",
         back_populates="api_keys",
-        primaryjoin="APIKey.user_id == foreign(User.id)"
+        primaryjoin="APIKey.user_id == User.id"
     )
     usage_logs = relationship(
         "APIKeyUsageLog",
         back_populates="api_key",
         cascade="all, delete-orphan",
-        primaryjoin="APIKey.id == foreign(APIKeyUsageLog.api_key_id)"
-    )
-    usage_logs = relationship(
-        "APIKeyUsageLog",
-        back_populates="api_key",
-        primaryjoin="APIKey.id == foreign(APIKeyUsageLog.api_key_id)",
-        cascade="all, delete-orphan"
+        primaryjoin="APIKey.id == APIKeyUsageLog.api_key_id"
     )
 
     # 索引
@@ -102,7 +96,7 @@ class APIKeyUsageLog(Base):
     api_key = relationship(
         "APIKey",
         back_populates="usage_logs",
-        primaryjoin="APIKeyUsageLog.api_key_id == foreign(APIKey.id)"
+        primaryjoin="APIKeyUsageLog.api_key_id == APIKey.id"
     )
 
     # 索引
