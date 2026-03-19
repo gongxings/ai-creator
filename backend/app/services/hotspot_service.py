@@ -155,13 +155,75 @@ class HotspotService:
                 
         except httpx.TimeoutException:
             logger.error(f"获取 {platform} 热点超时")
-            raise Exception(f"获取 {platform} 热点超时，请稍后重试")
+            return cls._get_mock_hotlist(platform, limit)
         except httpx.HTTPStatusError as e:
             logger.error(f"获取 {platform} 热点失败: {e}")
-            raise Exception(f"获取 {platform} 热点失败")
+            return cls._get_mock_hotlist(platform, limit)
         except Exception as e:
             logger.error(f"获取热点异常: {e}")
-            raise Exception(f"获取热点失败: {str(e)}")
+            return cls._get_mock_hotlist(platform, limit)
+    
+    @classmethod
+    def _get_mock_hotlist(cls, platform: str, limit: int = 20) -> HotspotListResponse:
+        """获取模拟热点数据（API 不可用时的兜底）"""
+        mock_data = {
+            "weibo": [
+                "AI 技术最新突破引发热议",
+                "春季养生指南：这些习惯要注意",
+                "2024年职场新趋势盘点",
+                "新能源汽车销量再创新高",
+                "健康饮食：专家推荐的食谱",
+                "远程办公效率提升技巧",
+                "理财小白入门指南",
+                "亲子教育：如何培养孩子的阅读习惯",
+                "旅游攻略：小众目的地推荐",
+                "科技改变生活：智能家居新品",
+            ],
+            "zhihu": [
+                "如何看待 AI 对就业市场的影响？",
+                "有哪些值得推荐的自我提升方法？",
+                "年轻人如何做好职业规划？",
+                "怎样才能提高工作效率？",
+                "如何培养良好的阅读习惯？",
+                "有哪些实用的理财建议？",
+                "如何平衡工作与生活？",
+                "学习一门新技能需要多长时间？",
+                "如何提升自己的表达能力？",
+                "有哪些值得学习的思维方式？",
+            ],
+            "douyin": [
+                "这个技巧太实用了 #生活小妙招",
+                "原来还可以这样做 #美食教程",
+                "一分钟学会 #干货分享",
+                "太治愈了 #日常vlog",
+                "这也太好看了 #穿搭分享",
+                "绝绝子 #好物推荐",
+                "笑死我了 #搞笑日常",
+                "这波操作可以 #技术流",
+                "新手必看 #入门教程",
+                "真的很有用 #知识分享",
+            ],
+        }
+        
+        # 获取对应平台的模拟数据，如果没有则使用微博的
+        titles = mock_data.get(platform, mock_data["weibo"])
+        
+        items = []
+        for idx, title in enumerate(titles[:limit]):
+            items.append(HotspotItem(
+                title=title,
+                url="",
+                hot=str((limit - idx) * 10000),
+                index=idx + 1,
+                mobile_url=None,
+            ))
+        
+        return HotspotListResponse(
+            platform=platform,
+            platform_name=cls.PLATFORMS[platform]["name"],
+            update_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " (模拟数据)",
+            items=items,
+        )
     
     @classmethod
     async def get_topic_suggestions(
