@@ -2,6 +2,10 @@
 
 [English](README_EN.md) | 简体中文
 
+## 📸 界面展示
+
+![登录页面](assert/login.png)
+
 **🌐 线上地址：http://ai-creator.biyebang.com.cn**
 
 一个功能强大的AI创作平台，提供AI写作、图片生成、视频生成、PPT生成等创作工具，并支持一键发布到多个平台。
@@ -131,10 +135,9 @@ ANTHROPIC_API_KEY=sk-ant-xxx
 
 ---
 
-## 📸 界面展示
-
-![登录页面](assert/login.png)
+## 关注一下
 
 ![公众号](assert/wechat_Official-Account.png)
+![解答群](assert/wechat_group.png)
 
 ⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！
