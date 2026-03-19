@@ -77,13 +77,13 @@ class UserPlugin(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间")
     
     # 关联 - 使用 primaryjoin 替代外键
-     user = relationship(
-         "User",
-         back_populates="plugins",
-         primaryjoin="UserPlugin.user_id == foreign(User.id)",
-         remote_side="User.id",
-         viewonly=True
-     )
+      user = relationship(
+          "User",
+          back_populates="plugins",
+          primaryjoin="UserPlugin.user_id == foreign('User.id')",
+          remote_side="User.id",
+          viewonly=True
+      )
     plugin_market = relationship(
         "PluginMarket",
         back_populates="user_plugins",
@@ -109,13 +109,13 @@ class CreationPluginSelection(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间")
     
     # 关联 - 使用 primaryjoin 替代外键
-     user = relationship(
-         "User",
-         back_populates="plugin_selections",
-         primaryjoin="CreationPluginSelection.user_id == foreign(User.id)",
-         remote_side="User.id",
-         viewonly=True
-     )
+      user = relationship(
+          "User",
+          back_populates="plugin_selections",
+          primaryjoin="CreationPluginSelection.user_id == foreign('User.id')",
+          remote_side="User.id",
+          viewonly=True
+      )
     
     __table_args__ = (
         Index("uk_user_tool", "user_id", "tool_type", unique=True),
@@ -139,20 +139,20 @@ class PluginInvocation(Base):
     invoked_at = Column(DateTime, server_default=func.now(), comment="调用时间")
     
     # 关联 - 使用 primaryjoin 替代外键
-     user = relationship(
-         "User",
-         back_populates="plugin_invocations",
-         primaryjoin="PluginInvocation.user_id == foreign(User.id)",
-         remote_side="User.id",
-         viewonly=True
-     )
-     creation = relationship(
-         "Creation",
-         back_populates="plugin_invocations",
-         primaryjoin="PluginInvocation.creation_id == foreign(Creation.id)",
-         remote_side="Creation.id",
-         viewonly=True
-     )
+      user = relationship(
+          "User",
+          back_populates="plugin_invocations",
+          primaryjoin="PluginInvocation.user_id == foreign('User.id')",
+          remote_side="User.id",
+          viewonly=True
+      )
+      creation = relationship(
+          "Creation",
+          back_populates="plugin_invocations",
+          primaryjoin="PluginInvocation.creation_id == foreign('Creation.id')",
+          remote_side="Creation.id",
+          viewonly=True
+      )
     
     __table_args__ = (
         Index("idx_user_plugin", "user_id", "plugin_name"),
@@ -174,13 +174,13 @@ class PluginReview(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间")
     
     # 关联 - 使用 primaryjoin 替代外键
-     user = relationship(
-         "User",
-         back_populates="plugin_reviews",
-         primaryjoin="PluginReview.user_id == foreign(User.id)",
-         remote_side="User.id",
-         viewonly=True
-     )
+      user = relationship(
+          "User",
+          back_populates="plugin_reviews",
+          primaryjoin="PluginReview.user_id == foreign('User.id')",
+          remote_side="User.id",
+          viewonly=True
+      )
     plugin_market = relationship(
         "PluginMarket",
         back_populates="reviews",
