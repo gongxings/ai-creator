@@ -105,6 +105,80 @@ def add_api_key_columns():
             else:
                 raise
         
+        # 添加权限控制字段
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_keys 
+                ADD COLUMN allowed_models JSON COMMENT '允许使用的模型列表（为空表示全部）'
+            """))
+            print("✓ 添加 allowed_models 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ allowed_models 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_keys 
+                ADD COLUMN rate_limit INTEGER DEFAULT 60 COMMENT '速率限制（次/分钟）'
+            """))
+            print("✓ 添加 rate_limit 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ rate_limit 字段已存在")
+            else:
+                raise
+        
+        # 添加使用统计字段
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_keys 
+                ADD COLUMN total_requests BIGINT DEFAULT 0 COMMENT '总请求次数'
+            """))
+            print("✓ 添加 total_requests 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ total_requests 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_keys 
+                ADD COLUMN total_tokens BIGINT DEFAULT 0 COMMENT '总 Token 使用量'
+            """))
+            print("✓ 添加 total_tokens 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ total_tokens 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_keys 
+                ADD COLUMN last_used_at DATETIME COMMENT '最后使用时间'
+            """))
+            print("✓ 添加 last_used_at 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ last_used_at 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_keys 
+                ADD COLUMN expires_at DATETIME COMMENT '过期时间'
+            """))
+            print("✓ 添加 expires_at 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ expires_at 字段已存在")
+            else:
+                raise
+        
         # 添加索引
         try:
             conn.execute(text("""
@@ -176,12 +250,187 @@ def add_usage_log_columns():
         try:
             conn.execute(text("""
                 ALTER TABLE api_key_usage_logs 
-                ADD COLUMN used_by_user_id BIGINT COMMENT '实际使用用户 ID'
+                ADD COLUMN used_by_user_id BIGINT COMMENT '实际使用用户 ID（用于统计）'
             """))
             print("✓ 添加 used_by_user_id 字段")
         except Exception as e:
             if "Duplicate column name" in str(e):
                 print("⚠ used_by_user_id 字段已存在")
+            else:
+                raise
+        
+        # 添加模型信息字段
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN model_id VARCHAR(100) COMMENT '模型 ID'
+            """))
+            print("✓ 添加 model_id 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ model_id 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN model_name VARCHAR(100) COMMENT '模型名称'
+            """))
+            print("✓ 添加 model_name 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ model_name 字段已存在")
+            else:
+                raise
+        
+        # 添加请求信息字段
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN endpoint VARCHAR(100) COMMENT '请求端点'
+            """))
+            print("✓ 添加 endpoint 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ endpoint 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN method VARCHAR(10) COMMENT '请求方法'
+            """))
+            print("✓ 添加 method 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ method 字段已存在")
+            else:
+                raise
+        
+        # 添加 Token 统计字段
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN prompt_tokens INTEGER DEFAULT 0 COMMENT '输入 Token 数'
+            """))
+            print("✓ 添加 prompt_tokens 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ prompt_tokens 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN completion_tokens INTEGER DEFAULT 0 COMMENT '输出 Token 数'
+            """))
+            print("✓ 添加 completion_tokens 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ completion_tokens 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN total_tokens INTEGER DEFAULT 0 COMMENT '总 Token 数'
+            """))
+            print("✓ 添加 total_tokens 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ total_tokens 字段已存在")
+            else:
+                raise
+        
+        # 添加详细数据字段（JSON）
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN request_data JSON COMMENT '请求数据（可选）'
+            """))
+            print("✓ 添加 request_data 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ request_data 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN response_data JSON COMMENT '响应数据（可选）'
+            """))
+            print("✓ 添加 response_data 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ response_data 字段已存在")
+            else:
+                raise
+        
+        # 添加错误信息字段
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN error_message TEXT COMMENT '错误信息'
+            """))
+            print("✓ 添加 error_message 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ error_message 字段已存在")
+            else:
+                raise
+        
+        # 添加追踪信息字段
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN ip_address VARCHAR(50) COMMENT 'IP 地址'
+            """))
+            print("✓ 添加 ip_address 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ ip_address 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN user_agent VARCHAR(500) COMMENT 'User-Agent'
+            """))
+            print("✓ 添加 user_agent 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ user_agent 字段已存在")
+            else:
+                raise
+        
+        # 添加性能指标字段
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN response_time INTEGER COMMENT '响应时间（毫秒）'
+            """))
+            print("✓ 添加 response_time 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ response_time 字段已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                ALTER TABLE api_key_usage_logs 
+                ADD COLUMN status_code INTEGER COMMENT 'HTTP 状态码'
+            """))
+            print("✓ 添加 status_code 字段")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("⚠ status_code 字段已存在")
             else:
                 raise
         
@@ -194,6 +443,28 @@ def add_usage_log_columns():
         except Exception as e:
             if "Duplicate key name" in str(e):
                 print("⚠ idx_used_by_user 索引已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                CREATE INDEX idx_api_key_id ON api_key_usage_logs(api_key_id)
+            """))
+            print("✓ 添加 idx_api_key_id 索引")
+        except Exception as e:
+            if "Duplicate key name" in str(e):
+                print("⚠ idx_api_key_id 索引已存在")
+            else:
+                raise
+        
+        try:
+            conn.execute(text("""
+                CREATE INDEX idx_created_at ON api_key_usage_logs(created_at)
+            """))
+            print("✓ 添加 idx_created_at 索引")
+        except Exception as e:
+            if "Duplicate key name" in str(e):
+                print("⚠ idx_created_at 索引已存在")
             else:
                 raise
         

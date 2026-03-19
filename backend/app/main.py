@@ -19,7 +19,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer, system_default_keys, admin_users, api_monitor
 from app.api import openapi_proxy
 
 # 配置日志
