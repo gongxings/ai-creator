@@ -93,7 +93,7 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
     if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误",
+            detail="账号或密码不正确，请重新输入",
         )
     
     if user.status != "active":

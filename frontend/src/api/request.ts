@@ -11,6 +11,7 @@ const whiteList = [
   '/v1/auth/login',
   '/v1/auth/register',
   '/v1/auth/refresh',
+  '/v1/credit/membership/prices',
 ]
 
 // 创建axios实例
@@ -146,30 +147,33 @@ service.interceptors.response.use(
           message = error.response.data.detail || error.response.data.message || '请求参数错误'
           break
         case 401:
-          message = '未授权，请重新登录'
-          const userStore = useUserStore()
-          userStore.logout()
-          
-          if (!isShowingLoginPrompt) {
-            isShowingLoginPrompt = true
-            ElMessageBox.confirm(
-              '登录已过期，请重新登录',
-              '登录过期',
-              {
-                confirmButtonText: '重新登录',
-                cancelButtonText: '取消',
-                type: 'warning',
-              }
-            ).then(() => {
-              router.push({
-                path: '/login',
-                query: {
-                  redirect: router.currentRoute.value.fullPath
+          message = error.response.data.detail || error.response.data.message || '未授权，请重新登录'
+          // 只有在非登录页面才触发登出和跳转
+          if (!whiteList.some(path => error.config?.url?.includes(path))) {
+            const userStore = useUserStore()
+            userStore.logout()
+            
+            if (!isShowingLoginPrompt) {
+              isShowingLoginPrompt = true
+              ElMessageBox.confirm(
+                '登录已过期，请重新登录',
+                '登录过期',
+                {
+                  confirmButtonText: '重新登录',
+                  cancelButtonText: '取消',
+                  type: 'warning',
                 }
+              ).then(() => {
+                router.push({
+                  path: '/login',
+                  query: {
+                    redirect: router.currentRoute.value.fullPath
+                  }
+                })
+              }).finally(() => {
+                isShowingLoginPrompt = false
               })
-            }).finally(() => {
-              isShowingLoginPrompt = false
-            })
+            }
           }
           break
         case 402:

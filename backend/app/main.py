@@ -19,7 +19,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, plugins, templates
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer
 from app.api import openapi_proxy
 
 # 配置日志
@@ -248,6 +248,36 @@ app.include_router(
     templates.router,
     prefix=f"{settings.API_V1_PREFIX}/templates",
     tags=["文章模板"]
+)
+
+app.include_router(
+    hotspot.router,
+    prefix=f"{settings.API_V1_PREFIX}/hotspot",
+    tags=["热点追踪"]
+)
+
+app.include_router(
+    title.router,
+    prefix=f"{settings.API_V1_PREFIX}/title",
+    tags=["爆款标题"]
+)
+
+app.include_router(
+    image_stock.router,
+    prefix=f"{settings.API_V1_PREFIX}/image-stock",
+    tags=["图库搜索"]
+)
+
+app.include_router(
+    platform_converter.router,
+    prefix=f"{settings.API_V1_PREFIX}/converter",
+    tags=["多平台转换"]
+)
+
+app.include_router(
+    viral_analyzer.router,
+    prefix=f"{settings.API_V1_PREFIX}/viral",
+    tags=["爆款模仿"]
 )
 
 # OpenAPI代理路由（兼容OpenAI格式）

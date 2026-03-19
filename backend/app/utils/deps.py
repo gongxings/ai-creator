@@ -62,6 +62,41 @@ def get_current_active_user(
     return current_user
 
 
+# 可选的 Bearer token 认证
+optional_security = HTTPBearer(auto_error=False)
+
+
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """
+    获取当前登录用户（可选，未登录返回 None）
+    用于既支持登录用户也支持游客的接口
+    """
+    if credentials is None:
+        return None
+    
+    token = credentials.credentials
+    
+    try:
+        payload = decode_token(token)
+        user_id: int = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        return None
+    
+    if user.status != UserStatus.ACTIVE:
+        return None
+    
+    return user
+
+
 def get_admin_user(
     current_user: User = Depends(get_current_user)
 ) -> User:

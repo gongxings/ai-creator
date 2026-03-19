@@ -189,3 +189,7 @@ Thumbs.db
 # Cursor
 .cursorignore
 .cursorindexingignore
+
+# Windows special device names
+nul
+NUL

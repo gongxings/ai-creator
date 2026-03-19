@@ -1,7 +1,7 @@
 """
 运营功能模型
 """
-from sqlalchemy import Column, BigInteger, Integer, String, Enum, DateTime, Numeric, Text, Boolean, ForeignKey, JSON
+from sqlalchemy import Column, BigInteger, Integer, String, Enum, DateTime, Numeric, Text, Boolean, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -104,8 +104,8 @@ class ActivityParticipation(Base):
     __tablename__ = "activity_participations"
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="记录ID")
-    activity_id = Column(BigInteger, ForeignKey("activities.id"), nullable=False, index=True, comment="活动ID")
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True, comment="用户ID")
+    activity_id = Column(BigInteger, nullable=False, index=True, comment="活动ID")
+    user_id = Column(BigInteger, nullable=False, index=True, comment="用户ID")
     
     reward_type = Column(String(50), comment="奖励类型（credits、coupon等）")
     reward_amount = Column(Integer, comment="奖励数量")
@@ -118,9 +118,9 @@ class ActivityParticipation(Base):
         comment="参与时间"
     )
     
-    # 关系
-    activity = relationship("Activity", back_populates="participations")
-    user = relationship("User", back_populates="activity_participations")
+    # 关系（不使用外键）
+    activity = relationship("Activity", back_populates="participations", foreign_keys=[activity_id], primaryjoin="ActivityParticipation.activity_id == Activity.id")
+    user = relationship("User", back_populates="activity_participations", foreign_keys=[user_id], primaryjoin="ActivityParticipation.user_id == User.id")
     
     def __repr__(self):
         return f"<ActivityParticipation(id={self.id}, activity_id={self.activity_id}, user_id={self.user_id})>"
@@ -153,7 +153,7 @@ class Coupon(Base):
     valid_until = Column(DateTime, nullable=False, comment="有效期结束")
     
     description = Column(Text, comment="使用说明")
-    activity_id = Column(BigInteger, ForeignKey("activities.id"), comment="关联活动ID")
+    activity_id = Column(BigInteger, index=True, comment="关联活动ID")
     
     is_active = Column(Boolean, default=True, comment="是否启用")
     
@@ -183,8 +183,8 @@ class UserCoupon(Base):
     __tablename__ = "user_coupons"
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="记录ID")
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True, comment="用户ID")
-    coupon_id = Column(BigInteger, ForeignKey("coupons.id"), nullable=False, index=True, comment="优惠券ID")
+    user_id = Column(BigInteger, nullable=False, index=True, comment="用户ID")
+    coupon_id = Column(BigInteger, nullable=False, index=True, comment="优惠券ID")
     
     status = Column(
         Enum(CouponStatus),
@@ -203,9 +203,9 @@ class UserCoupon(Base):
         comment="领取时间"
     )
     
-    # 关系
-    user = relationship("User", back_populates="user_coupons")
-    coupon = relationship("Coupon", back_populates="user_coupons")
+    # 关系（不使用外键）
+    user = relationship("User", back_populates="user_coupons", foreign_keys=[user_id], primaryjoin="UserCoupon.user_id == User.id")
+    coupon = relationship("Coupon", back_populates="user_coupons", foreign_keys=[coupon_id], primaryjoin="UserCoupon.coupon_id == Coupon.id")
     
     def __repr__(self):
         return f"<UserCoupon(id={self.id}, user_id={self.user_id}, coupon_id={self.coupon_id}, status={self.status})>"
@@ -216,8 +216,8 @@ class ReferralRecord(Base):
     __tablename__ = "referral_records"
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="记录ID")
-    referrer_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True, comment="推荐人ID")
-    referee_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True, comment="被推荐人ID")
+    referrer_id = Column(BigInteger, nullable=False, index=True, comment="推荐人ID")
+    referee_id = Column(BigInteger, nullable=False, index=True, comment="被推荐人ID")
     
     referral_code = Column(String(50), index=True, comment="推荐码")
     
@@ -254,9 +254,9 @@ class ReferralRecord(Base):
         comment="更新时间"
     )
     
-    # 关系
-    referrer = relationship("User", foreign_keys=[referrer_id], back_populates="referrals_made")
-    referee = relationship("User", foreign_keys=[referee_id], back_populates="referrals_received")
+    # 关系（不使用外键）
+    referrer = relationship("User", foreign_keys=[referrer_id], back_populates="referrals_made", primaryjoin="ReferralRecord.referrer_id == User.id")
+    referee = relationship("User", foreign_keys=[referee_id], back_populates="referrals_received", primaryjoin="ReferralRecord.referee_id == User.id")
     
     def __repr__(self):
         return f"<ReferralRecord(id={self.id}, referrer_id={self.referrer_id}, referee_id={self.referee_id}, status={self.status})>"

@@ -26,6 +26,7 @@ services:
       retries: 5
     networks:
       - ai-creator-network
+    restart: unless-stopped
 
   # Redis缓存
   redis:
@@ -42,6 +43,7 @@ services:
       retries: 5
     networks:
       - ai-creator-network
+    restart: unless-stopped
 
   # 后端API服务
   backend:
@@ -66,28 +68,7 @@ services:
     networks:
       - ai-creator-network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-  # Celery Worker
-  celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: ai-creator-celery-worker
-    env_file:
-      - .env
-    environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ai_creator}:${MYSQL_PASSWORD:-ai_creator123}@mysql:3306/${MYSQL_DATABASE:-ai_creator}
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis123456}@redis:6379/0
-    volumes:
-      - ./backend:/app
-    depends_on:
-      redis:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
-    networks:
-      - ai-creator-network
-    command: celery -A app.core.celery_app worker --loglevel=info
+    restart: unless-stopped
 
   # 前端Nginx服务
   frontend-nginx:
@@ -101,6 +82,7 @@ services:
       - backend
     networks:
       - ai-creator-network
+    restart: unless-stopped
 
 volumes:
   mysql_data:

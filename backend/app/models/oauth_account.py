@@ -2,7 +2,7 @@
 OAuth账号模型
 """
 from datetime import datetime
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, Index
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -12,7 +12,7 @@ class OAuthAccount(Base):
     __tablename__ = "oauth_accounts"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(BigInteger, nullable=False, index=True)
     platform = Column(String(50), nullable=False, comment="平台ID(qwen/doubao/zhipu/chatgpt/gemini/codex)")
     account_name = Column(String(100), comment="账号名称（用户自定义）")
     credentials = Column(Text, nullable=False, comment="加密的凭证（Cookie/Token）")
@@ -25,8 +25,8 @@ class OAuthAccount(Base):
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
 
-    # 关系
-    user = relationship("User", back_populates="oauth_accounts")
+    # 关系（不使用外键）
+    user = relationship("User", back_populates="oauth_accounts", foreign_keys=[user_id], primaryjoin="OAuthAccount.user_id == User.id")
     usage_logs = relationship("OAuthUsageLog", back_populates="account", cascade="all, delete-orphan")
 
     # 索引

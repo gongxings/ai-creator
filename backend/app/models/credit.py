@@ -1,7 +1,7 @@
 """
 积分和会员模型
 """
-from sqlalchemy import Column, BigInteger, Integer, String, Enum, DateTime, Numeric, Text, Boolean, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, Enum, DateTime, Numeric, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -38,7 +38,7 @@ class CreditTransaction(Base):
     __tablename__ = "credit_transactions"
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="交易ID")
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True, comment="用户ID")
+    user_id = Column(BigInteger, nullable=False, index=True, comment="用户ID")
     
     transaction_type = Column(
         Enum(TransactionType),
@@ -61,8 +61,8 @@ class CreditTransaction(Base):
         comment="创建时间"
     )
     
-    # 关系
-    user = relationship("User", back_populates="credit_transactions")
+    # 关系（不使用外键）
+    user = relationship("User", back_populates="credit_transactions", foreign_keys=[user_id], primaryjoin="CreditTransaction.user_id == User.id")
     
     def __repr__(self):
         return f"<CreditTransaction(id={self.id}, user_id={self.user_id}, type={self.transaction_type}, amount={self.amount})>"
@@ -74,7 +74,7 @@ class MembershipOrder(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="订单ID")
     order_no = Column(String(64), unique=True, nullable=False, index=True, comment="订单号")
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True, comment="用户ID")
+    user_id = Column(BigInteger, nullable=False, index=True, comment="用户ID")
     
     membership_type = Column(
         Enum(MembershipType),
@@ -114,8 +114,8 @@ class MembershipOrder(Base):
         comment="更新时间"
     )
     
-    # 关系
-    user = relationship("User", back_populates="membership_orders")
+    # 关系（不使用外键）
+    user = relationship("User", back_populates="membership_orders", foreign_keys=[user_id], primaryjoin="MembershipOrder.user_id == User.id")
     
     def __repr__(self):
         return f"<MembershipOrder(id={self.id}, order_no={self.order_no}, user_id={self.user_id}, status={self.payment_status})>"
@@ -127,7 +127,7 @@ class RechargeOrder(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="订单ID")
     order_no = Column(String(64), unique=True, nullable=False, index=True, comment="订单号")
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True, comment="用户ID")
+    user_id = Column(BigInteger, nullable=False, index=True, comment="用户ID")
     
     amount = Column(Numeric(10, 2), nullable=False, comment="充值金额")
     credits = Column(Integer, nullable=False, comment="获得积分数")
@@ -159,8 +159,8 @@ class RechargeOrder(Base):
         comment="更新时间"
     )
     
-    # 关系
-    user = relationship("User", back_populates="recharge_orders")
+    # 关系（不使用外键）
+    user = relationship("User", back_populates="recharge_orders", foreign_keys=[user_id], primaryjoin="RechargeOrder.user_id == User.id")
     
     def __repr__(self):
         return f"<RechargeOrder(id={self.id}, order_no={self.order_no}, user_id={self.user_id}, status={self.payment_status})>"
