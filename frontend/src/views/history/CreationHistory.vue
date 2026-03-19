@@ -109,7 +109,23 @@
         <el-button @click="showDetailDialog = false">关闭</el-button>
         <el-button type="primary" @click="handleCopyContent">复制内容</el-button>
         <el-button type="success" @click="handleEditFromDetail">继续编辑</el-button>
+        <el-button type="warning" @click="showConverterDialog = true">
+          <el-icon><Switch /></el-icon>
+          转换平台
+        </el-button>
       </template>
+    </el-dialog>
+
+    <!-- 多平台转换弹窗 -->
+    <el-dialog v-model="showConverterDialog" title="多平台内容转换" width="min(800px, 96vw)" destroy-on-close>
+      <PlatformConverter
+        v-if="currentCreation"
+        :creation-id="currentCreation.id"
+        :original-title="currentCreation.title"
+        :original-content="currentCreation.output_content || currentCreation.content"
+        :original-platform="currentCreation.tool_type"
+        @converted="handleConverted"
+      />
     </el-dialog>
   </div>
 </template>
@@ -118,14 +134,16 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, Edit, Search } from '@element-plus/icons-vue'
+import { Document, Edit, Search, Switch } from '@element-plus/icons-vue'
 import * as creationsApi from '@/api/creations'
 import { markdownToHtml } from '@/services/markdownRenderer'
+import PlatformConverter from '@/components/converter/PlatformConverter.vue'
 import dayjs from 'dayjs'
 
 const router = useRouter()
 const loading = ref(false)
 const showDetailDialog = ref(false)
+const showConverterDialog = ref(false)
 const creationList = ref<any[]>([])
 const currentCreation = ref<any>(null)
 
@@ -191,6 +209,12 @@ const handleCopyContent = async () => {
   } catch {
     ElMessage.error('复制失败，请手动复制')
   }
+}
+
+const handleConverted = (results: any[]) => {
+  ElMessage.success(`成功转换到 ${results.length} 个平台`)
+  showConverterDialog.value = false
+  fetchCreations() // 刷新列表以显示新创建的记录
 }
 
 const getToolName = (toolType: string) => toolNameMap[toolType] || toolType || '未知工具'

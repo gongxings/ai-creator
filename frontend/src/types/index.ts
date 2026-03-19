@@ -270,12 +270,20 @@ export interface APIKeyStats {
 // ============================================================================
 
 // 表单字段类型
-export type FormFieldType = 'input' | 'textarea' | 'select' | 'radio' | 'number' | 'history_select' | 'url_fetch'
+export type FormFieldType = 'input' | 'textarea' | 'select' | 'radio' | 'number' | 'slider' | 'history_select' | 'url_fetch'
 
 // 下拉选项
 export interface SelectOption {
   label: string
-  value: string
+  value: string | boolean
+}
+
+// 滑块配置
+export interface SliderConfig {
+  min?: number
+  max?: number
+  step?: number
+  marks?: Record<number, string>
 }
 
 // 表单字段定义
@@ -289,6 +297,8 @@ export interface FormField {
   defaultValue?: any
   rows?: number
   maxLength?: number
+  // slider 类型专用
+  sliderConfig?: SliderConfig
   // history_select 类型专用
   historyConfig?: {
     contentField: string  // 选中后填充到哪个字段

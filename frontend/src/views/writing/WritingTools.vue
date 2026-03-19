@@ -8,14 +8,10 @@
       </div>
     </section>
 
+    <!-- 热点追踪模块 -->
+    <HotspotPanel />
+
     <section class="tools-filter app-panel">
-      <el-input
-        v-model="searchQuery"
-        placeholder="搜索工具、标签或用途"
-        :prefix-icon="Search"
-        class="search-box"
-        clearable
-      />
       <el-segmented v-model="activeCategory" :options="categories" block />
     </section>
 
@@ -80,9 +76,8 @@
       </div>
     </section>
 
-    <section v-else class="empty-state app-panel">
-      <el-empty description="没有找到匹配的工具" />
-      <el-button type="primary" @click="resetFilter">重置筛选</el-button>
+    <section v-if="filteredTools.length === 0" class="empty-state app-panel">
+      <el-empty description="该分类暂无工具" />
     </section>
   </div>
 </template>
@@ -101,14 +96,14 @@ import {
   Promotion,
   Reading,
   RefreshRight,
-  Search,
   Tickets,
+  TrendCharts,
   User,
   VideoCamera,
 } from '@element-plus/icons-vue'
+import HotspotPanel from '@/components/hotspot/HotspotPanel.vue'
 
 const router = useRouter()
-const searchQuery = ref('')
 const activeCategory = ref('all')
 
 const categories = [
@@ -263,6 +258,28 @@ const writingTools = [
     isHot: false,
     usageCount: 417,
   },
+  {
+    type: 'viral_analyze',
+    name: '爆款分析',
+    description: '深度拆解爆款文章的成功要素，提取写作技巧和爆款元素。',
+    icon: DataAnalysis,
+    color: '#9C27B0',
+    tags: ['爆款', '分析'],
+    category: 'creative',
+    isHot: true,
+    usageCount: 0,
+  },
+  {
+    type: 'viral_imitate',
+    name: '爆款模仿',
+    description: '参考爆款文章风格，围绕新主题生成类似风格内容。',
+    icon: TrendCharts,
+    color: '#E91E63',
+    tags: ['爆款', '模仿'],
+    category: 'creative',
+    isHot: true,
+    usageCount: 0,
+  },
 ]
 
 const recentTools = ref<typeof writingTools>([])
@@ -283,16 +300,6 @@ const filteredTools = computed(() => {
     filtered = filtered.filter((tool) => tool.category === activeCategory.value)
   }
 
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(
-      (tool) =>
-        tool.name.toLowerCase().includes(query) ||
-        tool.description.toLowerCase().includes(query) ||
-        tool.tags.some((tag) => tag.toLowerCase().includes(query)),
-    )
-  }
-
   return filtered.sort((a, b) => {
     if (a.isHot !== b.isHot) return a.isHot ? -1 : 1
     return b.usageCount - a.usageCount
@@ -310,11 +317,6 @@ const goToEditor = (toolType: string) => {
 
 const getCategoryTitle = (category: string) => {
   return categories.find((item) => item.value === category)?.label || '全部工具'
-}
-
-const resetFilter = () => {
-  searchQuery.value = ''
-  activeCategory.value = 'all'
 }
 
 const clearRecent = () => {
@@ -386,15 +388,22 @@ const clearRecent = () => {
   flex-wrap: wrap;
   padding: 18px;
 
-  .search-box {
-    flex: 1;
-    min-width: 240px;
-  }
-
   :deep(.el-segmented) {
     padding: 4px;
     border-radius: 14px;
     background: rgba(241, 245, 249, 0.9);
+
+    .el-segmented__group {
+      .el-segmented__item {
+        min-width: 90px !important;
+        padding: 8px 20px !important;
+      }
+
+      .el-segmented__item-label {
+        min-width: 60px;
+        white-space: nowrap;
+      }
+    }
   }
 }
 
@@ -549,7 +558,6 @@ const clearRecent = () => {
     flex-direction: column;
     align-items: stretch;
 
-    .search-box,
     :deep(.el-segmented) {
       width: 100%;
     }

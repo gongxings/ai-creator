@@ -72,6 +72,17 @@
           style="width: 100%"
         />
 
+        <!-- 滑块 -->
+        <el-slider
+          v-else-if="field.type === 'slider'"
+          v-model="formData[field.name]"
+          :min="field.sliderConfig?.min || 0"
+          :max="field.sliderConfig?.max || 100"
+          :step="field.sliderConfig?.step || 1"
+          :marks="field.sliderConfig?.marks"
+          :show-input="false"
+        />
+
         <!-- 历史记录选择器 -->
         <div v-else-if="field.type === 'history_select'" class="special-field-wrapper">
           <el-select

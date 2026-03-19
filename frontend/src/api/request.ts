@@ -11,6 +11,7 @@ const whiteList = [
   '/v1/auth/login',
   '/v1/auth/register',
   '/v1/auth/refresh',
+  '/v1/credit/membership/prices',
 ]
 
 // 创建axios实例
