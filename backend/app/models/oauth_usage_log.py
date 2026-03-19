@@ -27,14 +27,18 @@ class OAuthUsageLog(Base):
 
     # 关系（不使用外键）
     user = relationship("User", primaryjoin="OAuthUsageLog.user_id == foreign(User.id)")
-     account = relationship("OAuthAccount", back_populates="usage_logs", primaryjoin="OAuthUsageLog.account_id == foreign(OAuthAccount.id)", remote_side="OAuthAccount.id")
+    account = relationship("OAuthAccount", back_populates="usage_logs",
+                           primaryjoin="OAuthUsageLog.account_id == foreign(OAuthAccount.id)",
+                           remote_side="OAuthAccount.id")
 
-    # 索引
-    __table_args__ = (
-        Index("idx_oauth_log_user_id", "user_id"),
-        Index("idx_oauth_log_account_id", "account_id"),
-        Index("idx_oauth_log_created_at", "created_at"),
-    )
 
-    def __repr__(self):
-        return f"<OAuthUsageLog(id={self.id}, platform={self.platform}, status={self.status})>"
+# 索引
+__table_args__ = (
+    Index("idx_oauth_log_user_id", "user_id"),
+    Index("idx_oauth_log_account_id", "account_id"),
+    Index("idx_oauth_log_created_at", "created_at"),
+)
+
+
+def __repr__(self):
+    return f"<OAuthUsageLog(id={self.id}, platform={self.platform}, status={self.status})>"

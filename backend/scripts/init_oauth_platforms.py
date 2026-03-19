@@ -17,18 +17,18 @@ from loguru import logger
 def init_platforms():
     """初始化平台配置"""
     db = SessionLocal()
-    
+
     try:
         # 创建所有表
         Base.metadata.create_all(bind=engine)
         logger.info("数据库表创建成功")
-        
+
         # 检查是否已有平台配置
         existing_count = db.query(PlatformConfig).count()
         if existing_count > 0:
             logger.info(f"已存在 {existing_count} 个平台配置，跳过初始化")
             return
-        
+
         # 定义平台配置 - 使用网页聊天版本的URL
         platforms = [
             {
@@ -275,19 +275,19 @@ def init_platforms():
                 "is_enabled": True,
             },
         ]
-        
+
         # 插入平台配置
         for platform_data in platforms:
             platform = PlatformConfig(**platform_data)
             db.add(platform)
-        
+
         db.commit()
         logger.info(f"成功初始化 {len(platforms)} 个平台配置")
-        
+
         # 显示已初始化的平台
         for platform in platforms:
             logger.info(f"  - {platform['platform_name']} ({platform['platform_id']})")
-        
+
     except Exception as e:
         logger.error(f"初始化平台配置失败: {e}")
         db.rollback()

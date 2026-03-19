@@ -9,6 +9,7 @@ import enum
 import secrets
 import string
 
+
 def generate_referral_code():
     """生成8位随机推荐码"""
     chars = string.ascii_uppercase + string.digits
@@ -32,7 +33,7 @@ class UserStatus(str, enum.Enum):
 class User(Base):
     """用户表"""
     __tablename__ = "users"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="用户ID")
     username = Column(String(50), unique=True, nullable=False, index=True, comment="用户名")
     email = Column(String(100), unique=True, nullable=False, index=True, comment="邮箱")
@@ -40,33 +41,33 @@ class User(Base):
     nickname = Column(String(50), comment="昵称")
     avatar = Column(String(255), comment="头像URL")
     phone = Column(String(20), comment="手机号")
-    
+
     role = Column(
         Enum(UserRole),
         nullable=False,
         default=UserRole.USER,
         comment="用户角色: user-普通用户, vip-VIP用户, admin-管理员"
     )
-    
+
     status = Column(
         Enum(UserStatus),
         nullable=False,
         default=UserStatus.ACTIVE,
         comment="用户状态: active-正常, inactive-未激活, banned-已封禁"
     )
-    
+
     daily_quota = Column(Integer, nullable=False, default=100, comment="每日配额")
     used_quota = Column(Integer, nullable=False, default=0, comment="已使用配额")
     total_creations = Column(Integer, nullable=False, default=0, comment="总创作数")
-    
+
     # 积分和会员相关
     credits = Column(Integer, nullable=False, default=0, comment="积分余额")
     is_member = Column(Integer, nullable=False, default=0, comment="是否会员: 0-否, 1-是")
     member_expired_at = Column(DateTime, comment="会员到期时间")
-    
+
     last_login_at = Column(DateTime, comment="最后登录时间")
     last_login_ip = Column(String(50), comment="最后登录IP")
-    
+
     created_at = Column(
         DateTime,
         nullable=False,
@@ -81,37 +82,53 @@ class User(Base):
         comment="更新时间"
     )
     deleted_at = Column(DateTime, comment="删除时间（软删除）")
-    
+
     # 推广相关
     referral_code = Column(String(50), unique=True, index=True, default=generate_referral_code, comment="推荐码")
     referred_by = Column(BigInteger, comment="推荐人ID")
-    
+
     # 关系
     creations = relationship("Creation", back_populates="user", primaryjoin="User.id == foreign('Creation.user_id')")
     ai_models = relationship("AIModel", back_populates="user", primaryjoin="User.id == foreign('AIModel.user_id')")
-    publish_records = relationship("PublishRecord", back_populates="user", primaryjoin="User.id == foreign('PublishRecord.user_id')")
-    platform_accounts = relationship("PlatformAccount", back_populates="user", primaryjoin="User.id == foreign('PlatformAccount.user_id')")
-    credit_transactions = relationship("CreditTransaction", back_populates="user", primaryjoin="User.id == foreign('CreditTransaction.user_id')")
-    membership_orders = relationship("MembershipOrder", back_populates="user", primaryjoin="User.id == foreign('MembershipOrder.user_id')")
-    recharge_orders = relationship("RechargeOrder", back_populates="user", primaryjoin="User.id == foreign('RechargeOrder.user_id')")
-    
+    publish_records = relationship("PublishRecord", back_populates="user",
+                                   primaryjoin="User.id == foreign('PublishRecord.user_id')")
+    platform_accounts = relationship("PlatformAccount", back_populates="user",
+                                     primaryjoin="User.id == foreign('PlatformAccount.user_id')")
+    credit_transactions = relationship("CreditTransaction", back_populates="user",
+                                       primaryjoin="User.id == foreign('CreditTransaction.user_id')")
+    membership_orders = relationship("MembershipOrder", back_populates="user",
+                                     primaryjoin="User.id == foreign('MembershipOrder.user_id')")
+    recharge_orders = relationship("RechargeOrder", back_populates="user",
+                                   primaryjoin="User.id == foreign('RechargeOrder.user_id')")
+
     # 运营相关关系
-    activity_participations = relationship("ActivityParticipation", back_populates="user", primaryjoin="User.id == foreign('ActivityParticipation.user_id')")
-    user_coupons = relationship("UserCoupon", back_populates="user", primaryjoin="User.id == foreign('UserCoupon.user_id')")
-    referrals_made = relationship("ReferralRecord", foreign_keys="ReferralRecord.referrer_id", back_populates="referrer", primaryjoin="User.id == foreign('ReferralRecord.referrer_id')")
-    referrals_received = relationship("ReferralRecord", foreign_keys="ReferralRecord.referee_id", back_populates="referee", primaryjoin="User.id == foreign('ReferralRecord.referee_id')")
-    
+    activity_participations = relationship("ActivityParticipation", back_populates="user",
+                                           primaryjoin="User.id == foreign('ActivityParticipation.user_id')")
+    user_coupons = relationship("UserCoupon", back_populates="user",
+                                primaryjoin="User.id == foreign('UserCoupon.user_id')")
+    referrals_made = relationship("ReferralRecord", foreign_keys="ReferralRecord.referrer_id",
+                                  back_populates="referrer",
+                                  primaryjoin="User.id == foreign('ReferralRecord.referrer_id')")
+    referrals_received = relationship("ReferralRecord", foreign_keys="ReferralRecord.referee_id",
+                                      back_populates="referee",
+                                      primaryjoin="User.id == foreign('ReferralRecord.referee_id')")
+
     # OAuth相关关系
-    oauth_accounts = relationship("OAuthAccount", back_populates="user", primaryjoin="User.id == foreign('OAuthAccount.user_id')")
-    
+    oauth_accounts = relationship("OAuthAccount", back_populates="user",
+                                  primaryjoin="User.id == foreign('OAuthAccount.user_id')")
+
     # API Key相关关系
     api_keys = relationship("APIKey", back_populates="user", primaryjoin="User.id == foreign('APIKey.user_id')")
-    
+
     # 插件相关关系
-    plugins = relationship("UserPlugin", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == foreign('UserPlugin.user_id')")
-    plugin_selections = relationship("CreationPluginSelection", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == foreign('CreationPluginSelection.user_id')")
-    plugin_invocations = relationship("PluginInvocation", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == foreign('PluginInvocation.user_id')")
-    plugin_reviews = relationship("PluginReview", back_populates="user", cascade="all, delete-orphan", primaryjoin="User.id == foreign('PluginReview.user_id')")
-    
+    plugins = relationship("UserPlugin", back_populates="user", cascade="all, delete-orphan",
+                           primaryjoin="User.id == foreign('UserPlugin.user_id')")
+    plugin_selections = relationship("CreationPluginSelection", back_populates="user", cascade="all, delete-orphan",
+                                     primaryjoin="User.id == foreign('CreationPluginSelection.user_id')")
+    plugin_invocations = relationship("PluginInvocation", back_populates="user", cascade="all, delete-orphan",
+                                      primaryjoin="User.id == foreign('PluginInvocation.user_id')")
+    plugin_reviews = relationship("PluginReview", back_populates="user", cascade="all, delete-orphan",
+                                  primaryjoin="User.id == foreign('PluginReview.user_id')")
+
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, role={self.role})>"

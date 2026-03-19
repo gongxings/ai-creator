@@ -15,20 +15,20 @@ from sqlalchemy import text
 def init_db():
     """初始化数据库"""
     print("开始初始化数据库...")
-    
+
     # 先禁用外键约束检查
     with engine.connect() as conn:
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
         conn.commit()
-    
+
     # 重新创建所有表（不带外键约束）
     print("正在创建所有表...")
     from app.core.database import Base
-    
+
     # 创建一个没有外键约束的元数据
     from sqlalchemy import MetaData
     metadata = MetaData()
-    
+
     # 复制所有表结构但移除外键约束
     for table_name, table in Base.metadata.tables.items():
         # 创建新的表对象，移除外键约束
@@ -40,7 +40,7 @@ def init_db():
                 col_args.append(column.name)
             if hasattr(column, 'type'):
                 col_args.append(column.type)
-            
+
             # 复制其他属性
             kwargs = {}
             if column.primary_key:
@@ -59,24 +59,24 @@ def init_db():
                 kwargs['index'] = True
             if column.unique:
                 kwargs['unique'] = True
-            
+
             from sqlalchemy import Column
             new_column = Column(*col_args, **kwargs)
             columns.append(new_column)
-        
+
         # 创建新表（无外键约束）
         from sqlalchemy import Table
         new_table = Table(table_name, metadata, *columns)
-    
+
     # 创建所有表
     metadata.create_all(bind=engine)
     print("[SUCCESS] All tables created")
-    
+
     # 重新启用外键约束检查
     with engine.connect() as conn:
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
         conn.commit()
-    
+
     print("\n[SUCCESS] Database initialization completed!")
     print("\nDatabase tables have been created successfully. You can now insert test data or use API to create users.")
 

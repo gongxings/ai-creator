@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, engine, Base
 from app.models.template import ArticleTemplate
 
-
 # 5个系统预设模板
 SYSTEM_TEMPLATES = [
     {
@@ -646,18 +645,18 @@ def init_templates():
     """初始化系统预设模板"""
     # 确保表已创建
     Base.metadata.create_all(bind=engine)
-    
+
     db: Session = SessionLocal()
-    
+
     try:
         # 检查是否已有系统模板
         existing_count = db.query(ArticleTemplate).filter(
             ArticleTemplate.is_system == True
         ).count()
-        
+
         if existing_count > 0:
             print(f"系统模板已存在 ({existing_count} 个)，跳过初始化")
-            
+
             # 可选：更新现有模板的样式
             update_existing = input("是否更新现有系统模板的样式？(y/n): ").strip().lower()
             if update_existing == 'y':
@@ -666,7 +665,7 @@ def init_templates():
                         ArticleTemplate.name == template_data["name"],
                         ArticleTemplate.is_system == True
                     ).first()
-                    
+
                     if existing:
                         existing.description = template_data["description"]
                         existing.styles = template_data["styles"]
@@ -684,14 +683,14 @@ def init_templates():
                         )
                         db.add(new_template)
                         print(f"  添加新模板: {template_data['name']}")
-                
+
                 db.commit()
                 print("系统模板更新完成")
             return
-        
+
         # 创建系统模板
         print("开始初始化系统预设模板...")
-        
+
         for template_data in SYSTEM_TEMPLATES:
             template = ArticleTemplate(
                 name=template_data["name"],
@@ -704,10 +703,10 @@ def init_templates():
             )
             db.add(template)
             print(f"  创建模板: {template_data['name']}")
-        
+
         db.commit()
         print(f"\n成功创建 {len(SYSTEM_TEMPLATES)} 个系统预设模板")
-        
+
     except Exception as e:
         db.rollback()
         print(f"初始化失败: {e}")

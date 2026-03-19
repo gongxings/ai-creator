@@ -19,7 +19,6 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 # 预置插件数据
 PRESET_PLUGINS = [
     {
@@ -164,9 +163,9 @@ PRESET_PLUGINS = [
 def init_plugin_tables():
     """创建插件相关的数据库表（不使用外键约束，避免权限问题）"""
     from sqlalchemy import text
-    
+
     logger.info("Creating plugin tables...")
-    
+
     # 使用原生 SQL 创建表（不含外键约束，兼容权限受限的数据库用户）
     create_table_sqls = [
         # plugin_market 表
@@ -265,7 +264,7 @@ def init_plugin_tables():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='插件评价表'
         """
     ]
-    
+
     with engine.connect() as conn:
         for sql in create_table_sqls:
             try:
@@ -277,20 +276,20 @@ def init_plugin_tables():
                     logger.info(f"Table already exists, skipping...")
                 else:
                     logger.warning(f"SQL execution warning: {e}")
-    
+
     logger.info("Plugin tables created successfully")
 
 
 def init_preset_plugins(db: Session):
     """初始化预置插件"""
     logger.info("Initializing preset plugins...")
-    
+
     for plugin_data in PRESET_PLUGINS:
         # 检查是否已存在
         existing = db.query(PluginMarket).filter(
             PluginMarket.name == plugin_data["name"]
         ).first()
-        
+
         if existing:
             # 更新现有记录
             logger.info(f"Updating plugin: {plugin_data['name']}")
@@ -301,7 +300,7 @@ def init_preset_plugins(db: Session):
             logger.info(f"Creating plugin: {plugin_data['name']}")
             plugin = PluginMarket(**plugin_data)
             db.add(plugin)
-    
+
     db.commit()
     logger.info(f"Initialized {len(PRESET_PLUGINS)} plugins")
 
@@ -310,14 +309,14 @@ def main():
     """主函数"""
     # 创建表
     init_plugin_tables()
-    
+
     # 初始化数据
     db = SessionLocal()
     try:
         init_preset_plugins(db)
     finally:
         db.close()
-    
+
     logger.info("Plugin initialization completed!")
 
 

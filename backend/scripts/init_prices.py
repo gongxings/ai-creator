@@ -15,13 +15,13 @@ from app.models.credit import CreditPrice, MembershipPrice, MembershipType
 
 def init_credit_prices(db: Session):
     """初始化积分价格套餐（1元=100积分）"""
-    
+
     # 检查是否已有数据
     existing = db.query(CreditPrice).count()
     if existing > 0:
         print(f"积分价格套餐已存在 {existing} 条记录，跳过初始化")
         return
-    
+
     credit_prices = [
         {
             "name": "10元套餐",
@@ -60,24 +60,24 @@ def init_credit_prices(db: Session):
             "description": "20000积分+赠送1500积分，性价比最高"
         },
     ]
-    
+
     for price_data in credit_prices:
         price = CreditPrice(**price_data)
         db.add(price)
-    
+
     db.commit()
     print(f"成功初始化 {len(credit_prices)} 个积分价格套餐")
 
 
 def init_membership_prices(db: Session):
     """初始化会员价格套餐"""
-    
+
     # 检查是否已有数据
     existing = db.query(MembershipPrice).count()
     if existing > 0:
         print(f"会员价格套餐已存在 {existing} 条记录，跳过初始化")
         return
-    
+
     membership_prices = [
         {
             "name": "月度会员",
@@ -113,11 +113,11 @@ def init_membership_prices(db: Session):
             "features": '["所有AI创作工具不限次数", "不消耗积分", "专属客服经理", "新功能优先体验", "定制化服务支持"]'
         },
     ]
-    
+
     for price_data in membership_prices:
         price = MembershipPrice(**price_data)
         db.add(price)
-    
+
     db.commit()
     print(f"成功初始化 {len(membership_prices)} 个会员价格套餐")
 
@@ -125,7 +125,7 @@ def init_membership_prices(db: Session):
 def main():
     """主函数"""
     print("开始初始化积分和会员价格配置...")
-    
+
     db = SessionLocal()
     try:
         init_credit_prices(db)

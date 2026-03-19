@@ -31,7 +31,7 @@ class ModelType(str, enum.Enum):
 class AIModel(Base):
     """AI模型配置表"""
     __tablename__ = "ai_models"
-    
+
     id = Column(Integer, primary_key=True, index=True, comment="模型ID")
     user_id = Column(BigInteger, nullable=False, index=True, comment="用户ID")
     name = Column(String(100), nullable=False, comment="模型名称")
@@ -45,10 +45,13 @@ class AIModel(Base):
     capabilities = Column(JSON, default=["text"], comment="模型能力列表(text/image/video/audio)")
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
-    
+
     # 关系（不使用外键）
-     user = relationship("User", back_populates="ai_models", primaryjoin="AIModel.user_id == foreign('User.id')", remote_side="User.id")
-     creations = relationship("Creation", back_populates="model", primaryjoin="AIModel.id == foreign('Creation.model_id')")
-    
-    def __repr__(self):
-        return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"
+    user = relationship("User", back_populates="ai_models", primaryjoin="AIModel.user_id == foreign('User.id')",
+                        remote_side="User.id")
+    creations = relationship("Creation", back_populates="model",
+                             primaryjoin="AIModel.id == foreign('Creation.model_id')")
+
+
+def __repr__(self):
+    return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"
