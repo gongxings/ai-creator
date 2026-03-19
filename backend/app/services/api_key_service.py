@@ -8,12 +8,13 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
 
-from app.models import APIKey, APIKeyUsageLog, User
+from app.models import APIKey, APIKeyUsageLog, User, AIModel
 from app.schemas.api_key import (
     APIKeyCreate, APIKeyResponse, APIKeyCreateResponse,
     APIKeyUpdate, APIKeyUsageLogResponse, APIKeyStatsResponse
 )
 from app.core.exceptions import BusinessException
+from app.utils.api_key_cipher import encrypt_api_key, decrypt_api_key
 
 
 class APIKeyService:
@@ -227,19 +228,23 @@ class APIKeyService:
         user_id: int
     ) -> bool:
         """
-        删除API Key
+        删除 API Key
         
         Args:
             db: 数据库会话
             key_id: Key ID
-            user_id: 用户ID
+            user_id: 用户 ID
         
         Returns:
             是否删除成功
         """
         db_key = APIKeyService.get_api_key_by_id(db, key_id, user_id)
         if not db_key:
-            raise BusinessException("API Key不存在")
+            raise BusinessException("API Key 不存在")
+        
+        # 保护系统默认 Key 不被误删
+        if db_key.is_system_default:
+            raise BusinessException("不能删除系统默认API Key，请先取消系统默认标记")
         
         db.delete(db_key)
         db.commit()
@@ -296,28 +301,30 @@ class APIKeyService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         response_time: Optional[int] = None,
-        status_code: Optional[int] = None
+        status_code: Optional[int] = None,
+        used_by_user_id: Optional[int] = None  # 新增：实际使用用户 ID
     ) -> APIKeyUsageLog:
         """
-        记录API Key使用日志
+        记录 API Key 使用日志
         
         Args:
             db: 数据库会话
             api_key_id: API Key ID
-            model_id: 模型ID
+            model_id: 模型 ID
             model_name: 模型名称
             endpoint: 端点
             method: 请求方法
-            prompt_tokens: 提示Token数
-            completion_tokens: 完成Token数
-            total_tokens: 总Token数
+            prompt_tokens: 提示 Token 数
+            completion_tokens: 完成 Token 数
+            total_tokens: 总 Token 数
             request_data: 请求数据
             response_data: 响应数据
             error_message: 错误信息
-            ip_address: IP地址
+            ip_address: IP 地址
             user_agent: User Agent
             response_time: 响应时间（毫秒）
             status_code: 状态码
+            used_by_user_id: 实际使用用户 ID（用于统计）
         
         Returns:
             使用日志对象
@@ -325,6 +332,7 @@ class APIKeyService:
         # 创建日志记录
         log = APIKeyUsageLog(
             api_key_id=api_key_id,
+            used_by_user_id=used_by_user_id,  # 新增
             model_id=model_id,
             model_name=model_name,
             endpoint=endpoint,
@@ -434,3 +442,245 @@ class APIKeyService:
             last_used_at=db_key.last_used_at,
             recent_logs=recent_logs_response
         )
+    
+    @staticmethod
+    def get_system_default_api_keys(db: Session) -> List[APIKey]:
+        """
+        获取所有系统默认API Key
+        
+        Args:
+            db: 数据库会话
+            
+        Returns:
+            系统默认API Key 列表（按排序排序）
+        """
+        return db.query(APIKey).filter(
+            APIKey.is_system_default == True,
+            APIKey.is_active == True
+        ).order_by(APIKey.system_default_order.asc()).all()
+    
+    @staticmethod
+    def set_system_default_api_key(
+        db: Session,
+        key_id: int,
+        user_id: int,
+        order: int = 99
+    ) -> APIKey:
+        """
+        设置 API Key 为系统默认
+        
+        Args:
+            db: 数据库会话
+            key_id: API Key ID
+            user_id: 用户 ID（管理员）
+            order: 排序值
+            
+        Returns:
+            更新后的 API Key
+        """
+        db_key = APIKeyService.get_api_key_by_id(db, key_id, user_id)
+        if not db_key:
+            raise BusinessException("API Key 不存在")
+        
+        db_key.is_system_default = True
+        db_key.system_default_order = order
+        
+        db.commit()
+        db.refresh(db_key)
+        
+        return db_key
+    
+    @staticmethod
+    def unset_system_default_api_key(
+        db: Session,
+        key_id: int,
+        user_id: int
+    ) -> APIKey:
+        """
+        取消 API Key 的系统默认标记
+        
+        Args:
+            db: 数据库会话
+            key_id: API Key ID
+            user_id: 用户 ID（管理员）
+            
+        Returns:
+            更新后的 API Key
+        """
+        db_key = APIKeyService.get_api_key_by_id(db, key_id, user_id)
+        if not db_key:
+            raise BusinessException("API Key 不存在")
+        
+        if not db_key.is_system_default:
+            raise BusinessException("该 API Key 不是系统默认 Key")
+        
+        db_key.is_system_default = False
+        db_key.system_default_order = 99
+        
+        db.commit()
+        db.refresh(db_key)
+        
+        return db_key
+    
+    @staticmethod
+    def get_api_key_for_use(db: Session, api_key_id: int) -> str:
+        """
+        解密获取 API Key 明文（用于实际调用）
+        
+        Args:
+            db: 数据库会话
+            api_key_id: API Key ID
+            
+        Returns:
+            解密后的 API Key 明文
+        """
+        db_key = db.query(APIKey).filter(APIKey.id == api_key_id).first()
+        if not db_key:
+            raise BusinessException("API Key 不存在")
+        
+        if not db_key.encrypted_key:
+            raise BusinessException("API Key 未加密存储")
+        
+        try:
+            return decrypt_api_key(db_key.encrypted_key)
+        except Exception as e:
+            raise BusinessException(f"API Key 解密失败：{str(e)}")
+    
+    @staticmethod
+    def assign_system_default_models_to_user(
+        db: Session,
+        user_id: int
+    ) -> List[AIModel]:
+        """
+        为新用户分配系统默认模型
+        
+        Args:
+            db: 数据库会话
+            user_id: 用户 ID
+            
+        Returns:
+            创建的 AIModel 列表
+        """
+        # 获取所有系统默认API Key
+        system_default_keys = APIKeyService.get_system_default_api_keys(db)
+        
+        created_models = []
+        
+        for sys_key in system_default_keys:
+            # 检查是否已存在同名模型
+            existing = db.query(AIModel).filter(
+                and_(
+                    AIModel.user_id == user_id,
+                    AIModel.model_name == sys_key.model_name,
+                    AIModel.provider == sys_key.provider
+                )
+            ).first()
+            
+            if existing:
+                continue
+            
+            # 创建用户专属的 AI Model
+            user_model = AIModel(
+                user_id=user_id,
+                name=f"{sys_key.model_name}（系统默认）",
+                provider=sys_key.provider or "unknown",
+                model_name=sys_key.model_name or "default",
+                api_key="SYSTEM_DEFAULT",  # 占位符，实际使用时会解密 source_api_key_id
+                base_url=sys_key.base_url,
+                is_default=False,  # 不自动设为用户默认
+                is_active=True,
+                system_default_source=True,
+                source_api_key_id=sys_key.id,
+                description=f"系统默认模型 - {sys_key.model_name}",
+                capabilities=["text"]
+            )
+            
+            db.add(user_model)
+            created_models.append(user_model)
+            
+            # 更新分配统计
+            sys_key.total_assigned_users += 1
+        
+        db.commit()
+        
+        for model in created_models:
+            db.refresh(model)
+        
+        return created_models
+    
+    @staticmethod
+    def get_user_usage_for_api_key(
+        db: Session,
+        api_key_id: int,
+        user_id: Optional[int] = None,
+        days: int = 30
+    ) -> Dict[str, Any]:
+        """
+        获取 API Key 的使用统计（可按用户筛选）
+        
+        Args:
+            db: 数据库会话
+            api_key_id: API Key ID
+            user_id: 用户 ID（可选，不传则统计所有用户）
+            days: 统计天数
+            
+        Returns:
+            使用统计信息
+        """
+        # 计算时间范围
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # 基础查询
+        query = db.query(APIKeyUsageLog).filter(
+            and_(
+                APIKeyUsageLog.api_key_id == api_key_id,
+                APIKeyUsageLog.created_at >= start_date
+            )
+        )
+        
+        # 如果指定了用户，添加过滤
+        if user_id:
+            query = query.filter(APIKeyUsageLog.used_by_user_id == user_id)
+        
+        # 统计总数
+        total_requests = query.count()
+        
+        # 统计 Token
+        total_tokens = db.query(func.sum(APIKeyUsageLog.total_tokens)).filter(
+            and_(
+                APIKeyUsageLog.api_key_id == api_key_id,
+                APIKeyUsageLog.created_at >= start_date
+            )
+        ).scalar() or 0
+        
+        # 按用户分组统计（如果需要）
+        if not user_id:
+            user_stats = db.query(
+                APIKeyUsageLog.used_by_user_id,
+                func.count(APIKeyUsageLog.id).label('request_count'),
+                func.sum(APIKeyUsageLog.total_tokens).label('token_count')
+            ).filter(
+                and_(
+                    APIKeyUsageLog.api_key_id == api_key_id,
+                    APIKeyUsageLog.created_at >= start_date,
+                    APIKeyUsageLog.used_by_user_id.isnot(None)
+                )
+            ).group_by(APIKeyUsageLog.used_by_user_id).all()
+            
+            user_breakdown = [
+                {
+                    "user_id": stat.used_by_user_id,
+                    "requests": stat.request_count,
+                    "tokens": stat.token_count
+                }
+                for stat in user_stats
+            ]
+        else:
+            user_breakdown = []
+        
+        return {
+            "total_requests": total_requests,
+            "total_tokens": total_tokens,
+            "period_days": days,
+            "user_breakdown": user_breakdown
+        }

@@ -66,7 +66,7 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
     db.commit()
     db.refresh(user)
     
-    # 新用户注册赠送1000积分
+    # 新用户注册赠送 1000 积分
     try:
         CreditService.add_credits(
             db=db,
@@ -78,7 +78,15 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
     except Exception as e:
         # 赠送积分失败不影响注册流程
         import logging
-        logging.error(f"新用户注册赠送积分失败: {e}")
+        logging.error(f"新用户注册赠送积分失败：{e}")
+    
+    # 为新用户分配系统默认模型
+    try:
+        APIKeyService.assign_system_default_models_to_user(db, user.id)
+    except Exception as e:
+        # 分配模型失败不影响注册流程
+        import logging
+        logging.error(f"新用户分配系统默认模型失败：{e}")
     
     return success_response(data=UserResponse.model_validate(user).model_dump())
 

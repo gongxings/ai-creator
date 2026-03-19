@@ -20,6 +20,21 @@ class APIKey(Base):
 
     is_active = Column(Boolean, default=True, comment="是否启用")
 
+    # 系统默认标识
+    is_system_default = Column(Boolean, default=False, index=True, comment="是否系统默认 Key")
+    system_default_order = Column(Integer, default=99, comment="系统默认排序（数字越小越优先）")
+    
+    # AI Provider 信息
+    provider = Column(String(50), comment="AI 提供商（openai/anthropic/zhipu 等）")
+    model_name = Column(String(100), comment="模型名称")
+    base_url = Column(String(255), nullable=True, comment="API 基础 URL")
+    
+    # 加密存储的原始 Key（用于解密后调用 API）
+    encrypted_key = Column(Text, nullable=True, comment="加密存储的原始 APIKey")
+    
+    # 统计信息
+    total_assigned_users = Column(Integer, default=0, comment="已分配用户数")
+
     # 权限控制
     allowed_models = Column(JSON, comment="允许使用的模型列表（为空表示全部）")
     rate_limit = Column(Integer, default=60, comment="速率限制（次/分钟）")
@@ -59,11 +74,12 @@ class APIKey(Base):
 
 
 class APIKeyUsageLog(Base):
-    """API Key使用日志表"""
+    """API Key 使用日志表"""
     __tablename__ = "api_key_usage_logs"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, comment="日志ID")
+    id = Column(BigInteger, primary_key=True, autoincrement=True, comment="日志 ID")
     api_key_id = Column(BigInteger, nullable=False, comment="API Key ID")
+    used_by_user_id = Column(BigInteger, index=True, comment="实际使用用户 ID（用于统计）")
 
     # 模型信息
     model_id = Column(String(100), comment="模型ID")

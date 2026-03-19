@@ -148,6 +148,25 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/operation/OperationStatistics.vue'),
         meta: { requiresAdmin: true },
       },
+      // 管理员页面
+      {
+        path: 'admin/apikeys',
+        name: 'SystemDefaultKeys',
+        component: () => import('@/views/admin/SystemDefaultKeys.vue'),
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: 'admin/users',
+        name: 'UserManagement',
+        component: () => import('@/views/admin/UserManagement.vue'),
+        meta: { requiresAdmin: true },
+      },
+      {
+        path: 'admin/monitor',
+        name: 'ApiMonitor',
+        component: () => import('@/views/admin/ApiMonitor.vue'),
+        meta: { requiresAdmin: true },
+      },
     ],
   },
 ]

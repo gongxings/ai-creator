@@ -280,6 +280,25 @@ app.include_router(
     tags=["爆款模仿"]
 )
 
+# 管理员接口
+app.include_router(
+    system_default_keys.router,
+    prefix=f"{settings.API_V1_PREFIX}/system-default-keys",
+    tags=["系统默认APIKey"]
+)
+
+app.include_router(
+    admin_users.router,
+    prefix=f"{settings.API_V1_PREFIX}/admin/users",
+    tags=["管理员 - 用户管理"]
+)
+
+app.include_router(
+    api_monitor.router,
+    prefix=f"{settings.API_V1_PREFIX}/api-monitor",
+    tags=["API 监控"]
+)
+
 # OpenAPI代理路由（兼容OpenAI格式）
 app.include_router(
     openapi_proxy.router,

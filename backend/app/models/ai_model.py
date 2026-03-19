@@ -1,7 +1,7 @@
 """
 AI模型配置数据模型
 """
-from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, Enum, BigInteger, JSON
+from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, Enum, BigInteger, JSON, Index
 from sqlalchemy.orm import relationship, foreign
 from datetime import datetime
 import enum
@@ -54,3 +54,9 @@ class AIModel(Base):
 
     def __repr__(self):
         return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"
+
+
+# 索引
+__table_args__ = (
+    Index("idx_system_default_user", "system_default_source", "user_id"),
+)

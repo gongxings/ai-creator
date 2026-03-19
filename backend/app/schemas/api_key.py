@@ -7,11 +7,18 @@ from pydantic import BaseModel, Field, validator
 
 
 class APIKeyCreate(BaseModel):
-    """创建API Key请求"""
-    key_name: str = Field(..., min_length=1, max_length=100, description="Key名称")
-    expires_days: Optional[int] = Field(None, ge=1, le=365, description="过期天数（1-365天）")
+    """创建API Key 请求"""
+    key_name: str = Field(..., min_length=1, max_length=100, description="Key 名称")
+    expires_days: Optional[int] = Field(None, ge=1, le=365, description="过期天数（1-365 天）")
     rate_limit: int = Field(60, ge=1, le=1000, description="速率限制（次/分钟）")
     allowed_models: Optional[List[str]] = Field(None, description="允许使用的模型列表（为空表示全部）")
+    
+    # 系统默认相关字段
+    set_as_system_default: bool = Field(False, description="是否设为系统默认")
+    system_default_order: int = Field(99, ge=0, le=999, description="系统默认排序（数字越小越优先）")
+    provider: Optional[str] = Field(None, max_length=50, description="AI 提供商（openai/anthropic 等）")
+    model_name: Optional[str] = Field(None, max_length=100, description="模型名称")
+    base_url: Optional[str] = Field(None, max_length=255, description="API 基础 URL")
 
 
 class APIKeyResponse(BaseModel):
