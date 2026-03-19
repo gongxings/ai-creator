@@ -59,7 +59,7 @@ async def analyze_content(
     ai_model = db.query(AIModel).filter(
         AIModel.user_id == current_user.id,
         AIModel.is_active == True,
-        AIModel.model_type == "text",
+        
     ).first()
     
     if not ai_model:
@@ -103,7 +103,7 @@ async def imitate_content(
     ai_model = db.query(AIModel).filter(
         AIModel.user_id == current_user.id,
         AIModel.is_active == True,
-        AIModel.model_type == "text",
+        
     ).first()
     
     if not ai_model:

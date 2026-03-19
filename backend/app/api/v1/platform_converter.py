@@ -67,7 +67,7 @@ async def convert_content(
     ai_model = db.query(AIModel).filter(
         AIModel.user_id == current_user.id,
         AIModel.is_active == True,
-        AIModel.model_type == "text",
+        
     ).first()
     
     if not ai_model:
@@ -115,7 +115,7 @@ async def batch_convert_content(
     ai_model = db.query(AIModel).filter(
         AIModel.user_id == current_user.id,
         AIModel.is_active == True,
-        AIModel.model_type == "text",
+        
     ).first()
     
     if not ai_model:

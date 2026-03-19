@@ -84,7 +84,7 @@ async def generate_titles(
         ai_model = db.query(AIModel).filter(
             AIModel.user_id == current_user.id,
             AIModel.is_active == True,
-            AIModel.model_type == "text",
+            
         ).first()
     
     try:
@@ -117,7 +117,7 @@ async def optimize_title(
     ai_model = db.query(AIModel).filter(
         AIModel.user_id == current_user.id,
         AIModel.is_active == True,
-        AIModel.model_type == "text",
+        
     ).first()
     
     if not ai_model:
@@ -155,7 +155,7 @@ async def analyze_title(
     ai_model = db.query(AIModel).filter(
         AIModel.user_id == current_user.id,
         AIModel.is_active == True,
-        AIModel.model_type == "text",
+        
     ).first()
     
     if not ai_model:

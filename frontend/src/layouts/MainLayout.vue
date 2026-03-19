@@ -437,9 +437,8 @@ const handleCommand = async (command: string) => {
 }
 
 .nav-menu {
-  border-bottom: none;
   background: transparent;
-  border: none;
+  border-style: none;
   border-radius: 16px;
   padding: 0;
 
@@ -483,7 +482,7 @@ const handleCommand = async (command: string) => {
   :deep(.is-active) {
     color: #2563eb !important;
     background: #fff !important;
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.12), inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+    box-shadow: 0 10px 10px rgba(37, 99, 235, 0.12), inset 0 0 0 1px rgba(37, 99, 235, 0.12);
   }
 }
 
@@ -501,7 +500,7 @@ const handleCommand = async (command: string) => {
   :deep(.el-button--primary) {
     border: none;
     background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 48%, #38bdf8 100%);
-    box-shadow: 0 14px 24px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 10px 10px rgba(37, 99, 235, 0.2);
   }
 }
 

@@ -110,7 +110,7 @@ async def suggest_keywords(
         ai_model = db.query(AIModel).filter(
             AIModel.user_id == current_user.id,
             AIModel.is_active == True,
-            AIModel.model_type == "text",
+            
         ).first()
     
     try:

@@ -23,7 +23,7 @@ class HotspotService:
     """热点追踪服务"""
     
     # DailyHotApi 基础 URL（可自部署）
-    BASE_URL = "https://api-hot.imsyy.top"
+    BASE_URL = "https://apinews.geekaso.com"
     
     # 支持的平台列表
     PLATFORMS = {
