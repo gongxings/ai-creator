@@ -263,9 +263,11 @@ class ReferralRecord(Base):
 
     # 关系（不使用外键）
     referrer = relationship("User", back_populates="referrals_made",
-                            primaryjoin="ReferralRecord.referrer_id == foreign(User.id)", remote_side="User.id")
+                            primaryjoin="ReferralRecord.referrer_id == foreign(User.id)",
+                            remote_side="ReferralRecord.referrer_id")
     referee = relationship("User", back_populates="referrals_received",
-                           primaryjoin="ReferralRecord.referee_id == foreign(User.id)", remote_side="User.id")
+                           primaryjoin="ReferralRecord.referee_id == foreign(User.id)",
+                           remote_side="ReferralRecord.referee_id")
 
     def __repr__(self):
         return f"<ReferralRecord(id={self.id}, referrer_id={self.referrer_id}, referee_id={self.referee_id}, status={self.status})>"

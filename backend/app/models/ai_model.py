@@ -52,6 +52,5 @@ class AIModel(Base):
     creations = relationship("Creation", back_populates="model",
                              primaryjoin="AIModel.id == foreign('Creation.model_id')")
 
-
-def __repr__(self):
-    return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"
+    def __repr__(self):
+        return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"

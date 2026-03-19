@@ -31,12 +31,11 @@ class OAuthAccount(Base):
     usage_logs = relationship("OAuthUsageLog", back_populates="account", cascade="all, delete-orphan",
                               primaryjoin="OAuthAccount.id == foreign('OAuthUsageLog.account_id')")
 
+    def __repr__(self):
+        return f"<OAuthAccount(id={self.id}, user_id={self.user_id}, platform={self.platform})>"
+
 
 # 索引
 __table_args__ = (
     Index("idx_user_platform", "user_id", "platform"),
 )
-
-
-def __repr__(self):
-    return f"<OAuthAccount(id={self.id}, user_id={self.user_id}, platform={self.platform})>"

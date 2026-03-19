@@ -101,13 +101,12 @@ class APIKeyUsageLog(Base):
         remote_side="APIKey.id"
     )
 
+    def __repr__(self):
+        return f"<APIKeyUsageLog(id={self.id}, api_key_id={self.api_key_id}, model={self.model_name})>"
+
 
 # 索引
 __table_args__ = (
     Index("idx_api_key_id", "api_key_id"),
     Index("idx_created_at", "created_at"),
 )
-
-
-def __repr__(self):
-    return f"<APIKeyUsageLog(id={self.id}, api_key_id={self.api_key_id}, model={self.model_name})>"

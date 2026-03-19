@@ -66,9 +66,8 @@ class CreditTransaction(Base):
     user = relationship("User", back_populates="credit_transactions",
                         primaryjoin="CreditTransaction.user_id == foreign(User.id)", remote_side="User.id")
 
-
-def __repr__(self):
-    return f"<CreditTransaction(id={self.id}, user_id={self.user_id}, type={self.transaction_type}, amount={self.amount})>"
+    def __repr__(self):
+        return f"<CreditTransaction(id={self.id}, user_id={self.user_id}, type={self.transaction_type}, amount={self.amount})>"
 
 
 class MembershipOrder(Base):
@@ -121,9 +120,8 @@ class MembershipOrder(Base):
     user = relationship("User", back_populates="membership_orders",
                         primaryjoin="MembershipOrder.user_id == foreign(User.id)", remote_side="User.id")
 
-
-def __repr__(self):
-    return f"<MembershipOrder(id={self.id}, order_no={self.order_no}, user_id={self.user_id}, status={self.payment_status})>"
+    def __repr__(self):
+        return f"<MembershipOrder(id={self.id}, order_no={self.order_no}, user_id={self.user_id}, status={self.payment_status})>"
 
 
 class RechargeOrder(Base):
@@ -168,9 +166,8 @@ class RechargeOrder(Base):
     user = relationship("User", back_populates="recharge_orders",
                         primaryjoin="RechargeOrder.user_id == foreign(User.id)", remote_side="User.id")
 
-
-def __repr__(self):
-    return f"<RechargeOrder(id={self.id}, order_no={self.order_no}, user_id={self.user_id}, status={self.payment_status})>"
+    def __repr__(self):
+        return f"<RechargeOrder(id={self.id}, order_no={self.order_no}, user_id={self.user_id}, status={self.payment_status})>"
 
 
 class CreditPrice(Base):

@@ -1,13 +1,14 @@
 """
 用户模型
 """
-from sqlalchemy import Column, BigInteger, String, Enum, Integer, DateTime, Text
-from sqlalchemy.orm import relationship, foreign
-from sqlalchemy.sql import func
-from app.core.database import Base
 import enum
 import secrets
 import string
+
+from app.core.database import Base
+from sqlalchemy import Column, BigInteger, String, Enum, Integer, DateTime
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 
 def generate_referral_code():
@@ -88,7 +89,9 @@ class User(Base):
     referred_by = Column(BigInteger, comment="推荐人ID")
 
     # 关系
-    creations = relationship("Creation", back_populates="user", primaryjoin="User.id == foreign('Creation.user_id')")
+    creations = relationship("Creation",
+                 primaryjoin="Creation.user_id == foreign('User.id')",
+                 remote_side="User.id")
     ai_models = relationship("AIModel", back_populates="user", primaryjoin="User.id == foreign('AIModel.user_id')")
     publish_records = relationship("PublishRecord", back_populates="user",
                                    primaryjoin="User.id == foreign('PublishRecord.user_id')")

@@ -79,7 +79,8 @@ class PlatformAccount(Base):
     user = relationship("User", back_populates="platform_accounts",
                         primaryjoin="PlatformAccount.user_id == foreign('User.id')", remote_side="User.id")
     publish_records = relationship("PublishRecord", back_populates="platform_account", cascade="all, delete-orphan",
-                                   primaryjoin="PlatformAccount.id == foreign('PublishRecord.platform_account_id')")
+                                   primaryjoin="PlatformAccount.id == foreign('PublishRecord.platform_account_id')",
+                                   remote_side="PublishRecord.platform_account_id")
 
 
 __table_args__ = (
@@ -136,6 +137,9 @@ class PublishRecord(Base):
     platform_account = relationship("PlatformAccount", back_populates="publish_records",
                                     primaryjoin="PublishRecord.platform_account_id == foreign('PlatformAccount.id')",
                                     remote_side="PlatformAccount.id")
+
+    def __repr__(self):
+        return f"<PublishRecord(id={self.id}, platform={self.platform}, status={self.status})>"
 
 
 __table_args__ = (

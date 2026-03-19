@@ -134,9 +134,8 @@ class Creation(Base):
     plugin_invocations = relationship("PluginInvocation", back_populates="creation",
                                       primaryjoin="Creation.id == foreign('PluginInvocation.creation_id')")
 
-
-def __repr__(self):
-    return f"<Creation(id={self.id}, type={self.creation_type}, status={self.status})>"
+    def __repr__(self):
+        return f"<Creation(id={self.id}, type={self.creation_type}, status={self.status})>"
 
 
 class CreationVersion(Base):
@@ -164,8 +163,9 @@ class CreationVersion(Base):
     )
 
     # 关系
-    creation = relationship("Creation", backref="versions", foreign_keys=[creation_id],
-                            primaryjoin="CreationVersion.creation_id == Creation.id")
+    creation = relationship("Creation", backref="versions",
+                            primaryjoin="CreationVersion.creation_id == foreign('Creation.id')",
+                            remote_side="Creation.id")
 
     def __repr__(self):
         return f"<CreationVersion(id={self.id}, creation_id={self.creation_id}, version={self.version_number})>"

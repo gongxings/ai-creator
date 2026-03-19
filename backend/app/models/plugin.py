@@ -185,15 +185,13 @@ class PluginReview(Base):
         remote_side="User.id",
         viewonly=True
     )
+    plugin_market = relationship(
+        "PluginMarket",
+        back_populates="reviews",
+        primaryjoin="PluginReview.plugin_name == PluginMarket.name",
+        viewonly=True
+    )
 
-
-plugin_market = relationship(
-    "PluginMarket",
-    back_populates="reviews",
-    primaryjoin="PluginReview.plugin_name == PluginMarket.name",
-    viewonly=True
-)
-
-__table_args__ = (
-    Index("uk_user_plugin_review", "user_id", "plugin_name", unique=True),
-)
+    __table_args__ = (
+        Index("uk_user_plugin_review", "user_id", "plugin_name", unique=True),
+    )

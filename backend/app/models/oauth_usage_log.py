@@ -31,14 +31,8 @@ class OAuthUsageLog(Base):
                            primaryjoin="OAuthUsageLog.account_id == foreign(OAuthAccount.id)",
                            remote_side="OAuthAccount.id")
 
+    def __repr__(self):
+        return f"<OAuthUsageLog(id={self.id}, platform={self.platform}, status={self.status})>"
+
 
 # 索引
-__table_args__ = (
-    Index("idx_oauth_log_user_id", "user_id"),
-    Index("idx_oauth_log_account_id", "account_id"),
-    Index("idx_oauth_log_created_at", "created_at"),
-)
-
-
-def __repr__(self):
-    return f"<OAuthUsageLog(id={self.id}, platform={self.platform}, status={self.status})>"
