@@ -50,19 +50,20 @@ class HotspotService:
         "acfun": {"name": "A站", "category": "social", "color": "#FD4C5D"},
         
         # === 新闻资讯 ===
-        "baidu": {
-            "name": "百度",
-            "category": "news",
-            "color": "#2932E1",
-            "subtypes": {
-                "realtime": "热搜",
-                "car": "汽车",
-                "game": "游戏",
-                "movie": "电影",
-                "novel": "小说",
-                "teleplay": "电视剧",
-            }
-        },
+        # 百度 API 暂时有问题，先注释掉
+        # "baidu": {
+        #     "name": "百度",
+        #     "category": "news",
+        #     "color": "#2932E1",
+        #     "subtypes": {
+        #         "realtime": "热搜",
+        #         "car": "汽车",
+        #         "game": "游戏",
+        #         "movie": "电影",
+        #         "novel": "小说",
+        #         "teleplay": "电视剧",
+        #     }
+        # },
         "toutiao": {"name": "头条", "category": "news", "color": "#F85959"},
         "thepaper": {"name": "澎湃新闻", "category": "news", "color": "#1A1A1A"},
         "sina": {"name": "新浪", "category": "news", "color": "#E6162D"},

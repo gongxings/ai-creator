@@ -55,25 +55,8 @@
             @click="selectPlatform(platform)"
           >
             {{ platform.name }}
-            <el-icon v-if="platform.subtypes" class="arrow-icon"><ArrowDown /></el-icon>
           </el-tag>
         </div>
-      </div>
-
-      <!-- 百度子类型选择 -->
-      <div v-if="activePlatform === 'baidu' && baiduSubtypes" class="subtype-tabs">
-        <span class="label">类型：</span>
-        <el-tag
-          v-for="(name, code) in baiduSubtypes"
-          :key="code"
-          size="small"
-          :effect="activeBaiduType === code ? 'dark' : 'plain'"
-          :type="activeBaiduType === code ? 'primary' : 'info'"
-          class="subtype-tag"
-          @click="selectBaiduType(code as string)"
-        >
-          {{ name }}
-        </el-tag>
       </div>
     </div>
 
@@ -177,21 +160,12 @@ const activeCategory = ref('all')
 const platforms = ref<PlatformInfo[]>([])
 const activePlatform = ref('weibo')
 
-// 百度子类型
-const activeBaiduType = ref('realtime')
-
 // 热点数据
 const hotItems = ref<HotspotItem[]>([])
 
 // AI 选题建议弹窗
 const suggestDialogVisible = ref(false)
 const selectedHotTitle = ref('')
-
-// 计算百度子类型
-const baiduSubtypes = computed(() => {
-  const baidu = platforms.value.find(p => p.code === 'baidu')
-  return baidu?.subtypes
-})
 
 // 根据分类筛选平台
 const filteredPlatforms = computed(() => {
@@ -235,23 +209,23 @@ const loadPlatforms = async () => {
     }
   } catch (error) {
     console.error('加载平台列表失败:', error)
-    // 使用默认平台列表
+    // 使用默认平台列表（不包含百度）
     platforms.value = [
       { code: 'weibo', name: '微博', category: 'social', color: '#E6162D' },
-      { code: 'baidu', name: '百度', category: 'news', color: '#2932E1', subtypes: { realtime: '热搜', car: '汽车', game: '游戏', movie: '电影', novel: '小说', teleplay: '电视剧' } },
       { code: 'zhihu', name: '知乎', category: 'knowledge', color: '#0084FF' },
       { code: 'douyin', name: '抖音', category: 'social', color: '#000000' },
       { code: 'bilibili', name: 'B站', category: 'social', color: '#FB7299' },
+      { code: 'toutiao', name: '头条', category: 'news', color: '#F85959' },
     ]
   }
 }
 
 // 加载热点列表
-const loadHotList = async (platform: string, subtype?: string) => {
+const loadHotList = async (platform: string) => {
   loading.value = true
   displayCount.value = 10
   try {
-    const res = await getHotList(platform, 50, subtype)
+    const res = await getHotList(platform, 50)
     hotItems.value = res.items
   } catch (error) {
     console.error('加载热点列表失败:', error)
@@ -278,28 +252,12 @@ const selectCategory = (code: string) => {
 // 选择平台
 const selectPlatform = (platform: PlatformInfo) => {
   activePlatform.value = platform.code
-  // 如果是百度，重置子类型
-  if (platform.code === 'baidu') {
-    activeBaiduType.value = 'realtime'
-    loadHotList(platform.code, 'realtime')
-  } else {
-    loadHotList(platform.code)
-  }
-}
-
-// 选择百度子类型
-const selectBaiduType = (type: string) => {
-  activeBaiduType.value = type
-  loadHotList('baidu', type)
+  loadHotList(platform.code)
 }
 
 // 刷新当前平台
 const refreshCurrentPlatform = () => {
-  if (activePlatform.value === 'baidu') {
-    loadHotList(activePlatform.value, activeBaiduType.value)
-  } else {
-    loadHotList(activePlatform.value)
-  }
+  loadHotList(activePlatform.value)
 }
 
 // 获取平台标签样式
@@ -471,38 +429,6 @@ onMounted(async () => {
     font-size: 13px;
     padding: 6px 12px;
     border-radius: 16px;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-
-    &:hover {
-      opacity: 0.85;
-    }
-
-    .arrow-icon {
-      font-size: 12px;
-    }
-  }
-}
-
-// 百度子类型选择
-.subtype-tabs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0 0;
-  margin-top: 10px;
-  border-top: 1px dashed rgba(148, 163, 184, 0.2);
-
-  .label {
-    color: #64748b;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-
-  .subtype-tag {
-    cursor: pointer;
     transition: all 0.2s;
 
     &:hover {

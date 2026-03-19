@@ -214,6 +214,48 @@ const route = useRoute()
 const toolType = computed(() => route.params.toolType as string)
 const editId = computed(() => route.query.id as string | undefined)
 
+// 热点标题填充的字段映射
+const topicFieldMapping: Record<string, string> = {
+  wechat_article: 'topic',
+  xiaohongshu_note: 'topic',
+  official_document: 'topic',
+  news_article: 'topic',
+  video_script: 'topic',
+  academic_paper: 'title',
+  story_novel: 'theme',
+  viral_imitate: 'new_topic',
+  business_plan: 'project_name',
+  marketing_copy: 'product',
+}
+
+// 读取 query 参数（从热点跳转过来）
+const queryTopic = route.query.topic as string | undefined
+const queryDirection = route.query.direction as string | undefined
+
+// 根据工具类型获取目标字段名
+const getTopicFieldName = (tool: string): string | null => {
+  return topicFieldMapping[tool] || null
+}
+
+// 初始化 formData（包含 query 参数）
+const initFormDataFromQuery = (): Record<string, any> => {
+  if (!queryTopic) return {}
+  
+  const fieldName = getTopicFieldName(route.params.toolType as string)
+  if (!fieldName) return {}
+  
+  const data: Record<string, any> = {
+    [fieldName]: queryTopic,
+  }
+  
+  // 如果有创作方向，填充到 additional_description
+  if (queryDirection) {
+    data.additional_description = `创作方向：${queryDirection}`
+  }
+  
+  return data
+}
+
 const toolInfo = computed(() => {
   const config = getToolFormConfig(toolType.value)
   if (config) {
@@ -223,7 +265,7 @@ const toolInfo = computed(() => {
 })
 
 const dynamicFormRef = ref<InstanceType<typeof DynamicToolForm>>()
-const formData = ref<Record<string, any>>({})
+const formData = ref<Record<string, any>>(initFormDataFromQuery())
 const aiModels = ref<AIModel[]>([])
 const selectedModel = ref<number>()
 const markdownContent = ref('')
