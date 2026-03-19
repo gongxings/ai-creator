@@ -199,7 +199,7 @@ import { generateContent, optimizeContent, regenerateContent } from '@/api/writi
 import { publishContent } from '@/api/publish'
 import { getAIModels } from '@/api/models'
 import { getCreation } from '@/api/creations'
-import { imitateContent } from '@/api/viralAnalyzer'
+import { analyzeContent, imitateContent } from '@/api/viralAnalyzer'
 import PluginSelector from '@/components/PluginSelector.vue'
 import DynamicToolForm from '@/components/writing/DynamicToolForm.vue'
 import TitleOptimizer from '@/components/title/TitleOptimizer.vue'
@@ -283,8 +283,28 @@ const handleGenerate = async () => {
   try {
     let res: Creation
     
+    // 爆款分析使用专用 API
+    if (toolType.value === 'viral_analyze') {
+      const analyzeRes = await analyzeContent({
+        content: params.content,
+        title: params.title || undefined,
+        platform: params.platform || undefined,
+      })
+      // 将分析结果格式化为 Markdown
+      const analysisContent = formatAnalysisResult(analyzeRes)
+      res = {
+        id: 0,
+        user_id: 0,
+        tool_type: 'viral_analyze',
+        title: analyzeRes.title || '爆款分析报告',
+        output_content: analysisContent,
+        status: 'completed',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as Creation
+    }
     // 爆款模仿使用专用 API
-    if (toolType.value === 'viral_imitate') {
+    else if (toolType.value === 'viral_imitate') {
       const imitateRes = await imitateContent({
         reference_content: params.reference_content,
         reference_title: params.reference_title || undefined,
@@ -318,6 +338,70 @@ const handleGenerate = async () => {
   } finally {
     generating.value = false
   }
+}
+
+// 格式化爆款分析结果为 Markdown
+const formatAnalysisResult = (result: any): string => {
+  let md = `# 爆款分析报告\n\n`
+  md += `## 基本信息\n\n`
+  md += `- **文章标题**: ${result.title || '未知'}\n`
+  md += `- **内容类别**: ${result.category || '未知'}\n`
+  md += `- **爆款指数**: ${result.viral_score}/100\n`
+  md += `- **语气风格**: ${result.tone || '未知'}\n`
+  md += `- **目标受众**: ${result.target_audience || '未知'}\n\n`
+  
+  if (result.emotional_triggers && result.emotional_triggers.length > 0) {
+    md += `## 情感触发点\n\n`
+    result.emotional_triggers.forEach((trigger: string) => {
+      md += `- ${trigger}\n`
+    })
+    md += `\n`
+  }
+  
+  if (result.viral_elements && result.viral_elements.length > 0) {
+    md += `## 爆款元素分析\n\n`
+    result.viral_elements.forEach((elem: any) => {
+      md += `### ${elem.name} (${elem.score}分)\n\n`
+      md += `${elem.description}\n\n`
+      if (elem.examples && elem.examples.length > 0) {
+        md += `**示例:**\n`
+        elem.examples.forEach((ex: string) => {
+          md += `> ${ex}\n`
+        })
+        md += `\n`
+      }
+    })
+  }
+  
+  if (result.structure) {
+    md += `## 结构分析\n\n`
+    md += `- **开头钩子**: ${result.structure.opening_hook || '未知'}\n`
+    md += `- **结尾CTA**: ${result.structure.closing_cta || '未知'}\n`
+    md += `- **过渡风格**: ${result.structure.transition_style || '未知'}\n\n`
+  }
+  
+  if (result.writing_techniques && result.writing_techniques.length > 0) {
+    md += `## 写作技巧\n\n`
+    result.writing_techniques.forEach((tech: string) => {
+      md += `- ${tech}\n`
+    })
+    md += `\n`
+  }
+  
+  if (result.keywords && result.keywords.length > 0) {
+    md += `## 核心关键词\n\n`
+    md += result.keywords.map((kw: string) => `\`${kw}\``).join(' ')
+    md += `\n\n`
+  }
+  
+  if (result.improvement_suggestions && result.improvement_suggestions.length > 0) {
+    md += `## 改进建议\n\n`
+    result.improvement_suggestions.forEach((sug: string, idx: number) => {
+      md += `${idx + 1}. ${sug}\n`
+    })
+  }
+  
+  return md
 }
 
 const handleRegenerate = async () => {

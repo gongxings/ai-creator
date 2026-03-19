@@ -773,7 +773,49 @@ export const writingToolForms: Record<string, ToolFormConfig> = {
     ],
   },
 
-  // 15. 爆款模仿
+  // 15. 爆款分析
+  viral_analyze: {
+    toolType: 'viral_analyze',
+    name: '爆款分析',
+    description: '深度拆解爆款文章的成功要素，提取写作技巧和爆款元素',
+    fields: [
+      {
+        name: 'content',
+        label: '爆款内容',
+        type: 'textarea',
+        required: true,
+        placeholder: '粘贴一篇爆款文章的正文内容（至少50字），AI 将深度分析其成功要素',
+        rows: 10,
+        maxLength: 20000,
+      },
+      {
+        name: 'title',
+        label: '文章标题',
+        type: 'input',
+        required: false,
+        placeholder: '输入文章标题（可选，有助于更准确的分析）',
+        maxLength: 100,
+      },
+      {
+        name: 'platform',
+        label: '来源平台',
+        type: 'select',
+        required: false,
+        placeholder: '选择文章来源平台（可选）',
+        options: [
+          { label: '微信公众号', value: 'wechat' },
+          { label: '小红书', value: 'xiaohongshu' },
+          { label: '抖音', value: 'douyin' },
+          { label: '知乎', value: 'zhihu' },
+          { label: '微博', value: 'weibo' },
+          { label: '今日头条', value: 'toutiao' },
+          { label: 'B站', value: 'bilibili' },
+        ],
+      },
+    ],
+  },
+
+  // 16. 爆款模仿
   viral_imitate: {
     toolType: 'viral_imitate',
     name: '爆款模仿',
@@ -879,5 +921,6 @@ export const toolTypeLabels: Record<string, string> = {
   lesson_plan: '教案/课件',
   rewrite: '改写/扩写/缩写',
   translation: '多语言翻译',
+  viral_analyze: '爆款分析',
   viral_imitate: '爆款模仿',
 }
