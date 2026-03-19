@@ -8,8 +8,8 @@
 4. 初始化价格配置
 5. 初始化文章模板
 6. 初始化OAuth平台配置
-7. 创建API Key相关表
-8. 添加模型能力字段
+7. 添加模型能力字段
+8. 初始化管理员用户
 
 运行方式:
     cd backend
@@ -32,21 +32,22 @@ logger.add(sys.stderr, format="<green>{time:HH:mm:ss}</green> | <level>{level: <
 def step_create_database():
     """步骤1: 创建数据库"""
     logger.info("=" * 50)
-    logger.info("[1/7] 创建数据库...")
+    logger.info("[1/8] 创建数据库...")
     logger.info("=" * 50)
     
     from sqlalchemy import create_engine, text
     from app.core.config import settings
+    from app.core.database import get_sync_database_url
     
-    db_url = settings.DATABASE_URL
-    db_name = db_url.split('/')[-1]
+    db_url = get_sync_database_url(settings.DATABASE_URL)
+    db_name = db_url.split('/')[-1].split('?')[0]  # 处理可能的查询参数
     base_url = db_url.rsplit('/', 1)[0]
     
     engine = create_engine(base_url)
     
     try:
         with engine.connect() as conn:
-            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
             conn.commit()
             logger.success(f"数据库 '{db_name}' 创建成功")
     except Exception as e:
@@ -58,14 +59,25 @@ def step_create_database():
 def step_create_tables():
     """步骤2: 创建所有表"""
     logger.info("=" * 50)
-    logger.info("[2/7] 创建数据库表...")
+    logger.info("[2/8] 创建数据库表...")
     logger.info("=" * 50)
     
     from app.core.database import engine, Base
     from sqlalchemy import text
     
-    # 导入所有模型以确保它们被注册
-    from app.models import user, article, credit, platform_config, template, plugin, api_key
+    # 导入所有模型以确保它们被注册到 Base.metadata
+    from app.models.user import User
+    from app.models.ai_model import AIModel
+    from app.models.creation import Creation, CreationVersion
+    from app.models.publish import PlatformAccount, PublishRecord
+    from app.models.credit import CreditTransaction, MembershipOrder, RechargeOrder, CreditPrice, MembershipPrice
+    from app.models.operation import Activity, ActivityParticipation, Coupon, UserCoupon, ReferralRecord, OperationStatistics
+    from app.models.oauth_account import OAuthAccount
+    from app.models.oauth_usage_log import OAuthUsageLog
+    from app.models.platform_config import PlatformConfig
+    from app.models.api_key import APIKey, APIKeyUsageLog
+    from app.models.plugin import PluginMarket, UserPlugin, CreationPluginSelection, PluginInvocation, PluginReview
+    from app.models.template import ArticleTemplate
     
     # 禁用外键约束检查
     with engine.connect() as conn:
@@ -85,7 +97,7 @@ def step_create_tables():
 def step_init_plugins():
     """步骤3: 初始化插件数据"""
     logger.info("=" * 50)
-    logger.info("[3/7] 初始化插件数据...")
+    logger.info("[3/8] 初始化插件数据...")
     logger.info("=" * 50)
     
     from app.core.database import SessionLocal, engine
@@ -291,7 +303,7 @@ def step_init_plugins():
 def step_init_prices():
     """步骤4: 初始化价格配置"""
     logger.info("=" * 50)
-    logger.info("[4/7] 初始化价格配置...")
+    logger.info("[4/8] 初始化价格配置...")
     logger.info("=" * 50)
     
     from app.core.database import SessionLocal
@@ -335,7 +347,7 @@ def step_init_prices():
 def step_init_templates():
     """步骤5: 初始化文章模板"""
     logger.info("=" * 50)
-    logger.info("[5/7] 初始化文章模板...")
+    logger.info("[5/8] 初始化文章模板...")
     logger.info("=" * 50)
     
     from app.core.database import SessionLocal
@@ -368,7 +380,7 @@ def step_init_templates():
 def step_init_oauth_platforms():
     """步骤6: 初始化OAuth平台配置"""
     logger.info("=" * 50)
-    logger.info("[6/7] 初始化OAuth平台配置...")
+    logger.info("[6/8] 初始化OAuth平台配置...")
     logger.info("=" * 50)
     
     from app.core.database import SessionLocal
@@ -400,7 +412,7 @@ def step_init_oauth_platforms():
 def step_add_capabilities_column():
     """步骤7: 添加模型能力字段"""
     logger.info("=" * 50)
-    logger.info("[7/7] 添加模型能力字段...")
+    logger.info("[7/8] 添加模型能力字段...")
     logger.info("=" * 50)
     
     from sqlalchemy import text
@@ -446,6 +458,53 @@ def step_add_capabilities_column():
         db.close()
 
 
+def step_init_admin_user():
+    """步骤8: 初始化管理员用户"""
+    logger.info("=" * 50)
+    logger.info("[8/8] 初始化管理员用户...")
+    logger.info("=" * 50)
+    
+    from app.core.database import SessionLocal
+    from app.models.user import User, UserRole, UserStatus
+    from app.core.security import get_password_hash
+    
+    db = SessionLocal()
+    try:
+        # 检查 admin 用户是否已存在
+        existing_admin = db.query(User).filter(
+            (User.username == "admin") | (User.role == UserRole.ADMIN)
+        ).first()
+        
+        if existing_admin:
+            logger.info(f"  管理员用户已存在: {existing_admin.username}，跳过")
+        else:
+            admin_user = User(
+                username="admin",
+                email="admin@ai-creator.com",
+                password_hash=get_password_hash("Admin@123456"),
+                nickname="管理员",
+                role=UserRole.ADMIN,
+                status=UserStatus.ACTIVE,
+                credits=10000,
+                daily_quota=999999,
+            )
+            db.add(admin_user)
+            db.commit()
+            logger.success("  管理员用户创建成功")
+            logger.info("    用户名: admin")
+            logger.info("    密码: Admin@123456")
+            logger.info("    邮箱: admin@ai-creator.com")
+            logger.info("    积分: 10000")
+            logger.warning("    ⚠️  请登录后立即修改密码！")
+        
+        logger.success("管理员用户初始化完成")
+    except Exception as e:
+        logger.error(f"初始化管理员用户失败: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
 def main():
     """主函数 - 执行所有初始化步骤"""
     logger.info("")
@@ -462,11 +521,16 @@ def main():
         step_init_templates()
         step_init_oauth_platforms()
         step_add_capabilities_column()
+        step_init_admin_user()
         
         logger.info("")
         logger.info("=" * 50)
         logger.success("所有初始化步骤完成!")
         logger.info("=" * 50)
+        logger.info("")
+        logger.info("管理员账号信息:")
+        logger.info("  用户名: admin")
+        logger.info("  密码: Admin@123456")
         logger.info("")
         
     except Exception as e:
