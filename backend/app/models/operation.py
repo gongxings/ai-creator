@@ -6,6 +6,9 @@ from sqlalchemy.orm import relationship, foreign
 from sqlalchemy.sql import func
 from app.core.database import Base
 import enum
+from sqlalchemy.sql import func
+from app.core.database import Base
+import enum
 
 
 class ActivityType(str, enum.Enum):
@@ -119,8 +122,8 @@ class ActivityParticipation(Base):
     )
     
     # 关系（不使用外键）
-    activity = relationship("Activity", back_populates="participations", primaryjoin="ActivityParticipation.activity_id == foreign(Activity.id)")
-    user = relationship("User", back_populates="activity_participations", primaryjoin="ActivityParticipation.user_id == foreign(User.id)")
+    activity = relationship("Activity", back_populates="participations", primaryjoin="ActivityParticipation.activity_id == foreign(Activity.id)", remote_side=[Activity.id])
+    user = relationship("User", back_populates="activity_participations", primaryjoin="ActivityParticipation.user_id == foreign(User.id)", remote_side=[User.id])
     
     def __repr__(self):
         return f"<ActivityParticipation(id={self.id}, activity_id={self.activity_id}, user_id={self.user_id})>"
@@ -204,8 +207,8 @@ class UserCoupon(Base):
     )
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="user_coupons", primaryjoin="UserCoupon.user_id == foreign(User.id)")
-    coupon = relationship("Coupon", back_populates="user_coupons", primaryjoin="UserCoupon.coupon_id == foreign(Coupon.id)")
+    user = relationship("User", back_populates="user_coupons", primaryjoin="UserCoupon.user_id == foreign(User.id)", remote_side=[User.id])
+    coupon = relationship("Coupon", back_populates="user_coupons", primaryjoin="UserCoupon.coupon_id == foreign(Coupon.id)", remote_side=[Coupon.id])
     
     def __repr__(self):
         return f"<UserCoupon(id={self.id}, user_id={self.user_id}, coupon_id={self.coupon_id}, status={self.status})>"
@@ -255,8 +258,8 @@ class ReferralRecord(Base):
     )
     
     # 关系（不使用外键）
-    referrer = relationship("User", back_populates="referrals_made", primaryjoin="ReferralRecord.referrer_id == foreign(User.id)")
-    referee = relationship("User", back_populates="referrals_received", primaryjoin="ReferralRecord.referee_id == foreign(User.id)")
+    referrer = relationship("User", back_populates="referrals_made", primaryjoin="ReferralRecord.referrer_id == foreign(User.id)", remote_side=[User.id])
+    referee = relationship("User", back_populates="referrals_received", primaryjoin="ReferralRecord.referee_id == foreign(User.id)", remote_side=[User.id])
     
     def __repr__(self):
         return f"<ReferralRecord(id={self.id}, referrer_id={self.referrer_id}, referee_id={self.referee_id}, status={self.status})>"

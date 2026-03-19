@@ -3,8 +3,10 @@ API Key管理模型
 """
 from datetime import datetime
 from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, Index, JSON, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from app.core.database import Base
+from app.models.user import User
+from app.models.api_key import APIKey
 
 
 class APIKey(Base):
@@ -38,7 +40,8 @@ class APIKey(Base):
     user = relationship(
         "User",
         back_populates="api_keys",
-        primaryjoin="APIKey.user_id == User.id"
+        primaryjoin="APIKey.user_id == foreign(User.id)",
+        remote_side=[User.id]
     )
     usage_logs = relationship(
         "APIKeyUsageLog",
@@ -96,7 +99,8 @@ class APIKeyUsageLog(Base):
     api_key = relationship(
         "APIKey",
         back_populates="usage_logs",
-        primaryjoin="APIKeyUsageLog.api_key_id == APIKey.id"
+        primaryjoin="APIKeyUsageLog.api_key_id == foreign(APIKey.id)",
+        remote_side=[APIKey.id]
     )
 
     # 索引

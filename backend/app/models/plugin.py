@@ -2,9 +2,11 @@
 插件系统模型
 """
 from sqlalchemy import Column, BigInteger, String, Integer, DateTime, Text, JSON, Boolean, DECIMAL, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from sqlalchemy.sql import func
 from app.core.database import Base
+from app.models.user import User
+from app.models.creation import Creation
 
 
 class PluginMarket(Base):
@@ -78,7 +80,8 @@ class UserPlugin(Base):
     user = relationship(
         "User",
         back_populates="plugins",
-        primaryjoin="UserPlugin.user_id == User.id",
+        primaryjoin="UserPlugin.user_id == foreign(User.id)",
+        remote_side=[User.id],
         viewonly=True
     )
     plugin_market = relationship(
@@ -109,7 +112,8 @@ class CreationPluginSelection(Base):
     user = relationship(
         "User",
         back_populates="plugin_selections",
-        primaryjoin="CreationPluginSelection.user_id == User.id",
+        primaryjoin="CreationPluginSelection.user_id == foreign(User.id)",
+        remote_side=[User.id],
         viewonly=True
     )
     
@@ -138,13 +142,15 @@ class PluginInvocation(Base):
     user = relationship(
         "User",
         back_populates="plugin_invocations",
-        primaryjoin="PluginInvocation.user_id == User.id",
+        primaryjoin="PluginInvocation.user_id == foreign(User.id)",
+        remote_side=[User.id],
         viewonly=True
     )
     creation = relationship(
         "Creation",
         back_populates="plugin_invocations",
-        primaryjoin="PluginInvocation.creation_id == Creation.id",
+        primaryjoin="PluginInvocation.creation_id == foreign(Creation.id)",
+        remote_side=[Creation.id],
         viewonly=True
     )
     
@@ -171,7 +177,8 @@ class PluginReview(Base):
     user = relationship(
         "User",
         back_populates="plugin_reviews",
-        primaryjoin="PluginReview.user_id == User.id",
+        primaryjoin="PluginReview.user_id == foreign(User.id)",
+        remote_side=[User.id],
         viewonly=True
     )
     plugin_market = relationship(

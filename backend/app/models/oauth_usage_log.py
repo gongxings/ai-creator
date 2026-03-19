@@ -27,7 +27,7 @@ class OAuthUsageLog(Base):
 
     # 关系（不使用外键）
     user = relationship("User", primaryjoin="OAuthUsageLog.user_id == foreign(User.id)")
-    account = relationship("OAuthAccount", back_populates="usage_logs", primaryjoin="OAuthUsageLog.account_id == foreign(OAuthAccount.id)")
+    account = relationship("OAuthAccount", back_populates="usage_logs", primaryjoin="OAuthUsageLog.account_id == foreign(OAuthAccount.id)", remote_side=[OAuthAccount.id])
 
     # 索引
     __table_args__ = (
