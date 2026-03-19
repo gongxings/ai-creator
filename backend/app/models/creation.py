@@ -1,7 +1,7 @@
 """
 创作记录模型
 """
-from sqlalchemy import Column, BigInteger, String, Enum, Integer, DateTime, Text, JSON, ForeignKey, Boolean
+from sqlalchemy import Column, BigInteger, String, Enum, Integer, DateTime, Text, JSON, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -47,7 +47,6 @@ class Creation(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="创作ID")
     user_id = Column(
         BigInteger,
-        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="用户ID"
@@ -71,7 +70,7 @@ class Creation(Base):
     
     model_id = Column(
         BigInteger,
-        ForeignKey("ai_models.id", ondelete="SET NULL"),
+        index=True,
         comment="使用的AI模型ID"
     )
     
@@ -96,7 +95,6 @@ class Creation(Base):
     # 多平台转换支持
     parent_id = Column(
         BigInteger,
-        ForeignKey("creations.id", ondelete="SET NULL"),
         index=True,
         comment="父创作ID（用于多平台转换）"
     )
@@ -124,14 +122,11 @@ class Creation(Base):
     )
     deleted_at = Column(DateTime, comment="删除时间（软删除）")
     
-    # 关系
-    user = relationship("User", back_populates="creations")
-    model = relationship("AIModel", back_populates="creations")
+    # 关系（不使用外键，通过 primaryjoin 指定关联条件）
+    user = relationship("User", back_populates="creations", foreign_keys=[user_id], primaryjoin="Creation.user_id == User.id")
+    model = relationship("AIModel", back_populates="creations", foreign_keys=[model_id], primaryjoin="Creation.model_id == AIModel.id")
     publish_records = relationship("PublishRecord", back_populates="creation")
     plugin_invocations = relationship("PluginInvocation", back_populates="creation")
-    
-    # 多平台转换关系（自关联）
-    parent = relationship("Creation", remote_side=[id], backref="derived_creations")
     
     def __repr__(self):
         return f"<Creation(id={self.id}, type={self.creation_type}, status={self.status})>"
@@ -144,7 +139,6 @@ class CreationVersion(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="版本ID")
     creation_id = Column(
         BigInteger,
-        ForeignKey("creations.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="创作ID"
@@ -163,7 +157,7 @@ class CreationVersion(Base):
     )
     
     # 关系
-    creation = relationship("Creation", backref="versions")
+    creation = relationship("Creation", backref="versions", foreign_keys=[creation_id], primaryjoin="CreationVersion.creation_id == Creation.id")
     
     def __repr__(self):
         return f"<CreationVersion(id={self.id}, creation_id={self.creation_id}, version={self.version_number})>"

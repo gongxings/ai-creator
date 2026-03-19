@@ -2,7 +2,7 @@
 OAuth使用日志模型
 """
 from datetime import datetime
-from sqlalchemy import Column, BigInteger, String, Text, Integer, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, Integer, DateTime, Index
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -12,8 +12,8 @@ class OAuthUsageLog(Base):
     __tablename__ = "oauth_usage_logs"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    account_id = Column(BigInteger, ForeignKey("oauth_accounts.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(BigInteger, nullable=False, index=True)
+    account_id = Column(BigInteger, nullable=False, index=True)
     platform = Column(String(50), nullable=False, comment="平台ID")
     model = Column(String(100), comment="使用的模型")
     request_type = Column(String(50), comment="请求类型")
@@ -25,9 +25,9 @@ class OAuthUsageLog(Base):
     response_time = Column(Integer, comment="响应时间(ms)")
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
 
-    # 关系
-    user = relationship("User")
-    account = relationship("OAuthAccount", back_populates="usage_logs")
+    # 关系（不使用外键）
+    user = relationship("User", foreign_keys=[user_id], primaryjoin="OAuthUsageLog.user_id == User.id")
+    account = relationship("OAuthAccount", back_populates="usage_logs", foreign_keys=[account_id], primaryjoin="OAuthUsageLog.account_id == OAuthAccount.id")
 
     # 索引
     __table_args__ = (

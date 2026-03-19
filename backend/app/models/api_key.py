@@ -2,7 +2,7 @@
 API Key管理模型
 """
 from datetime import datetime
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, ForeignKey, Index, JSON
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, Index, JSON
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -12,7 +12,7 @@ class APIKey(Base):
     __tablename__ = "api_keys"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="API Key ID")
-    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, comment="用户ID")
+    user_id = Column(BigInteger, nullable=False, comment="用户ID")
     key_name = Column(String(100), nullable=False, comment="Key名称")
     key_hash = Column(String(64), nullable=False, unique=True, comment="Key的SHA256哈希值")
     key_prefix = Column(String(20), nullable=False, comment="Key前缀（用于显示）")
@@ -34,9 +34,19 @@ class APIKey(Base):
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
 
-    # 关系
-    user = relationship("User", back_populates="api_keys")
-    usage_logs = relationship("APIKeyUsageLog", back_populates="api_key", cascade="all, delete-orphan")
+    # 关系 - 使用 primaryjoin 替代外键
+    user = relationship(
+        "User",
+        back_populates="api_keys",
+        primaryjoin="APIKey.user_id == foreign(User.id)",
+        viewonly=True
+    )
+    usage_logs = relationship(
+        "APIKeyUsageLog",
+        back_populates="api_key",
+        primaryjoin="APIKey.id == foreign(APIKeyUsageLog.api_key_id)",
+        cascade="all, delete-orphan"
+    )
 
     # 索引
     __table_args__ = (
@@ -53,7 +63,7 @@ class APIKeyUsageLog(Base):
     __tablename__ = "api_key_usage_logs"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="日志ID")
-    api_key_id = Column(BigInteger, ForeignKey("api_keys.id", ondelete="CASCADE"), nullable=False, comment="API Key ID")
+    api_key_id = Column(BigInteger, nullable=False, comment="API Key ID")
     
     # 模型信息
     model_id = Column(String(100), comment="模型ID")
@@ -83,8 +93,13 @@ class APIKeyUsageLog(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
 
-    # 关系
-    api_key = relationship("APIKey", back_populates="usage_logs")
+    # 关系 - 使用 primaryjoin 替代外键
+    api_key = relationship(
+        "APIKey",
+        back_populates="usage_logs",
+        primaryjoin="APIKeyUsageLog.api_key_id == foreign(APIKey.id)",
+        viewonly=True
+    )
 
     # 索引
     __table_args__ = (
