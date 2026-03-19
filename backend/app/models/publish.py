@@ -74,7 +74,7 @@ class PlatformAccount(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # 关系
-    user = relationship("User", back_populates="platform_accounts")
+    user = relationship("User", back_populates="platform_accounts", foreign_keys="PlatformAccount.user_id")
     publish_records = relationship("PublishRecord", back_populates="platform_account", cascade="all, delete-orphan")
     
     __table_args__ = (
@@ -124,9 +124,9 @@ class PublishRecord(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # 关系
-    user = relationship("User", back_populates="publish_records")
-    creation = relationship("Creation", back_populates="publish_records")
-    platform_account = relationship("PlatformAccount", back_populates="publish_records")
+    user = relationship("User", back_populates="publish_records", foreign_keys="PublishRecord.user_id")
+    creation = relationship("Creation", back_populates="publish_records", foreign_keys="PublishRecord.creation_id")
+    platform_account = relationship("PlatformAccount", back_populates="publish_records", foreign_keys="PublishRecord.platform_account_id")
     
     __table_args__ = (
         Index("idx_user_status", "user_id", "status"),

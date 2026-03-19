@@ -47,7 +47,7 @@ class AIModel(Base):
     
     # 关系
     user = relationship("User", back_populates="ai_models")
-    creations = relationship("Creation", back_populates="model")
+    creations = relationship("Creation", back_populates="model", foreign_keys="Creation.model_id")
     
     def __repr__(self):
         return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"

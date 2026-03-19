@@ -87,9 +87,9 @@ class User(Base):
     referred_by = Column(BigInteger, comment="推荐人ID")
     
     # 关系
-    creations = relationship("Creation", back_populates="user")
+    creations = relationship("Creation", back_populates="user", foreign_keys="Creation.user_id")
     ai_models = relationship("AIModel", back_populates="user")
-    publish_records = relationship("PublishRecord", back_populates="user")
+    publish_records = relationship("PublishRecord", back_populates="user", foreign_keys="PublishRecord.user_id")
     platform_accounts = relationship("PlatformAccount", back_populates="user")
     credit_transactions = relationship("CreditTransaction", back_populates="user")
     membership_orders = relationship("MembershipOrder", back_populates="user")

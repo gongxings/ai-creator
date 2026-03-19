@@ -138,8 +138,8 @@ class PluginInvocation(Base):
     invoked_at = Column(DateTime, server_default=func.now(), comment="调用时间")
     
     # 关联
-    user = relationship("User", back_populates="plugin_invocations")
-    creation = relationship("Creation", back_populates="plugin_invocations")
+    user = relationship("User", back_populates="plugin_invocations", foreign_keys="PluginInvocation.user_id")
+    creation = relationship("Creation", back_populates="plugin_invocations", foreign_keys="PluginInvocation.creation_id")
     
     __table_args__ = (
         Index("idx_user_plugin", "user_id", "plugin_name"),
