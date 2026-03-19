@@ -62,7 +62,7 @@ class CreditTransaction(Base):
     )
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="credit_transactions", foreign_keys=[user_id], primaryjoin="CreditTransaction.user_id == User.id")
+    user = relationship("User", back_populates="credit_transactions", primaryjoin="CreditTransaction.user_id == User.id")
     
     def __repr__(self):
         return f"<CreditTransaction(id={self.id}, user_id={self.user_id}, type={self.transaction_type}, amount={self.amount})>"
@@ -115,7 +115,7 @@ class MembershipOrder(Base):
     )
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="membership_orders", foreign_keys=[user_id], primaryjoin="MembershipOrder.user_id == User.id")
+    user = relationship("User", back_populates="membership_orders", primaryjoin="MembershipOrder.user_id == User.id")
     
     def __repr__(self):
         return f"<MembershipOrder(id={self.id}, order_no={self.order_no}, user_id={self.user_id}, status={self.payment_status})>"
@@ -160,7 +160,7 @@ class RechargeOrder(Base):
     )
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="recharge_orders", foreign_keys=[user_id], primaryjoin="RechargeOrder.user_id == User.id")
+    user = relationship("User", back_populates="recharge_orders", primaryjoin="RechargeOrder.user_id == User.id")
     
     def __repr__(self):
         return f"<RechargeOrder(id={self.id}, order_no={self.order_no}, user_id={self.user_id}, status={self.payment_status})>"

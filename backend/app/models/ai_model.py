@@ -1,7 +1,7 @@
 """
 AI模型配置数据模型
 """
-from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, DateTime, Enum, BigInteger, JSON
+from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, Enum, BigInteger, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -32,7 +32,7 @@ class AIModel(Base):
     __tablename__ = "ai_models"
     
     id = Column(Integer, primary_key=True, index=True, comment="模型ID")
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, comment="用户ID")
+    user_id = Column(BigInteger, nullable=False, index=True, comment="用户ID")
     name = Column(String(100), nullable=False, comment="模型名称")
     provider = Column(String(50), nullable=False, comment="提供商(openai/anthropic/zhipu/baidu/ali/tencent)")
     model_name = Column(String(100), nullable=False, comment="模型标识")
@@ -45,9 +45,9 @@ class AIModel(Base):
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
     
-    # 关系
-    user = relationship("User", back_populates="ai_models")
-    creations = relationship("Creation", back_populates="model", foreign_keys="Creation.model_id")
+    # 关系（不使用外键）
+    user = relationship("User", back_populates="ai_models", primaryjoin="AIModel.user_id == User.id")
+    creations = relationship("Creation", back_populates="model", primaryjoin="AIModel.id == Creation.model_id")
     
     def __repr__(self):
         return f"<AIModel(id={self.id}, name='{self.name}', provider='{self.provider}')>"

@@ -26,8 +26,8 @@ class OAuthUsageLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
 
     # 关系（不使用外键）
-    user = relationship("User", foreign_keys=[user_id], primaryjoin="OAuthUsageLog.user_id == User.id")
-    account = relationship("OAuthAccount", back_populates="usage_logs", foreign_keys=[account_id], primaryjoin="OAuthUsageLog.account_id == OAuthAccount.id")
+    user = relationship("User", primaryjoin="OAuthUsageLog.user_id == User.id")
+    account = relationship("OAuthAccount", back_populates="usage_logs", primaryjoin="OAuthUsageLog.account_id == OAuthAccount.id")
 
     # 索引
     __table_args__ = (

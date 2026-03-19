@@ -123,10 +123,10 @@ class Creation(Base):
     deleted_at = Column(DateTime, comment="删除时间（软删除）")
     
     # 关系（不使用外键，通过 primaryjoin 指定关联条件）
-    user = relationship("User", back_populates="creations", foreign_keys=[user_id], primaryjoin="Creation.user_id == User.id")
-    model = relationship("AIModel", back_populates="creations", foreign_keys=[model_id], primaryjoin="Creation.model_id == AIModel.id")
-    publish_records = relationship("PublishRecord", back_populates="creation")
-    plugin_invocations = relationship("PluginInvocation", back_populates="creation")
+    user = relationship("User", back_populates="creations", primaryjoin="Creation.user_id == User.id")
+    model = relationship("AIModel", back_populates="creations", primaryjoin="Creation.model_id == AIModel.id")
+    publish_records = relationship("PublishRecord", back_populates="creation", primaryjoin="Creation.id == PublishRecord.creation_id")
+    plugin_invocations = relationship("PluginInvocation", back_populates="creation", primaryjoin="Creation.id == PluginInvocation.creation_id")
     
     def __repr__(self):
         return f"<Creation(id={self.id}, type={self.creation_type}, status={self.status})>"

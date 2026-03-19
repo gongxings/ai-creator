@@ -93,7 +93,7 @@ class Activity(Base):
     )
     
     # 关系
-    participations = relationship("ActivityParticipation", back_populates="activity")
+    participations = relationship("ActivityParticipation", back_populates="activity", primaryjoin="Activity.id == foreign(ActivityParticipation.activity_id)")
     
     def __repr__(self):
         return f"<Activity(id={self.id}, title={self.title}, type={self.activity_type}, status={self.status})>"
@@ -119,8 +119,8 @@ class ActivityParticipation(Base):
     )
     
     # 关系（不使用外键）
-    activity = relationship("Activity", back_populates="participations", foreign_keys=[activity_id], primaryjoin="ActivityParticipation.activity_id == Activity.id")
-    user = relationship("User", back_populates="activity_participations", foreign_keys=[user_id], primaryjoin="ActivityParticipation.user_id == User.id")
+    activity = relationship("Activity", back_populates="participations", primaryjoin="ActivityParticipation.activity_id == Activity.id")
+    user = relationship("User", back_populates="activity_participations", primaryjoin="ActivityParticipation.user_id == User.id")
     
     def __repr__(self):
         return f"<ActivityParticipation(id={self.id}, activity_id={self.activity_id}, user_id={self.user_id})>"
@@ -172,7 +172,7 @@ class Coupon(Base):
     )
     
     # 关系
-    user_coupons = relationship("UserCoupon", back_populates="coupon")
+    user_coupons = relationship("UserCoupon", back_populates="coupon", primaryjoin="Coupon.id == foreign(UserCoupon.coupon_id)")
     
     def __repr__(self):
         return f"<Coupon(id={self.id}, code={self.code}, name={self.name}, type={self.coupon_type})>"
@@ -204,8 +204,8 @@ class UserCoupon(Base):
     )
     
     # 关系（不使用外键）
-    user = relationship("User", back_populates="user_coupons", foreign_keys=[user_id], primaryjoin="UserCoupon.user_id == User.id")
-    coupon = relationship("Coupon", back_populates="user_coupons", foreign_keys=[coupon_id], primaryjoin="UserCoupon.coupon_id == Coupon.id")
+    user = relationship("User", back_populates="user_coupons", primaryjoin="UserCoupon.user_id == User.id")
+    coupon = relationship("Coupon", back_populates="user_coupons", primaryjoin="UserCoupon.coupon_id == Coupon.id")
     
     def __repr__(self):
         return f"<UserCoupon(id={self.id}, user_id={self.user_id}, coupon_id={self.coupon_id}, status={self.status})>"
@@ -255,8 +255,8 @@ class ReferralRecord(Base):
     )
     
     # 关系（不使用外键）
-    referrer = relationship("User", foreign_keys=[referrer_id], back_populates="referrals_made", primaryjoin="ReferralRecord.referrer_id == User.id")
-    referee = relationship("User", foreign_keys=[referee_id], back_populates="referrals_received", primaryjoin="ReferralRecord.referee_id == User.id")
+    referrer = relationship("User", back_populates="referrals_made", primaryjoin="ReferralRecord.referrer_id == User.id")
+    referee = relationship("User", back_populates="referrals_received", primaryjoin="ReferralRecord.referee_id == User.id")
     
     def __repr__(self):
         return f"<ReferralRecord(id={self.id}, referrer_id={self.referrer_id}, referee_id={self.referee_id}, status={self.status})>"
