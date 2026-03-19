@@ -47,14 +47,18 @@ class PluginMarket(Base):
     user_plugins = relationship(
         "UserPlugin",
         back_populates="plugin_market",
-        primaryjoin="PluginMarket.name == UserPlugin.plugin_name",
-        cascade="all, delete-orphan"
+        primaryjoin="UserPlugin.plugin_name == foreign(PluginMarket.name)",
+        remote_side="PluginMarket.name",
+        cascade="all, delete-orphan",
+        single_parent=True
     )
     reviews = relationship(
         "PluginReview",
         back_populates="plugin_market",
-        primaryjoin="PluginMarket.name == PluginReview.plugin_name",
-        cascade="all, delete-orphan"
+        primaryjoin="PluginReview.plugin_name == foreign(PluginMarket.name)",
+        remote_side="PluginMarket.name",
+        cascade="all, delete-orphan",
+        single_parent=True
     )
 
 
@@ -80,22 +84,20 @@ class UserPlugin(Base):
     user = relationship(
         "User",
         back_populates="plugins",
-        primaryjoin="UserPlugin.user_id == foreign('User.id')",
-        remote_side="User.id",
+        primaryjoin="UserPlugin.user_id == foreign(User.id)",
+        remote_side="User.id"
+    )
+    plugin_market = relationship(
+        "PluginMarket",
+        back_populates="user_plugins",
+        primaryjoin="UserPlugin.plugin_name == foreign(PluginMarket.name)",
+        remote_side="PluginMarket.name",
         viewonly=True
     )
 
-
-plugin_market = relationship(
-    "PluginMarket",
-    back_populates="user_plugins",
-    primaryjoin="UserPlugin.plugin_name == PluginMarket.name",
-    viewonly=True
-)
-
-__table_args__ = (
-    Index("uk_user_plugin", "user_id", "plugin_name", unique=True),
-)
+    __table_args__ = (
+        Index("uk_user_plugin", "user_id", "plugin_name", unique=True),
+    )
 
 
 class CreationPluginSelection(Base):
@@ -114,15 +116,13 @@ class CreationPluginSelection(Base):
     user = relationship(
         "User",
         back_populates="plugin_selections",
-        primaryjoin="CreationPluginSelection.user_id == foreign('User.id')",
-        remote_side="User.id",
-        viewonly=True
+        primaryjoin="CreationPluginSelection.user_id == foreign(User.id)",
+        remote_side="User.id"
     )
 
-
-__table_args__ = (
-    Index("uk_user_tool", "user_id", "tool_type", unique=True),
-)
+    __table_args__ = (
+        Index("uk_user_tool", "user_id", "tool_type", unique=True),
+    )
 
 
 class PluginInvocation(Base):
@@ -145,22 +145,20 @@ class PluginInvocation(Base):
     user = relationship(
         "User",
         back_populates="plugin_invocations",
-        primaryjoin="PluginInvocation.user_id == foreign('User.id')",
-        remote_side="User.id",
-        viewonly=True
+        primaryjoin="PluginInvocation.user_id == foreign(User.id)",
+        remote_side="User.id"
     )
     creation = relationship(
         "Creation",
         back_populates="plugin_invocations",
-        primaryjoin="PluginInvocation.creation_id == foreign('Creation.id')",
+        primaryjoin="PluginInvocation.creation_id == foreign(Creation.id)",
         remote_side="Creation.id",
         viewonly=True
     )
 
-
-__table_args__ = (
-    Index("idx_user_plugin", "user_id", "plugin_name"),
-)
+    __table_args__ = (
+        Index("idx_user_plugin", "user_id", "plugin_name"),
+    )
 
 
 class PluginReview(Base):
@@ -181,14 +179,14 @@ class PluginReview(Base):
     user = relationship(
         "User",
         back_populates="plugin_reviews",
-        primaryjoin="PluginReview.user_id == foreign('User.id')",
-        remote_side="User.id",
-        viewonly=True
+        primaryjoin="PluginReview.user_id == foreign(User.id)",
+        remote_side="User.id"
     )
     plugin_market = relationship(
         "PluginMarket",
         back_populates="reviews",
-        primaryjoin="PluginReview.plugin_name == PluginMarket.name",
+        primaryjoin="PluginReview.plugin_name == foreign(PluginMarket.name)",
+        remote_side="PluginMarket.name",
         viewonly=True
     )
 

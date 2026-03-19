@@ -60,7 +60,9 @@ class APIKey(Base):
         "APIKeyUsageLog",
         back_populates="api_key",
         cascade="all, delete-orphan",
-        primaryjoin="APIKey.id == APIKeyUsageLog.api_key_id"
+        primaryjoin="APIKeyUsageLog.api_key_id == foreign(APIKey.id)",
+        remote_side="APIKey.id",
+        single_parent=True
     )
 
     # 索引

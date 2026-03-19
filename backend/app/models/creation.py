@@ -125,14 +125,16 @@ class Creation(Base):
     deleted_at = Column(DateTime, comment="删除时间（软删除）")
 
     # 关系（不使用外键，通过 primaryjoin 指定关联条件）
-    user = relationship("User", back_populates="creations", primaryjoin="Creation.user_id == foreign('User.id')",
+    user = relationship("User", back_populates="creations", primaryjoin="Creation.user_id == foreign(User.id)",
                         remote_side="User.id")
     model = relationship("AIModel", back_populates="creations",
-                         primaryjoin="Creation.model_id == foreign('AIModel.id')", remote_side="AIModel.id")
+                         primaryjoin="Creation.model_id == foreign(AIModel.id)")
     publish_records = relationship("PublishRecord", back_populates="creation",
-                                   primaryjoin="Creation.id == foreign('PublishRecord.creation_id')")
+                                   primaryjoin="PublishRecord.creation_id == foreign(Creation.id)",
+                                   remote_side="Creation.id")
     plugin_invocations = relationship("PluginInvocation", back_populates="creation",
-                                      primaryjoin="Creation.id == foreign('PluginInvocation.creation_id')")
+                                      primaryjoin="PluginInvocation.creation_id == foreign(Creation.id)",
+                                      remote_side="Creation.id")
 
     def __repr__(self):
         return f"<Creation(id={self.id}, type={self.creation_type}, status={self.status})>"
@@ -164,7 +166,7 @@ class CreationVersion(Base):
 
     # 关系
     creation = relationship("Creation", backref="versions",
-                            primaryjoin="CreationVersion.creation_id == foreign('Creation.id')",
+                            primaryjoin="CreationVersion.creation_id == foreign(Creation.id)",
                             remote_side="Creation.id")
 
     def __repr__(self):

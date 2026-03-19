@@ -27,9 +27,10 @@ class OAuthAccount(Base):
 
     # 关系（不使用外键）
     user = relationship("User", back_populates="oauth_accounts",
-                        primaryjoin="OAuthAccount.user_id == foreign('User.id')", remote_side="User.id")
+                        primaryjoin="OAuthAccount.user_id == foreign(User.id)", remote_side="User.id")
     usage_logs = relationship("OAuthUsageLog", back_populates="account", cascade="all, delete-orphan",
-                              primaryjoin="OAuthAccount.id == foreign('OAuthUsageLog.account_id')")
+                              primaryjoin="OAuthUsageLog.account_id == foreign(OAuthAccount.id)",
+                              remote_side="OAuthAccount.id", single_parent=True)
 
     def __repr__(self):
         return f"<OAuthAccount(id={self.id}, user_id={self.user_id}, platform={self.platform})>"

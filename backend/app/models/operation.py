@@ -94,7 +94,8 @@ class Activity(Base):
 
     # 关系
     participations = relationship("ActivityParticipation", back_populates="activity",
-                                  primaryjoin="Activity.id == foreign(ActivityParticipation.activity_id)")
+                                  primaryjoin="ActivityParticipation.activity_id == foreign(Activity.id)",
+                                  remote_side="Activity.id")
 
     def __repr__(self):
         return f"<Activity(id={self.id}, title={self.title}, type={self.activity_type}, status={self.status})>"
@@ -177,7 +178,8 @@ class Coupon(Base):
 
     # 关系
     user_coupons = relationship("UserCoupon", back_populates="coupon",
-                                primaryjoin="Coupon.id == foreign(UserCoupon.coupon_id)", remote_side="Coupon.id")
+                                primaryjoin="UserCoupon.coupon_id == foreign(Coupon.id)",
+                                remote_side="Coupon.id")
 
     def __repr__(self):
         return f"<Coupon(id={self.id}, code={self.code}, name={self.name}, type={self.coupon_type})>"
