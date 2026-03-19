@@ -1,5 +1,5 @@
 # AI Creator Backend Dependencies
-# Python version requirement: 3.13+
+# Python version requirement: 3.11
 
 # Python 3.12+ 需要显式安装 setuptools (litellm 依赖 pkg_resources)
 setuptools>=70.0.0
@@ -21,10 +21,10 @@ bcrypt==4.0.1
 python-multipart==0.0.18
 httpx==0.28.1
 aiohttp==3.11.13
-openai==1.59.7
-anthropic==0.42.0
-dashscope==1.20.11
-zhipuai==2.1.4
+openai>=1.59.7
+anthropic>=0.42.0
+dashscope>=1.20.11
+zhipuai>=2.1.5
 
 # LangChain 核心依赖
 langchain-core>=0.3.0
@@ -34,16 +34,16 @@ langchain-google-genai>=2.0.0
 langchain-community>=0.3.0
 python-dotenv==1.0.1
 pyyaml==6.0.2
-cryptography==44.0.0
-playwright==1.49.1
-litellm==1.17.9
-websockets==14.1
-loguru==0.7.3
-requests==2.32.3
-python-dateutil==2.9.0
-pillow==11.1.0
-imageio==2.36.1
-psutil==6.1.1
-python-pptx==1.0.2
-beautifulsoup4==4.12.3
+cryptography>=44.0.0
+playwright>=1.49.1
+litellm>=1.17.9
+websockets>=14.1
+loguru>=0.7.3
+requests>=2.32.3
+python-dateutil>=2.9.0
+pillow>=11.1.0
+imageio>=2.36.1
+psutil>=6.1.1
+python-pptx>=1.0.2
+beautifulsoup4>=4.12.3
 nest-asyncio>=1.5.0
