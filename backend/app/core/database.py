@@ -11,9 +11,23 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# 创建数据库引擎
+# 确保使用同步的 pymysql 驱动
+def get_sync_database_url(url: str) -> str:
+    """将数据库URL转换为同步驱动"""
+    # 替换异步驱动为同步驱动
+    url = url.replace("mysql+aiomysql://", "mysql+pymysql://")
+    url = url.replace("mysql+asyncmy://", "mysql+pymysql://")
+    # 如果只有 mysql://，也转为 pymysql
+    if url.startswith("mysql://"):
+        url = url.replace("mysql://", "mysql+pymysql://", 1)
+    return url
+
+# 创建数据库引擎（使用同步驱动）
+sync_database_url = get_sync_database_url(settings.DATABASE_URL)
+logger.info(f"Using database URL: {sync_database_url.split('@')[0]}@***")
+
 engine = create_engine(
-    settings.DATABASE_URL,
+    sync_database_url,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
@@ -21,7 +35,6 @@ engine = create_engine(
     connect_args={
         "charset": "utf8mb4",
         "autocommit": True,
-        "init_command": "SET SESSION sql_mode='ALLOW_INVALID_DATES'"
     }
 )
 
