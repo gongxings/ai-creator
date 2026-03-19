@@ -4,7 +4,7 @@
 
 ## 📸 界面展示
 
-![登录页面](assert/login.png)
+![登录页面](https://biyebang.com.cn/upload/image-DHza.png)
 
 **🌐 线上地址：http://ai-creator.biyebang.com.cn**
 
@@ -137,7 +137,7 @@ ANTHROPIC_API_KEY=sk-ant-xxx
 
 ## 关注一下
 
-![公众号](assert/wechat_Official-Account.png)
-![解答群](assert/wechat_group.png)
+![公众号](https://biyebang.com.cn/upload/wechat_Official-Account.png)
+![解答群](https://biyebang.com.cn/upload/wechat_group.jpg)
 
 ⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！
