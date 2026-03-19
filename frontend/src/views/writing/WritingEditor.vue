@@ -231,6 +231,7 @@ const topicFieldMapping: Record<string, string> = {
 // 读取 query 参数（从热点跳转过来）
 const queryTopic = route.query.topic as string | undefined
 const queryDirection = route.query.direction as string | undefined
+const queryKeywords = route.query.keywords as string | undefined
 
 // 根据工具类型获取目标字段名
 const getTopicFieldName = (tool: string): string | null => {
@@ -246,6 +247,11 @@ const initFormDataFromQuery = (): Record<string, any> => {
   
   const data: Record<string, any> = {
     [fieldName]: queryTopic,
+  }
+  
+  // 如果有关键词，填充到 keywords 字段
+  if (queryKeywords) {
+    data.keywords = queryKeywords
   }
   
   // 如果有创作方向，填充到 additional_description

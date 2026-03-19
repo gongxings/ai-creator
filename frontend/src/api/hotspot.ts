@@ -118,3 +118,19 @@ export function getMultiPlatformHotList(platforms: string[], limit: number = 10)
 export function getTopicSuggestions(data: TopicSuggestRequest) {
   return request.post<TopicSuggestResponse>('/v1/hotspot/suggest', data)
 }
+
+// 提取关键词响应
+export interface ExtractKeywordsResponse {
+  title: string
+  keywords: string[]
+}
+
+/**
+ * 从热点标题中提取关键词
+ * @param title 热点标题
+ */
+export function extractKeywords(title: string) {
+  return request.post<ExtractKeywordsResponse>('/v1/hotspot/extract-keywords', null, {
+    params: { title },
+  })
+}

@@ -531,3 +531,63 @@ class HotspotService:
             "academic_paper": "论文写作",
         }
         return tool_names.get(tool_type, tool_type)
+    
+    @classmethod
+    async def extract_keywords(
+        cls,
+        title: str,
+        ai_model = None,
+    ) -> List[str]:
+        """
+        从热点标题中提取关键词
+        
+        Args:
+            title: 热点标题
+            ai_model: AI 模型实例
+            
+        Returns:
+            关键词列表（3-5个）
+        """
+        from app.services.langchain import LangChainService
+        
+        prompt = f"""从以下标题中提取3-5个关键词，用于内容创作时的SEO优化。
+
+标题：{title}
+
+要求：
+1. 关键词要与标题主题相关
+2. 包含核心概念和热点词汇
+3. 适合用于搜索引擎优化
+4. 每个关键词2-6个字
+
+请直接返回关键词，用英文逗号分隔，不要其他内容。
+示例输出格式：关键词1,关键词2,关键词3"""
+        
+        try:
+            # 使用 LangChain 服务调用 AI
+            if ai_model:
+                service = LangChainService(
+                    provider=ai_model.provider,
+                    model=ai_model.model_name or "gpt-4",
+                    api_key=ai_model.api_key,
+                    api_base=ai_model.base_url,
+                )
+            else:
+                # 没有 AI 模型时返回空列表
+                logger.warning("没有配置 AI 模型，无法提取关键词")
+                return []
+            
+            response = await service.chat(prompt)
+            
+            # 解析返回的关键词
+            content = response.content.strip()
+            # 移除可能的引号和多余空格
+            content = content.strip('"\'')
+            keywords = [k.strip() for k in content.split(',') if k.strip()]
+            
+            # 最多返回5个关键词
+            return keywords[:5]
+            
+        except Exception as e:
+            logger.error(f"提取关键词失败: {e}")
+            return []

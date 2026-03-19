@@ -107,7 +107,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
-  (e: 'select', data: { toolType: string; title: string; direction: string }): void
+  (e: 'select', data: { toolType: string; title: string; direction: string; keywords?: string[] }): void
 }>()
 
 const dialogVisible = computed({
@@ -169,6 +169,7 @@ const confirmSelection = () => {
     toolType,
     title: angle.title_suggestion,
     direction: angle.content_direction,
+    keywords: suggestions.value.keywords,  // 传递关键词
   })
   dialogVisible.value = false
 }

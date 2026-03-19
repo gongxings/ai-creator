@@ -71,3 +71,14 @@ class TopicSuggestResponse(BaseModel):
     background: str = Field(..., description="热点背景分析")
     angles: List[WritingAngle] = Field(..., description="创作角度列表")
     keywords: List[str] = Field(..., description="相关关键词")
+
+
+class ExtractKeywordsRequest(BaseModel):
+    """提取关键词请求"""
+    title: str = Field(..., description="热点标题")
+
+
+class ExtractKeywordsResponse(BaseModel):
+    """提取关键词响应"""
+    title: str = Field(..., description="原标题")
+    keywords: List[str] = Field(..., description="提取的关键词列表")

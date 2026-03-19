@@ -140,8 +140,8 @@ import {
   VideoCamera,
   MagicStick,
 } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { getHotList, getPlatforms, getCategories } from '@/api/hotspot'
+import { ElMessage, ElLoading } from 'element-plus'
+import { getHotList, getPlatforms, getCategories, extractKeywords } from '@/api/hotspot'
 import type { HotspotItem, PlatformInfo, CategoryInfo } from '@/api/hotspot'
 import TopicSuggestDialog from './TopicSuggestDialog.vue'
 
@@ -280,28 +280,49 @@ const openHotLink = (item: HotspotItem) => {
 }
 
 // 处理写作命令
-const handleWriteCommand = (command: string, item: HotspotItem) => {
+const handleWriteCommand = async (command: string, item: HotspotItem) => {
   if (command === 'ai_suggest') {
     selectedHotTitle.value = item.title
     suggestDialogVisible.value = true
   } else {
-    // 跳转到写作编辑器，带上热点标题
+    // 先提取关键词，再跳转到写作编辑器
+    let keywords = ''
+    const loadingInstance = ElLoading.service({
+      text: '正在分析关键词...',
+      background: 'rgba(255, 255, 255, 0.8)',
+    })
+    
+    try {
+      const res = await extractKeywords(item.title)
+      keywords = res.keywords.join(',')
+    } catch (error) {
+      console.error('提取关键词失败:', error)
+      // 提取失败不阻止跳转，只是没有关键词
+    } finally {
+      loadingInstance.close()
+    }
+    
+    // 跳转到写作编辑器，带上热点标题和关键词
     router.push({
       name: 'WritingEditor',
       params: { toolType: command },
-      query: { topic: item.title },
+      query: { 
+        topic: item.title,
+        keywords: keywords || undefined,
+      },
     })
   }
 }
 
 // 选择 AI 建议的角度
-const onSelectAngle = (data: { toolType: string; title: string; direction: string }) => {
+const onSelectAngle = (data: { toolType: string; title: string; direction: string; keywords?: string[] }) => {
   router.push({
     name: 'WritingEditor',
     params: { toolType: data.toolType },
     query: {
       topic: data.title,
       direction: data.direction,
+      keywords: data.keywords?.join(',') || undefined,
     },
   })
 }

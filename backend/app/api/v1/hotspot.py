@@ -19,6 +19,7 @@ from app.schemas.hotspot import (
     CategoryListResponse,
     TopicSuggestRequest,
     TopicSuggestResponse,
+    ExtractKeywordsResponse,
 )
 from app.services.hotspot_service import HotspotService
 
@@ -163,3 +164,41 @@ async def get_topic_suggestions(
             hot_title=request.hot_title,
             target_platforms=request.target_platforms,
         )
+
+
+@router.post("/extract-keywords", response_model=ExtractKeywordsResponse)
+async def extract_keywords(
+    title: str = Query(..., description="热点标题"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    从热点标题中提取关键词
+    
+    需要登录才能使用（会消耗 AI 调用额度）
+    返回 3-5 个与标题相关的关键词
+    """
+    # 获取用户的默认 AI 模型
+    ai_model = db.query(AIModel).filter(
+        AIModel.user_id == current_user.id,
+        AIModel.is_active == True,
+    ).first()
+    
+    if not ai_model:
+        raise HTTPException(
+            status_code=400,
+            detail="请先配置 AI 模型"
+        )
+    
+    try:
+        keywords = await HotspotService.extract_keywords(
+            title=title,
+            ai_model=ai_model,
+        )
+        return ExtractKeywordsResponse(
+            title=title,
+            keywords=keywords,
+        )
+    except Exception as e:
+        logger.error(f"提取关键词失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
