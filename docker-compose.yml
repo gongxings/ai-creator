@@ -17,9 +17,15 @@ services:
       - ./backend:/app
     networks:
       - ai-creator-network
+      - default
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     restart: unless-stopped
 
 networks:
   ai-creator-network:
     driver: bridge
+  default:
+    external: true
+    name: 1panel-network
