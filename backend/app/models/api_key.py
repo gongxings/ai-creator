@@ -6,8 +6,6 @@ from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateT
 from sqlalchemy.orm import relationship, foreign
 from app.core.database import Base
 from app.models.user import User
-from app.models.api_key import APIKey
-
 
 class APIKey(Base):
     """API Key管理表"""
