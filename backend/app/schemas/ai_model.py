@@ -85,3 +85,28 @@ class AvailableModelsResponse(BaseModel):
     """可用模型列表响应"""
     models: List[ModelInfo] = Field(..., description="可用模型列表")
     total: int = Field(..., description="总数")
+
+
+class ChatMessage(BaseModel):
+    """聊天消息"""
+    role: str = Field(..., description="角色（system/user/assistant）")
+    content: str = Field(..., description="消息内容")
+
+
+class ChatRequest(BaseModel):
+    """聊天请求"""
+    model_id: str = Field(..., description="模型ID")
+    messages: List[ChatMessage] = Field(..., description="消息列表")
+    scene_type: Optional[str] = Field(None, description="场景类型")
+    stream: bool = Field(False, description="是否流式响应")
+    temperature: Optional[float] = Field(None, description="温度参数")
+    max_tokens: Optional[int] = Field(None, description="最大Token数")
+
+
+class ChatResponse(BaseModel):
+    """聊天响应"""
+    content: str = Field(..., description="AI响应内容")
+    model_id: str = Field(..., description="模型ID")
+    model_name: Optional[str] = Field(None, description="模型名称")
+    usage: Optional[dict] = Field(None, description="Token使用统计")
+    finish_reason: Optional[str] = Field(None, description="结束原因")

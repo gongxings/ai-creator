@@ -11,7 +11,6 @@ from typing import AsyncGenerator
 from app.core.database import get_db
 from app.utils.deps import get_current_user
 from app.models import User, OAuthAccount, AIModel, Creation
-from app.schemas.api_key import ChatRequest, ChatResponse, AvailableModelsResponse
 from app.schemas.common import success_response, error_response
 from app.services.model_service import ModelService
 from app.services.oauth.litellm_proxy import LiteLLMProxy

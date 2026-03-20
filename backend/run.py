@@ -4,7 +4,6 @@
 用于开发环境直接运行，无需Docker
 """
 import sys
-import asyncio
 from pathlib import Path
 
 # 将backend目录添加到Python路径
