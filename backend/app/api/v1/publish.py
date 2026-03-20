@@ -962,7 +962,6 @@ async def get_publish_history(
             PublishRecordResponse(
                 id=h.id,
                 platform=h.platform,
-                account_name=h.platform_account.account_name if h.platform_account else None,
                 content_type=h.content_type,
                 title=h.title,
                 status=h.status if h.status else PublishStatus.PENDING,
