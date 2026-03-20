@@ -4,6 +4,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import { initTracker } from '@/utils/tracker'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -213,9 +214,32 @@ router.beforeEach(async (to, _from, next) => {
   } else if (!requiresAuth && userStore.isLoggedIn && (to.path === '/login' || to.path === '/register')) {
     // 已登录但访问登录/注册页，跳转到首页
     next('/')
-  } else {
+   } else {
     next()
   }
+})
+
+// 埋点：页面访问追踪
+router.afterEach((to) => {
+  // 动态导入，避免循环依赖
+  import('@/utils/tracker').then(({ initTracker, trackPageView }) => {
+    // 首次访问时初始化
+    if (!sessionStorage.getItem('tracking_initialized')) {
+      initTracker()
+      sessionStorage.setItem('tracking_initialized', 'true')
+    }
+    
+    // 记录页面访问
+    trackPageView(to.fullPath)
+  }).catch(console.error)
+})
+
+// 埋点：页面离开追踪（点击链接跳转时）
+router.beforeRouteLeave((to, from, next) => {
+  import('@/utils/tracker').then(({ trackPageLeave }) => {
+    trackPageLeave()
+  }).catch(console.error)
+  next()
 })
 
 export default router

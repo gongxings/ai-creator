@@ -20,7 +20,7 @@ from app.models.plugin import (
     PluginMarket, UserPlugin, CreationPluginSelection, PluginInvocation, PluginReview
 )
 from app.models.template import ArticleTemplate
-from app.models.traffic import PageView, DailyStats
+from app.models.traffic import PageView, UserEvent, DailyStats
 
 __all__ = [
     # User models
@@ -85,5 +85,6 @@ __all__ = [
     
     # Traffic models
     "PageView",
+    "UserEvent",
     "DailyStats",
 ]

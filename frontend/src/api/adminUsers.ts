@@ -56,31 +56,21 @@ export function getUserList(params: {
   page_size?: number
   keyword?: string
 }) {
-  return request({
-    url: '/admin/users/list',
-    method: 'get',
-    params
-  })
+  return request.get('/admin/users/list',{params})
 }
 
 /**
  * 获取用户详情
  */
 export function getUserDetail(userId: number) {
-  return request({
-    url: `/admin/users/${userId}`,
-    method: 'get'
-  })
+  return request.get(`/admin/users/${userId}`)
 }
 
 /**
  * 重置用户密码为 123456
  */
 export function resetUserPassword(userId: number) {
-  return request({
-    url: `/admin/users/${userId}/reset-password`,
-    method: 'post'
-  })
+  return request.post(`/admin/users/${userId}/reset-password`)
 }
 
 /**
@@ -91,19 +81,12 @@ export function toggleModelStatus(
   modelId: number,
   isActive: boolean
 ) {
-  return request({
-    url: `/admin/users/${userId}/toggle-model-status`,
-    method: 'post',
-    data: { model_id: modelId, is_active: isActive }
-  })
+  return request.post(`/admin/users/${userId}/toggle-model-status`,{ model_id: modelId, is_active: isActive })
 }
 
 /**
  * 删除用户
  */
 export function deleteUser(userId: number) {
-  return request({
-    url: `/admin/users/${userId}`,
-    method: 'delete'
-  })
+  return request.delete(`/admin/users/${userId}`)
 }

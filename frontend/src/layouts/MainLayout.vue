@@ -69,7 +69,24 @@
               <el-menu-item index="/operation/coupons">优惠券</el-menu-item>
               <el-menu-item index="/operation/referral">推广管理</el-menu-item>
               <el-menu-item index="/operation/statistics">数据统计</el-menu-item>
+              <el-menu-item index="/admin/users">用户管理</el-menu-item>
+              <el-menu-item index="/admin/traffic">流量统计</el-menu-item>
             </el-sub-menu>
+
+<!--            <el-sub-menu v-if="userStore.isAdmin" index="/admin">-->
+<!--              <template #title>-->
+<!--                <el-icon><User /></el-icon>-->
+<!--                <span>系统管理</span>-->
+<!--              </template>-->
+<!--              <el-menu-item index="/admin/users">-->
+<!--                <el-icon><UserFilled /></el-icon>-->
+<!--                用户管理-->
+<!--              </el-menu-item>-->
+<!--              <el-menu-item index="/admin/traffic">-->
+<!--                <el-icon><TrendCharts /></el-icon>-->
+<!--                流量统计-->
+<!--              </el-menu-item>-->
+<!--            </el-sub-menu>-->
           </el-menu>
         </div>
       </div>
@@ -265,7 +282,10 @@ import {
   Picture,
   Setting,
   SwitchButton,
+  TrendCharts,
   Upload,
+  User,
+  UserFilled,
   VideoCamera,
   Wallet,
 } from '@element-plus/icons-vue'
@@ -294,6 +314,7 @@ const activeMenu = computed(() => {
   if (path.startsWith('/templates')) return '/templates'
   if (path.startsWith('/credit')) return path
   if (path.startsWith('/operation')) return path
+  if (path.startsWith('/admin')) return path
   if (path.startsWith('/settings')) return path
   if (path.startsWith('/plugins')) return path
   return ''
