@@ -1,25 +1,20 @@
 """
 运营管理API路由
 """
-from typing import List, Optional
-from datetime import datetime, date
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.utils.deps import get_current_user
 from app.models.user import User
-from app.schemas.operation import (
-    ActivityCreate, ActivityUpdate, ActivityResponse,
-    ActivityParticipate, ActivityParticipationResponse,
-    CouponCreate, CouponUpdate, CouponResponse,
-    CouponReceive, CouponUse, UserCouponResponse, CouponCalculateResponse,
-    ReferralCodeGenerate, ReferralCodeResponse,
-    ReferralRecordResponse, ReferralStatisticsResponse,
-    StatisticsQuery, OperationStatisticsResponse, DashboardStatisticsResponse
-)
 from app.schemas.common import success_response, PaginatedResponse
+from app.schemas.operation import (
+    ActivityCreate, ActivityUpdate, ActivityParticipate, CouponCreate, CouponUpdate, CouponReceive, CouponUse,
+    ReferralCodeGenerate, StatisticsQuery
+)
 from app.services.operation_service import OperationService
+from app.utils.deps import get_current_user
 
 router = APIRouter(tags=["运营管理"])
 
@@ -61,8 +56,9 @@ async def get_activities(
     return success_response(data=PaginatedResponse(
         items=activities,
         total=total,
-        skip=skip,
-        limit=limit
+        page=skip // limit + 1 if limit > 0 else 1,
+        page_size=limit,
+        total_pages=(total + limit - 1) // limit if limit > 0 else 0
     ))
 
 
@@ -149,8 +145,9 @@ async def get_activity_participations(
     return success_response(data=PaginatedResponse(
         items=participations,
         total=total,
-        skip=skip,
-        limit=limit
+        page=skip // limit + 1 if limit > 0 else 1,
+        page_size=limit,
+        total_pages=(total + limit - 1) // limit if limit > 0 else 0
     ))
 
 
@@ -191,8 +188,9 @@ async def get_coupons(
     return success_response(data=PaginatedResponse(
         items=coupons,
         total=total,
-        skip=skip,
-        limit=limit
+        page=skip // limit + 1 if limit > 0 else 1,
+        page_size=limit,
+        total_pages=(total + limit - 1) // limit if limit > 0 else 0
     ))
 
 
@@ -277,8 +275,9 @@ async def get_user_coupons(
     return success_response(data=PaginatedResponse(
         items=coupons,
         total=total,
-        skip=skip,
-        limit=limit
+        page=skip // limit + 1 if limit > 0 else 1,
+        page_size=limit,
+        total_pages=(total + limit - 1) // limit if limit > 0 else 0
     ))
 
 
@@ -354,8 +353,9 @@ async def get_referral_records(
     return success_response(data=PaginatedResponse(
         items=records,
         total=total,
-        skip=skip,
-        limit=limit
+        page=skip // limit + 1 if limit > 0 else 1,
+        page_size=limit,
+        total_pages=(total + limit - 1) // limit if limit > 0 else 0
     ))
 
 

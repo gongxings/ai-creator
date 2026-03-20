@@ -17,7 +17,6 @@ from app.schemas.template import (
     TemplateListResponse,
     TemplateCloneRequest
 )
-
 router = APIRouter()
 
 

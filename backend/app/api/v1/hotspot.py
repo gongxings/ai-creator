@@ -2,26 +2,25 @@
 热点追踪 API
 提供热点列表获取、AI 选题建议等功能
 """
+import logging
 from typing import Optional, List
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-import logging
 
 from app.core.database import get_db
-from app.models.user import User
 from app.models.ai_model import AIModel
-from app.utils.deps import get_current_user, get_current_user_optional
+from app.models.user import User
 from app.schemas.hotspot import (
     HotspotListResponse,
-    PlatformInfo,
     PlatformListResponse,
-    CategoryInfo,
     CategoryListResponse,
     TopicSuggestRequest,
     TopicSuggestResponse,
     ExtractKeywordsResponse,
 )
 from app.services.hotspot_service import HotspotService
+from app.utils.deps import get_current_user, get_current_user_optional
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

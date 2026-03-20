@@ -1,23 +1,22 @@
 """
 PPT生成API路由
 """
-from typing import Optional, List
+import logging
 import uuid
-import asyncio
-from datetime import datetime
+from typing import Optional, List
+
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-import logging
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.user import User
 from app.models.creation import Creation
 from app.models.credit import CreditTransaction, TransactionType
+from app.models.user import User
 from app.schemas.common import success_response
-from app.utils.deps import get_current_user
 from app.services.ai.ppt_service import create_local_ppt_service
+from app.utils.deps import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

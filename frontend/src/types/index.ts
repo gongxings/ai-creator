@@ -57,14 +57,20 @@ export type ModelCapability = 'text' | 'image' | 'video' | 'audio'
 
 export interface AIModel {
   id: number
+  user_id: number
   name: string
   provider: string
   model_name: string
+  api_key: string
   base_url?: string
   is_default: boolean
   is_active: boolean
+  is_system_builtin: boolean
   description?: string
   capabilities: ModelCapability[]
+  created_at: string
+  updated_at: string
+  is_readonly?: boolean
 }
 
 export interface AIModelForm {
@@ -76,6 +82,7 @@ export interface AIModelForm {
   base_url?: string
   is_default?: boolean
   is_active?: boolean
+  is_system_builtin?: boolean
   description?: string
   capabilities: ModelCapability[]
 }

@@ -1,11 +1,9 @@
 """
 认证相关API路由
 """
-from datetime import timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -17,10 +15,10 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
-from app.models.user import User
 from app.models.credit import TransactionType
+from app.models.user import User
+from app.schemas.common import success_response
 from app.schemas.user import (
-    TokenResponse,
     UserRegister,
     UserLogin,
     UserResponse,
@@ -28,7 +26,6 @@ from app.schemas.user import (
     PasswordResetRequest,
     PasswordResetConfirm,
 )
-from app.schemas.common import success_response
 from app.services.credit_service import CreditService
 
 router = APIRouter()

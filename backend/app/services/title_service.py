@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class TitleService:
     """爆款标题生成服务"""
-    
+
     # 标题风格说明
     STYLE_DESCRIPTIONS = {
         TitleStyle.CURIOSITY: "好奇心驱动型：利用悬念、未知信息引发好奇",
@@ -35,7 +35,7 @@ class TitleService:
         TitleStyle.HOW_TO: "教程式：提供解决方案和方法",
         TitleStyle.CONTRAST: "对比反差型：通过对比制造冲突感",
     }
-    
+
     # 平台特点
     PLATFORM_FEATURES = {
         PlatformType.WECHAT: {
@@ -81,19 +81,19 @@ class TitleService:
             "tips": ["可以用梗和流行语", "创意标题党", "突出UP主个性"],
         },
     }
-    
+
     # 钩子技巧列表
     HOOK_TECHNIQUES = [
         "数字量化", "悬念设置", "利益承诺", "痛点直击", "情感共鸣",
         "权威背书", "时效性", "对比反差", "提问引导", "争议话题",
         "身份认同", "稀缺性", "具体场景", "否定常识", "解决方案",
     ]
-    
+
     @classmethod
     async def generate_titles(
-        cls,
-        request: TitleGenerateRequest,
-        ai_model=None,
+            cls,
+            request: TitleGenerateRequest,
+            ai_model=None,
     ) -> TitleGenerateResponse:
         """
         生成爆款标题
@@ -106,9 +106,9 @@ class TitleService:
             TitleGenerateResponse
         """
         from app.services.langchain import LangChainService
-        
+
         prompt = cls._build_generate_prompt(request)
-        
+
         try:
             if ai_model:
                 service = LangChainService(
@@ -122,19 +122,19 @@ class TitleService:
                     provider="openai",
                     model="gpt-3.5-turbo",
                 )
-            
+
             response = await service.chat(prompt)
             return cls._parse_generate_response(response.content)
-            
+
         except Exception as e:
             logger.error(f"标题生成失败: {e}")
             return cls._get_fallback_titles(request)
-    
+
     @classmethod
     async def optimize_title(
-        cls,
-        request: TitleOptimizeRequest,
-        ai_model=None,
+            cls,
+            request: TitleOptimizeRequest,
+            ai_model=None,
     ) -> TitleOptimizeResponse:
         """
         优化现有标题
@@ -147,9 +147,9 @@ class TitleService:
             TitleOptimizeResponse
         """
         from app.services.langchain import LangChainService
-        
+
         prompt = cls._build_optimize_prompt(request)
-        
+
         try:
             if ai_model:
                 service = LangChainService(
@@ -163,19 +163,19 @@ class TitleService:
                     provider="openai",
                     model="gpt-3.5-turbo",
                 )
-            
+
             response = await service.chat(prompt)
             return cls._parse_optimize_response(request.original_title, response.content)
-            
+
         except Exception as e:
             logger.error(f"标题优化失败: {e}")
             raise Exception(f"标题优化失败: {str(e)}")
-    
+
     @classmethod
     async def analyze_title(
-        cls,
-        request: TitleAnalyzeRequest,
-        ai_model=None,
+            cls,
+            request: TitleAnalyzeRequest,
+            ai_model=None,
     ) -> TitleAnalyzeResponse:
         """
         分析标题质量
@@ -188,9 +188,9 @@ class TitleService:
             TitleAnalyzeResponse
         """
         from app.services.langchain import LangChainService
-        
+
         prompt = cls._build_analyze_prompt(request)
-        
+
         try:
             if ai_model:
                 service = LangChainService(
@@ -204,14 +204,14 @@ class TitleService:
                     provider="openai",
                     model="gpt-3.5-turbo",
                 )
-            
+
             response = await service.chat(prompt)
             return cls._parse_analyze_response(request.title, response.content)
-            
+
         except Exception as e:
             logger.error(f"标题分析失败: {e}")
             raise Exception(f"标题分析失败: {str(e)}")
-    
+
     @classmethod
     def _build_generate_prompt(cls, request: TitleGenerateRequest) -> str:
         """构建标题生成提示词"""
@@ -224,19 +224,19 @@ class TitleService:
 - 平台特点：{pf.get('features', '')}
 - 写作技巧：{', '.join(pf.get('tips', []))}
 """
-        
+
         style_info = ""
         if request.style:
             style_info = f"\n## 要求风格：{cls.STYLE_DESCRIPTIONS.get(request.style, request.style.value)}\n"
-        
+
         keywords_info = ""
         if request.keywords:
             keywords_info = f"\n## 必须包含的关键词：{', '.join(request.keywords)}\n"
-        
+
         tone_info = ""
         if request.tone:
             tone_info = f"\n## 语气要求：{request.tone}\n"
-        
+
         return f"""你是一位顶级的新媒体标题策划专家，擅长撰写高点击率的爆款标题。
 
 ## 任务
@@ -278,7 +278,7 @@ class TitleService:
   "analysis": "整体创作建议，50字以内"
 }}
 ```"""
-    
+
     @classmethod
     def _build_optimize_prompt(cls, request: TitleOptimizeRequest) -> str:
         """构建标题优化提示词"""
@@ -291,11 +291,11 @@ class TitleService:
 - 平台特点：{pf.get('features', '')}
 - 写作技巧：{', '.join(pf.get('tips', []))}
 """
-        
+
         goals_info = ""
         if request.optimization_goals:
             goals_info = f"\n## 优化目标：{', '.join(request.optimization_goals)}\n"
-        
+
         return f"""你是一位顶级的新媒体标题策划专家，擅长优化标题以提升点击率。
 
 ## 任务
@@ -329,7 +329,7 @@ class TitleService:
   "improvement_tips": ["改进建议1", "改进建议2"]
 }}
 ```"""
-    
+
     @classmethod
     def _build_analyze_prompt(cls, request: TitleAnalyzeRequest) -> str:
         """构建标题分析提示词"""
@@ -341,7 +341,7 @@ class TitleService:
 - 标题长度限制：{pf.get('max_length', 50)}字以内
 - 平台特点：{pf.get('features', '')}
 """
-        
+
         return f"""你是一位顶级的新媒体标题策划专家，请深度分析以下标题。
 
 ## 待分析标题
@@ -379,14 +379,14 @@ class TitleService:
   "platform_fit": "平台适配度分析（如果指定了平台）"
 }}
 ```"""
-    
+
     @classmethod
     def _parse_generate_response(cls, ai_response: str) -> TitleGenerateResponse:
         """解析标题生成响应"""
         try:
             json_str = cls._extract_json(ai_response)
             data = json.loads(json_str)
-            
+
             titles = []
             for item in data.get("titles", []):
                 titles.append(TitleItem(
@@ -396,27 +396,27 @@ class TitleService:
                     hooks=item.get("hooks", []),
                     explanation=item.get("explanation", ""),
                 ))
-            
+
             return TitleGenerateResponse(
                 titles=titles,
                 analysis=data.get("analysis", ""),
             )
-            
+
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.warning(f"解析标题生成响应失败: {e}")
             raise Exception("AI 响应解析失败，请重试")
-    
+
     @classmethod
     def _parse_optimize_response(
-        cls,
-        original_title: str,
-        ai_response: str
+            cls,
+            original_title: str,
+            ai_response: str
     ) -> TitleOptimizeResponse:
         """解析标题优化响应"""
         try:
             json_str = cls._extract_json(ai_response)
             data = json.loads(json_str)
-            
+
             optimized = []
             for item in data.get("optimized_titles", []):
                 optimized.append(TitleItem(
@@ -426,7 +426,7 @@ class TitleService:
                     hooks=item.get("hooks", []),
                     explanation=item.get("explanation", ""),
                 ))
-            
+
             return TitleOptimizeResponse(
                 original_title=original_title,
                 original_score=data.get("original_score", 50),
@@ -434,22 +434,22 @@ class TitleService:
                 optimized_titles=optimized,
                 improvement_tips=data.get("improvement_tips", []),
             )
-            
+
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.warning(f"解析标题优化响应失败: {e}")
             raise Exception("AI 响应解析失败，请重试")
-    
+
     @classmethod
     def _parse_analyze_response(
-        cls,
-        title: str,
-        ai_response: str
+            cls,
+            title: str,
+            ai_response: str
     ) -> TitleAnalyzeResponse:
         """解析标题分析响应"""
         try:
             json_str = cls._extract_json(ai_response)
             data = json.loads(json_str)
-            
+
             return TitleAnalyzeResponse(
                 title=title,
                 score=data.get("score", 50),
@@ -460,11 +460,11 @@ class TitleService:
                 improvement_suggestions=data.get("improvement_suggestions", []),
                 platform_fit=data.get("platform_fit"),
             )
-            
+
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.warning(f"解析标题分析响应失败: {e}")
             raise Exception("AI 响应解析失败，请重试")
-    
+
     @classmethod
     def _extract_json(cls, text: str) -> str:
         """从文本中提取 JSON"""
@@ -473,7 +473,7 @@ class TitleService:
         elif "```" in text:
             return text.split("```")[1].split("```")[0]
         return text.strip()
-    
+
     @classmethod
     def _get_fallback_titles(cls, request: TitleGenerateRequest) -> TitleGenerateResponse:
         """获取兜底标题（AI 失败时）"""

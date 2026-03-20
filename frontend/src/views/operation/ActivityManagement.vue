@@ -9,14 +9,14 @@
       </template>
 
       <el-form :inline="true" :model="searchForm">
-        <el-form-item label="活动类型">
+        <el-form-item label="活动类型" style="width: 20%">
           <el-select v-model="searchForm.activity_type" placeholder="全部" clearable>
             <el-option label="积分赠送" value="credit_gift" />
             <el-option label="充值优惠" value="recharge_discount" />
             <el-option label="会员优惠" value="membership_discount" />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="状态" style="width: 20%">
           <el-select v-model="searchForm.status" placeholder="全部" clearable>
             <el-option label="草稿" value="draft" />
             <el-option label="进行中" value="active" />
@@ -159,7 +159,7 @@ const loadActivities = async () => {
       ...searchForm,
     }
     const response = await operationApi.getActivities(params)
-    activities.value = response.data
+    activities.value = response.data.items
     pagination.total = response.data.length
   } catch (error) {
     ElMessage.error('加载活动列表失败')

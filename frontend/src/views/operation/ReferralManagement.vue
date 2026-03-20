@@ -38,7 +38,7 @@
       </template>
 
       <el-form :inline="true" :model="searchForm">
-        <el-form-item label="返利状态">
+        <el-form-item label="返利状态" style="width: 20%">
           <el-select v-model="searchForm.status" placeholder="全部" clearable>
             <el-option label="待发放" value="pending" />
             <el-option label="已发放" value="rewarded" />
@@ -131,7 +131,7 @@ const loadRecords = async () => {
       ...searchForm,
     }
     const response = await operationApi.getReferralRecords(params)
-    records.value = response.data
+    records.value = response.data.items
     pagination.total = response.data.length
   } catch (error) {
     ElMessage.error('加载推广记录失败')

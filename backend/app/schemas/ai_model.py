@@ -36,14 +36,23 @@ class AIModelUpdate(BaseModel):
     capabilities: Optional[List[str]] = Field(None, description="模型能力列表(text/image/video/audio)")
 
 
-class AIModelResponse(AIModelBase):
+class AIModelResponse(BaseModel):
     """AI模型响应"""
     id: int
     user_id: int
-    is_default: bool
-    capabilities: List[str] = Field(default=["text"], description="模型能力列表")
+    name: str
+    provider: str
+    model_name: str
+    api_key: str
+    base_url: Optional[str] = None
+    is_active: bool = True
+    is_default: bool = False
+    is_system_builtin: bool = False
+    description: Optional[str] = None
+    capabilities: List[str] = Field(default=["text"])
     created_at: datetime
     updated_at: datetime
+    is_readonly: bool = Field(False, description="是否只读（系统内置模型对普通用户只读）")
     
     class Config:
         from_attributes = True

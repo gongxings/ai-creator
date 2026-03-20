@@ -9,13 +9,13 @@
       </template>
 
       <el-form :inline="true" :model="searchForm">
-        <el-form-item label="优惠券类型">
+        <el-form-item label="优惠券类型" style="width: 20%">
           <el-select v-model="searchForm.coupon_type" placeholder="全部" clearable>
             <el-option label="充值优惠券" value="recharge" />
             <el-option label="会员优惠券" value="membership" />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="状态" style="width: 20%">
           <el-select v-model="searchForm.is_active" placeholder="全部" clearable>
             <el-option label="启用" :value="true" />
             <el-option label="禁用" :value="false" />
@@ -172,7 +172,7 @@ const loadCoupons = async () => {
       ...searchForm,
     }
     const response = await operationApi.getCoupons(params)
-    coupons.value = response.data
+    coupons.value = response.data.items
     pagination.total = response.data.length
   } catch (error) {
     ElMessage.error('加载优惠券列表失败')

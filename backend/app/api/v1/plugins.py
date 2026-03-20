@@ -1,15 +1,15 @@
 """
 插件系统 API
 """
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, func, or_
 import logging
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import desc, func, or_
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.user import User
 from app.models.plugin import (
     PluginMarket,
     UserPlugin,
@@ -17,6 +17,8 @@ from app.models.plugin import (
     PluginInvocation,
     PluginReview
 )
+from app.models.user import User
+from app.schemas.common import success_response
 from app.schemas.plugin import (
     # 插件市场
     PluginMarketResponse,
@@ -32,14 +34,11 @@ from app.schemas.plugin import (
     PluginSelectionResponse,
     # 插件评价
     PluginReviewCreate,
-    PluginReviewUpdate,
     PluginReviewResponse,
     # 创作时使用
     PluginForCreation,
     PluginStats,
 )
-from app.schemas.common import success_response, error_response
-from app.services.plugins.registry import plugin_registry
 
 logger = logging.getLogger(__name__)
 

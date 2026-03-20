@@ -1,21 +1,21 @@
 """
 统一AI调用接口
 """
+import json
+from typing import AsyncGenerator
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-import json
-import time
-from typing import AsyncGenerator
 
 from app.core.database import get_db
-from app.utils.deps import get_current_user
-from app.models import User, OAuthAccount, AIModel, Creation
-from app.schemas.common import success_response, error_response
+from app.core.exceptions import BusinessException
+from app.models import User, OAuthAccount, AIModel
+from app.schemas.common import success_response
+from app.services.ai.factory import AIServiceFactory
 from app.services.model_service import ModelService
 from app.services.oauth.litellm_proxy import LiteLLMProxy
-from app.services.ai.factory import AIServiceFactory
-from app.core.exceptions import BusinessException
+from app.utils.deps import get_current_user
 
 router = APIRouter()
 

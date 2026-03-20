@@ -9,7 +9,7 @@
         <div class="welcome-benefits">
           <div class="benefit-item">
             <el-icon><Check /></el-icon>
-            <span>14种 AI 写作工具</span>
+            <span>12+种 AI 写作工具</span>
           </div>
           <div class="benefit-item">
             <el-icon><Check /></el-icon>

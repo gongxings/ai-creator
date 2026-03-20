@@ -2,15 +2,15 @@
 图库搜索 API
 提供图库搜索、关键词建议等功能
 """
+import logging
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-import logging
 
 from app.core.database import get_db
-from app.models.user import User
 from app.models.ai_model import AIModel
-from app.utils.deps import get_current_user, get_current_user_optional
+from app.models.user import User
 from app.schemas.image_stock import (
     ImageSource,
     ImageOrientation,
@@ -20,6 +20,7 @@ from app.schemas.image_stock import (
     KeywordSuggestResponse,
 )
 from app.services.image_stock_service import ImageStockService
+from app.utils.deps import get_current_user_optional
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

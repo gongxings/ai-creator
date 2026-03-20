@@ -2,20 +2,20 @@
 流量统计 API
 支持全埋点：页面访问 + 用户行为事件 + 批量上报
 """
-from typing import Any, Optional, List
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from pydantic import BaseModel, Field
 from datetime import date, datetime, timedelta
+from typing import Any, Optional, List
+
+from fastapi import APIRouter, Depends, Query, Request
+from pydantic import BaseModel, Field
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.user import User
 from app.models.traffic import PageView, UserEvent, DailyStats
+from app.models.user import User
+from app.schemas.common import success_response
 from app.services.tracker_service import tracker_service
 from app.utils.deps import get_admin_user
-from app.schemas.common import success_response
 
 router = APIRouter()
 
@@ -87,7 +87,9 @@ async def batch_track(
     for pv in data.page_views:
         pv_dict = pv.model_dump()
         pv_dict["ip_address"] = ip_address
-        pv_dict["created_at"] = pv_dict.get("created_at") or datetime.utcnow().isoformat()
+        pv_dict["created_at"] = pv_dict.get("created_at") or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        if pv_dict["created_at"].endswith("Z"):
+            pv_dict["created_at"] = pv_dict["created_at"][:-1].replace("T", " ")
 
         record_id = tracker_service.cache_page_view(pv_dict)
         if record_id:
@@ -111,7 +113,9 @@ async def batch_track(
         events_data = []
         for event in data.user_events:
             event_dict = event.model_dump()
-            event_dict["created_at"] = event_dict.get("created_at") or datetime.utcnow().isoformat()
+            event_dict["created_at"] = event_dict.get("created_at") or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            if event_dict["created_at"].endswith("Z"):
+                event_dict["created_at"] = event_dict["created_at"][:-1].replace("T", " ")
             # 关联 page_view_id
             if event.page_view_id and event.page_view_id in page_view_ids:
                 event_dict["page_view_id"] = page_view_ids[event.page_view_id]

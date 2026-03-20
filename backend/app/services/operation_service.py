@@ -14,7 +14,7 @@ from app.models.operation import (
     ActivityType, ActivityStatus, CouponType, CouponStatus, ReferralStatus
 )
 from app.models.user import User
-from app.models.credit import CreditTransaction, TransactionType
+from app.models.credit import CreditTransaction, TransactionType, PaymentStatus, RechargeOrder
 from app.schemas.operation import (
     ActivityCreate, ActivityUpdate, CouponCreate, CouponUpdate
 )
@@ -373,7 +373,7 @@ class ReferralService:
         db.add(transaction)
         
         # 更新推荐记录
-        record.status = ReferralStatus.COMPLETED
+        record.status = ReferralStatus.SETTLED
         record.reward_amount = reward_amount
         record.completed_at = datetime.now()
         
@@ -478,11 +478,11 @@ class OperationService:
         total_referrals = self.db.query(ReferralRecord).filter(ReferralRecord.referrer_id == user_id).count()
         completed_referrals = self.db.query(ReferralRecord).filter(
             ReferralRecord.referrer_id == user_id,
-            ReferralRecord.status == ReferralStatus.COMPLETED
+            ReferralRecord.status == ReferralStatus.SETTLED
         ).count()
         total_rewards = self.db.query(func.sum(ReferralRecord.reward_amount)).filter(
             ReferralRecord.referrer_id == user_id,
-            ReferralRecord.status == ReferralStatus.COMPLETED
+            ReferralRecord.status == ReferralStatus.SETTLED
         ).scalar() or Decimal('0')
         
         return {
@@ -523,7 +523,7 @@ class OperationService:
         ).filter(
             RechargeOrder.created_at >= start_date,
             RechargeOrder.created_at <= end_date,
-            RechargeOrder.status == 'paid'
+            RechargeOrder.payment_status == PaymentStatus.PAID
         ).first()
         
         # 会员统计
@@ -533,7 +533,7 @@ class OperationService:
         ).filter(
             MembershipOrder.created_at >= start_date,
             MembershipOrder.created_at <= end_date,
-            MembershipOrder.status == 'paid'
+            MembershipOrder.payment_status == PaymentStatus.PAID
         ).first()
         
         # 积分消耗统计
@@ -557,8 +557,8 @@ class OperationService:
         
         # 优惠券统计
         coupon_used = self.db.query(UserCoupon).filter(
-            UserCoupon.used_time >= start_date,
-            UserCoupon.used_time <= end_date,
+            UserCoupon.used_at >= start_date,
+            UserCoupon.used_at <= end_date,
             UserCoupon.status == CouponStatus.USED
         ).count()
         
@@ -569,9 +569,9 @@ class OperationService:
         ).count()
         
         referral_rewards = self.db.query(func.sum(ReferralRecord.reward_amount)).filter(
-            ReferralRecord.completed_at >= start_date,
-            ReferralRecord.completed_at <= end_date,
-            ReferralRecord.status == ReferralStatus.COMPLETED
+            ReferralRecord.created_at >= start_date,
+            ReferralRecord.created_at <= end_date,
+            ReferralRecord.status == ReferralStatus.SETTLED
         ).scalar() or Decimal('0')
         
         return {
@@ -629,8 +629,8 @@ class OperationService:
         
         coupons_used = self.db.query(UserCoupon).filter(
             UserCoupon.user_id == user_id,
-            UserCoupon.used_time >= start_date,
-            UserCoupon.used_time <= end_date,
+            UserCoupon.used_at >= start_date,
+            UserCoupon.used_at <= end_date,
             UserCoupon.status == CouponStatus.USED
         ).count()
         
@@ -643,9 +643,9 @@ class OperationService:
         
         referral_rewards = self.db.query(func.sum(ReferralRecord.reward_amount)).filter(
             ReferralRecord.referrer_id == user_id,
-            ReferralRecord.completed_at >= start_date,
-            ReferralRecord.completed_at <= end_date,
-            ReferralRecord.status == ReferralStatus.COMPLETED
+            ReferralRecord.settled_at >= start_date,
+            ReferralRecord.settled_at <= end_date,
+            ReferralRecord.status == ReferralStatus.SETTLED
         ).scalar() or Decimal('0')
         
         return {

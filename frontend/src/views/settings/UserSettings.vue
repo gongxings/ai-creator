@@ -55,6 +55,12 @@
 
             <el-table :data="models" style="width: 100%">
               <el-table-column prop="name" label="模型名称" />
+              <el-table-column label="类型" width="100">
+                <template #default="{ row }">
+                  <el-tag v-if="row.is_system_builtin" type="warning" size="small">系统内置</el-tag>
+                  <el-tag v-else type="info" size="small">自定义</el-tag>
+                </template>
+              </el-table-column>
               <el-table-column label="提供商" min-width="120">
                 <template #default="{ row }">
                   {{ getProviderLabel(row.provider) }}
@@ -78,8 +84,13 @@
               </el-table-column>
               <el-table-column label="操作" width="200">
                 <template #default="{ row }">
-                  <el-button link type="primary" @click="editModel(row)">编辑</el-button>
-                  <el-button link type="danger" @click="deleteModel(row.id)">删除</el-button>
+                  <template v-if="row.is_readonly">
+                    <el-tag type="info" size="small">只读</el-tag>
+                  </template>
+                  <template v-else>
+                    <el-button link type="primary" @click="editModel(row)">编辑</el-button>
+                    <el-button link type="danger" @click="deleteModel(row.id)">删除</el-button>
+                  </template>
                 </template>
               </el-table-column>
             </el-table>
@@ -181,6 +192,11 @@
         <el-form-item label="启用状态">
           <el-switch v-model="modelForm.is_active" />
         </el-form-item>
+
+        <el-form-item v-if="isAdmin" label="系统内置">
+          <el-switch v-model="modelForm.is_system_builtin" />
+          <div class="form-tip">系统内置模型所有用户可见，但只有管理员可编辑</div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="modelDialogVisible = false">取消</el-button>
@@ -201,6 +217,7 @@ import { providerOptions, getProviderConfig, capabilityLabels } from '@/config/p
 import type { AIModel, ModelCapability } from '@/types'
 
 const userStore = useUserStore()
+const isAdmin = computed(() => userStore.isAdmin)
 const activeTab = ref('profile')
 
 const profileForm = reactive({ username: '', email: '', phone: '' })
@@ -232,13 +249,14 @@ const modelForm = reactive({
   name: '',
   provider: '',
   api_key: '',
-  secret_key: '',      // 用于 dual_key (百度、腾讯)
-  app_id: '',          // 用于 triple_key (讯飞)
-  api_secret: '',      // 用于 triple_key (讯飞)
-  group_id: '',        // 用于 api_key_group (MiniMax)
+  secret_key: '',
+  app_id: '',
+  api_secret: '',
+  group_id: '',
   base_url: '',
   model_name: '',
   is_active: true,
+  is_system_builtin: false,
   capabilities: [] as ModelCapability[],
 })
 
@@ -309,7 +327,7 @@ const changePasswordHandler = async () => {
 const loadModels = async () => {
   try {
     const res = await getAIModels()
-    models.value = Array.isArray(res) ? res : (res.data || [])
+    models.value = Array.isArray(res) ? res : []
   } catch {
     ElMessage.error('加载AI模型失败')
   }
@@ -327,6 +345,7 @@ const showAddModelDialog = () => {
   modelForm.base_url = ''
   modelForm.model_name = ''
   modelForm.is_active = true
+  modelForm.is_system_builtin = false
   modelForm.capabilities = ['text']
   modelDialogVisible.value = true
 }
@@ -335,7 +354,7 @@ const editModel = (model: AIModel) => {
   modelForm.id = model.id
   modelForm.name = model.name
   modelForm.provider = model.provider
-  modelForm.api_key = ''  // 编辑时不显示原密钥
+  modelForm.api_key = model.api_key || ''
   modelForm.secret_key = ''
   modelForm.app_id = ''
   modelForm.api_secret = ''
@@ -343,6 +362,7 @@ const editModel = (model: AIModel) => {
   modelForm.base_url = model.base_url || ''
   modelForm.model_name = model.model_name
   modelForm.is_active = model.is_active
+  modelForm.is_system_builtin = model.is_system_builtin || false
   modelForm.capabilities = model.capabilities || ['text']
   modelDialogVisible.value = true
 }
@@ -386,6 +406,10 @@ const saveModel = async () => {
       base_url: modelForm.base_url || undefined,
       is_active: modelForm.is_active,
       capabilities: modelForm.capabilities,
+    }
+
+    if (isAdmin.value) {
+      submitData.is_system_builtin = modelForm.is_system_builtin
     }
 
     // 处理 API 密钥（根据认证类型组合）

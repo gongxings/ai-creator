@@ -3,10 +3,8 @@
 """
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.core.database import get_db
-from app.utils.deps import get_current_user, get_admin_user
 from app.models.user import User
 from app.schemas.common import success_response, PaginatedResponse
 from app.schemas.credit import (
@@ -15,12 +13,12 @@ from app.schemas.credit import (
     MembershipOrderCreate, MembershipOrderResponse,
     CreditPriceResponse, MembershipPriceResponse,
     CreditPriceCreate, MembershipPriceCreate,
-    PaymentCallbackRequest, UnifiedPaymentCallbackRequest,
-    CreditStatisticsResponse, MembershipStatisticsResponse
+    PaymentCallbackRequest, UnifiedPaymentCallbackRequest
 )
 from app.services.credit_service import (
     CreditService, RechargeService, MembershipService, PriceService
 )
+from app.utils.deps import get_current_user, get_admin_user
 
 router = APIRouter(tags=["积分和会员"])
 

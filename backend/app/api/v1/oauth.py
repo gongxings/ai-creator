@@ -3,15 +3,16 @@ OAuth账号管理API
 """
 import os
 from typing import List, Optional, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.utils.deps import get_current_user
+from app.models.platform_config import PlatformConfig
 from app.models.user import User
+from app.schemas.common import success_response
 from app.schemas.oauth import (
-    OAuthAccountCreate,
     OAuthAccountManualCreate,
     OAuthAccountAuthorize,
     OAuthAccountResponse,
@@ -21,11 +22,10 @@ from app.schemas.oauth import (
     ChatCompletionRequest,
     ChatCompletionResponse,
 )
-from app.schemas.common import success_response
+from app.services.oauth.adapters import get_adapter, PLATFORM_ADAPTERS
 from app.services.oauth.oauth_service import oauth_service
 from app.services.oauth.oauth_session import oauth_session_manager
-from app.models.platform_config import PlatformConfig
-from app.services.oauth.adapters import get_supported_platforms, get_adapter, PLATFORM_ADAPTERS
+from app.utils.deps import get_current_user
 
 router = APIRouter(tags=["OAuth"])
 
