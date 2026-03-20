@@ -5,7 +5,7 @@
 本系统实现完整的用户行为追踪：
 - **页面访问**：PV/UV/跳出率/停留时长/滚动深度
 - **用户事件**：点击、滚动等行为自动采集
-- **数据流程**：前端 SDK → Redis 缓存 → Celery 定时同步 → MySQL
+- **数据流程**：前端 SDK → Redis 缓存 → FastAPI 后台线程定时同步 → MySQL
 
 ---
 
@@ -44,38 +44,37 @@ REDIS_PASSWORD=  # 如有密码则填写
 
 ---
 
-## 3. 启动 Celery Worker 和 Beat
+## 3. 启动 FastAPI 应用（包含后台任务）
 
-在 `backend` 目录下执行：
-
-```bash
-# 启动 Worker（处理数据同步任务）
-celery -A app.tasks.celery_app worker --loglevel=info
-
-# 启动 Beat（定时任务调度器，另一个终端）
-celery -A app.tasks.celery_app beat --loglevel=info
-```
-
-或使用脚本启动：
+启动 FastAPI 应用时，会自动启动后台数据同步任务（每60秒执行一次）：
 
 ```bash
-# 启动 worker
-python -m celery -A app.tasks.celery_app worker --loglevel=info
-
-# 启动 beat
-python -m celery -A app.tasks.celery_app beat --loglevel=info
+cd backend
+python run.py
 ```
+
+后台任务会自动：
+1. 每60秒从 Redis 读取缓存的埋点数据
+2. 批量写入 MySQL 数据库
+3. 记录日志到控制台
+
+无需额外启动 Celery Worker 或 Beat！
 
 ---
 
-## 4. 重启后端服务
+## 4. 手动触发数据同步
+
+如需手动触发同步（例如调试），可运行：
 
 ```bash
-# 如果使用 uvicorn
-python run.py
+# 同步埋点数据
+python scripts/sync_tracker.py
 
-# 或使用 gunicorn
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
+# 强制同步所有数据（忽略批次限制）
+python scripts/sync_tracker.py --force
+
+# 同步数据并同时执行每日统计汇总
+python scripts/sync_tracker.py --aggregate
 ```
 
 ---
@@ -88,6 +87,8 @@ gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
 
 - `POST /api/v1/traffic/batch` - 批量埋点上报
 - `GET /api/v1/traffic/stats` - 缓存统计（管理员）
+- `GET /api/v1/traffic/overview` - 流量概览（管理员）
+- `GET /api/v1/traffic/daily` - 每日统计（管理员）
 - `GET /api/v1/traffic/hot-pages` - 热门页面（管理员）
 - `GET /api/v1/traffic/click-events` - 点击事件统计（管理员）
 
@@ -108,12 +109,13 @@ redis-cli
 
 如果数字在增长，说明埋点数据正在缓存。
 
-### 5.4 查看 Celery 日志
+### 5.4 查看后台任务日志
 
-Worker 会每分钟同步数据到 MySQL：
+FastAPI 启动日志中会显示：
 
 ```
-[Tracker] Synced: 15 page views, 0 updates, 42 events
+[Tracker] Background task started
+[Tracker] Synced: 15 page views, 42 events
 ```
 
 ---
@@ -125,7 +127,7 @@ Worker 会每分钟同步数据到 MySQL：
 - **今日 PV/UV**：实时统计
 - **平均停留时长**：用户平均页面停留时间
 - **跳出率**：单页访问比例
-- **每日统计**：30/90天趋势图（柱状图）
+- **每日统计**：30/90天趋势图（柱状图 + 折线图）
 
 ### 热门页面（Top 10）
 
@@ -173,64 +175,75 @@ Worker 会每分钟同步数据到 MySQL：
 **解决**：
 1. 检查 Redis 是否启动：`redis-cli ping`
 2. 检查 `REDIS_URL` 配置是否正确
-3. 如果 Redis 不可用，系统会降级直接写入数据库（性能较差）
+3. 如果 Redis 不可用，系统会自动降级直接写入数据库（性能较差）
 
-### Q2: Celery 任务不执行
-
-**现象**：数据只进 Redis，不入 MySQL
-
-**解决**：
-1. 确认 Worker 和 Beat 都在运行
-2. 查看 Worker 日志是否有错误
-3. 手动触发同步任务测试：
-   ```python
-   from app.tasks.traffic_tasks import sync_tracking_data
-   sync_tracking_data()
-   ```
-
-### Q3: 页面没有统计
+### Q2: 数据没有写入 MySQL
 
 **现象**：访问页面后，PV 没增加
 
 **解决**：
-1. 打开浏览器控制台检查网络请求：`/api/v1/traffic/batch` 是否成功
-2. 检查 `sessionStorage` 是否有 `tracking_session_id`
-3. 确认前端 tracker 已初始化：`console.log('[Tracker]')`
+1. 检查 FastAPI 日志中是否有 `[Tracker] Synced` 输出
+2. 打开浏览器控制台检查网络请求：`/api/v1/traffic/batch` 是否成功
+3. 检查 `page_views` 表中是否有数据
+4. 手动运行 `python scripts/sync_tracker.py` 测试同步
+
+### Q3: 后台任务没有启动
+
+**现象**：启动 FastAPI 后，没有看到 `[Tracker] Background task started`
+
+**解决**：
+1. 检查 `app/main.py` 是否导入了 `start_tracker_background`
+2. 检查是否有报错（如 Redis 连接失败不会阻止后台启动）
+3. 查看线程列表：后台任务会在名为 `TrackerBackgroundTask` 的线程中运行
 
 ---
 
 ## 9. 性能优化建议
 
 1. **Redis 持久化**：配置 RDB 或 AOF，避免重启丢失数据
-2. **监控队列长度**：如果 `tracker:*` 队列持续增长，考虑增加 Worker 数量
-3. **数据归档**：定期将 `page_views` 表中历史数据迁移到分析库
+2. **调整同步频率**：修改 `background_tracker.py` 中的 `sync_interval` 参数
+3. **批量大小**：根据需要调整 `batch_size`（默认1000条/批次）
 4. **降级策略**：Redis 故障时自动切换为直接写库（已实现）
 
 ---
 
-## 10. 下一步扩展
+## 10. 架构对比
 
-- [ ] 添加用户路径分析（漏斗模型）
-- [ ] 实时大屏展示（WebSocket 推送）
-- [ ] 用户分群画像（基于行为标签）
-- [ ] A/B 测试支持
+| 特性 | 原方案（Celery） | 现方案（后台线程） |
+|------|----------------|-------------------|
+| 依赖 | 需要 Celery + Redis Broker | 仅需 Redis 作为缓存 |
+| 启动复杂度 | 需要启动3个进程（app + worker + beat） | 只需启动 FastAPI 一个进程 |
+| 资源占用 | 较高（多个 Python 进程） | 较低（仅后台线程） |
+| 定时精度 | 高（Beat 精确调度） | 中（异步循环，可能有秒级偏差） |
+| 功能 | 完整任务队列、重试、监控 | 基础定时同步 |
+| 适用场景 | 大规模分布式任务 | 轻量级定时同步 |
 
 ---
 
-## 文件清单
+## 11. 文件清单
 
 | 文件 | 说明 |
 |------|------|
 | `backend/app/models/traffic.py` | 数据模型（PageView, UserEvent, DailyStats） |
 | `backend/app/services/tracker_service.py` | Redis 缓存服务 |
 | `backend/app/api/v1/traffic.py` | 流量统计 API（含批量上报） |
-| `backend/app/tasks/celery_app.py` | Celery 应用配置 |
-| `backend/app/tasks/traffic_tasks.py` | 定时同步和聚合任务 |
+| `backend/app/tasks/background_tracker.py` | 后台同步任务（替代 Celery） |
 | `backend/scripts/add_tracking_tables.py` | 数据库迁移脚本 |
+| `backend/scripts/sync_tracker.py` | 手动同步脚本 |
 | `frontend/src/utils/tracker.ts` | 前端埋点 SDK |
 | `frontend/src/api/traffic.ts` | 前端流量 API |
 | `frontend/src/router/index.ts` | 埋点集成（afterEach 守卫） |
 | `frontend/src/views/admin/TrafficStats.vue` | 管理员统计页面 |
+| `README.md` | 项目说明文档 |
+
+---
+
+## 12. 下一步扩展
+
+- [ ] 添加用户路径分析（漏斗模型）
+- [ ] 实时大屏展示（WebSocket 推送）
+- [ ] 用户分群画像（基于行为标签）
+- [ ] A/B 测试支持
 
 ---
 

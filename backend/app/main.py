@@ -103,6 +103,14 @@ async def startup_event():
         init_db()
         logger.info("数据库初始化完成")
 
+    # 启动埋点数据后台同步任务
+    try:
+        from app.tasks.background_tracker import start_tracker_background
+        start_tracker_background()
+        logger.info("埋点后台同步任务已启动")
+    except Exception as e:
+        logger.error(f"启动埋点后台任务失败: {e}")
+
     logger.info("应用启动完成")
 
 
