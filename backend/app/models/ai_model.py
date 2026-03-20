@@ -1,31 +1,12 @@
 """
 AI模型配置数据模型
 """
-from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, Enum, BigInteger, JSON, Index
+from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, BigInteger, JSON, Index
 from sqlalchemy.orm import relationship, foreign
 from datetime import datetime
-import enum
 
 from app.core.database import Base
 from app.models.user import User
-
-
-class AIProvider(str, enum.Enum):
-    """AI提供商枚举"""
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    ZHIPU = "zhipu"
-    BAIDU = "baidu"
-    ALI = "ali"
-    TENCENT = "tencent"
-
-
-class ModelType(str, enum.Enum):
-    """模型类型枚举"""
-    TEXT = "text"
-    IMAGE = "image"
-    VIDEO = "video"
-    AUDIO = "audio"
 
 
 class AIModel(Base):
@@ -41,6 +22,7 @@ class AIModel(Base):
     base_url = Column(String(255), nullable=True, comment="API基础URL")
     is_default = Column(Boolean, default=False, comment="是否为默认模型")
     is_active = Column(Boolean, default=True, comment="是否启用")
+    is_system_builtin = Column(Boolean, default=False, comment="是否系统内置模型")
     description = Column(Text, nullable=True, comment="模型描述")
     capabilities = Column(JSON, default=["text"], comment="模型能力列表(text/image/video/audio)")
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
@@ -58,5 +40,5 @@ class AIModel(Base):
 
 # 索引
 __table_args__ = (
-    Index("idx_system_default_user", "system_default_source", "user_id"),
+    Index("idx_system_builtin_user", "is_system_builtin", "user_id"),
 )

@@ -127,6 +127,12 @@ class Settings(BaseSettings):
         default="your-oauth-encryption-key-change-in-production",
         description="OAuth凭据加密密钥"
     )
+    
+    # 数据库初始化配置
+    AUTO_CREATE_TABLES: bool = Field(
+        default=True,
+        description="启动时自动创建数据库表"
+    )
 
 # 获取.env文件路径
 _env_file_path = get_env_file_path()

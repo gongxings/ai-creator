@@ -7,7 +7,7 @@ from sqlalchemy import and_, or_
 from datetime import datetime
 
 from app.models import OAuthAccount, AIModel, Creation
-from app.schemas.api_key import ModelInfo, AvailableModelsResponse
+from app.schemas.ai_model import ModelInfo, AvailableModelsResponse
 
 
 class ModelService:
@@ -141,26 +141,35 @@ class ModelService:
     
     @staticmethod
     def _get_api_key_models(db: Session, user_id: int) -> List[ModelInfo]:
-        """获取API Key配置的模型"""
+        """获取API Key配置的模型（包括系统内置模型）"""
         models = []
         
-        # 查询用户的AI模型配置
+        # 查询用户的AI模型配置 + 系统内置模型
         ai_models = db.query(AIModel).filter(
             and_(
-                AIModel.user_id == user_id,
-                AIModel.is_active == True
+                AIModel.is_active == True,
+                or_(
+                    AIModel.user_id == user_id,
+                    AIModel.is_system_builtin == True
+                )
             )
         ).all()
         
         for ai_model in ai_models:
+            # 区分系统内置模型和用户自定义模型
+            if ai_model.is_system_builtin:
+                display_name = f"{ai_model.name}（系统）"
+            else:
+                display_name = f"{ai_model.name} ({ai_model.provider})"
+            
             models.append(ModelInfo(
                 model_id=f"ai_model_{ai_model.id}",
                 model_name=ai_model.model_name,
-                display_name=f"{ai_model.name} ({ai_model.provider})",
+                display_name=display_name,
                 provider=ai_model.provider,
                 source_type="api_key",
                 source_id=ai_model.id,
-                is_free=False,
+                is_free=ai_model.is_system_builtin,
                 is_preferred=False,
                 status="active",
                 quota_info=None

@@ -219,52 +219,6 @@ export interface ChatResponse {
   }
 }
 
-// API Key管理相关
-export interface APIKey {
-  id: number
-  key_name: string
-  masked_key: string  // sk-****...****1234
-  is_active: boolean
-  rate_limit: number
-  allowed_models?: string[]
-  total_requests: number
-  total_tokens: number
-  last_used_at?: string
-  expires_at?: string
-  created_at: string
-}
-
-export interface APIKeyForm {
-  key_name: string
-  expires_days?: number
-  rate_limit?: number
-  allowed_models?: string[]
-}
-
-export interface APIKeyDetail extends APIKey {
-  api_key?: string  // 仅在创建时返回完整Key
-}
-
-export interface APIKeyUsageLog {
-  id: number
-  model_id: string
-  model_name: string
-  endpoint: string
-  prompt_tokens: number
-  completion_tokens: number
-  total_tokens: number
-  ip_address: string
-  created_at: string
-}
-
-export interface APIKeyStats {
-  total_requests: number
-  total_tokens: number
-  requests_by_model: Record<string, number>
-  tokens_by_model: Record<string, number>
-  recent_logs: APIKeyUsageLog[]
-}
-
 // ============================================================================
 // 写作工具表单相关类型
 // ============================================================================

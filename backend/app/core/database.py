@@ -67,7 +67,7 @@ def init_db() -> None:
     # 确保所有模型都已导入
     from app.models import (
         User, UserRole, UserStatus,
-        AIModel, AIProvider, ModelType,
+        AIModel,
         Creation, CreationVersion, CreationType, CreationStatus,
         PlatformAccount, PublishRecord, PublishStatus, PlatformStatus,
         CreditTransaction, MembershipOrder, RechargeOrder, CreditPrice, MembershipPrice,
@@ -75,9 +75,9 @@ def init_db() -> None:
         Activity, ActivityParticipation, Coupon, UserCoupon, ReferralRecord, OperationStatistics,
         ActivityType, ActivityStatus, CouponType, CouponStatus, ReferralStatus,
         OAuthAccount, OAuthUsageLog, PlatformConfig,
-        APIKey, APIKeyUsageLog,
         PluginMarket, UserPlugin, CreationPluginSelection, PluginInvocation, PluginReview,
         ArticleTemplate,
+        PageView, DailyStats,
     )
     
     logger.info("开始创建数据库表...")

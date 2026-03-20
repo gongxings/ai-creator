@@ -31,18 +31,13 @@ export interface AIModel {
   model_name: string
   is_default: boolean
   is_active: boolean
-  system_default_source: boolean
-  source_api_key_id: number | null
+  is_system_builtin: boolean
   created_at: string
 }
 
 export interface UserDetail {
   user: UserInfo
   ai_models: AIModel[]
-  usage_stats: {
-    total_requests: number
-    total_tokens: number
-  }
 }
 
 export interface UserListResponse {
@@ -79,11 +74,11 @@ export function getUserDetail(userId: number) {
 }
 
 /**
- * 重置用户模型为系统默认
+ * 重置用户密码为 123456
  */
-export function resetUserModels(userId: number) {
+export function resetUserPassword(userId: number) {
   return request({
-    url: `/admin/users/${userId}/reset-models`,
+    url: `/admin/users/${userId}/reset-password`,
     method: 'post'
   })
 }

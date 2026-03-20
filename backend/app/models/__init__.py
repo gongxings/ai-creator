@@ -2,7 +2,7 @@
 数据库模型模块
 """
 from app.models.user import User, UserRole, UserStatus
-from app.models.ai_model import AIModel, AIProvider, ModelType
+from app.models.ai_model import AIModel
 from app.models.creation import Creation, CreationVersion, CreationType, CreationStatus
 from app.models.publish import PlatformAccount, PublishRecord, PublishStatus, PlatformStatus
 from app.models.credit import (
@@ -16,11 +16,11 @@ from app.models.operation import (
 from app.models.oauth_account import OAuthAccount
 from app.models.oauth_usage_log import OAuthUsageLog
 from app.models.platform_config import PlatformConfig
-from app.models.api_key import APIKey, APIKeyUsageLog
 from app.models.plugin import (
     PluginMarket, UserPlugin, CreationPluginSelection, PluginInvocation, PluginReview
 )
 from app.models.template import ArticleTemplate
+from app.models.traffic import PageView, DailyStats
 
 __all__ = [
     # User models
@@ -73,10 +73,6 @@ __all__ = [
     "OAuthUsageLog",
     "PlatformConfig",
     
-    # API Key models
-    "APIKey",
-    "APIKeyUsageLog",
-    
     # Plugin models
     "PluginMarket",
     "UserPlugin",
@@ -86,4 +82,8 @@ __all__ = [
     
     # Template models
     "ArticleTemplate",
+    
+    # Traffic models
+    "PageView",
+    "DailyStats",
 ]

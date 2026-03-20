@@ -120,9 +120,6 @@ class User(Base):
     oauth_accounts = relationship("OAuthAccount", back_populates="user",
                                   primaryjoin="OAuthAccount.user_id == foreign(User.id)")
 
-    # API Key 相关关系
-    api_keys = relationship("APIKey", back_populates="user", primaryjoin="APIKey.user_id == foreign(User.id)")
-
     # 插件相关关系
     plugins = relationship("UserPlugin", back_populates="user", cascade="all, delete-orphan",
                            primaryjoin="UserPlugin.user_id == foreign(User.id)",

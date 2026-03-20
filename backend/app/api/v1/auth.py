@@ -80,24 +80,20 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)) -> Any:
         import logging
         logging.error(f"新用户注册赠送积分失败：{e}")
     
-    # 为新用户分配系统默认模型
-    try:
-        APIKeyService.assign_system_default_models_to_user(db, user.id)
-    except Exception as e:
-        # 分配模型失败不影响注册流程
-        import logging
-        logging.error(f"新用户分配系统默认模型失败：{e}")
-    
     return success_response(data=UserResponse.model_validate(user).model_dump())
 
 
 @router.post("/login")
 def login(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
     """
-    用户登录
+    用户登录（支持用户名或邮箱登录）
     """
-    # 查找用户
-    user = db.query(User).filter(User.username == user_in.username).first()
+    # 查找用户 - 同时支持用户名和邮箱
+    user = db.query(User).filter(
+        (User.username == user_in.username) | 
+        (User.email == user_in.username)
+    ).first()
+    
     if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -109,6 +105,11 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)) -> Any:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="用户已被禁用",
         )
+    
+    # 更新最后登录时间和IP
+    from datetime import datetime
+    user.last_login_at = datetime.utcnow()
+    db.commit()
     
     # 生成访问令牌和刷新令牌
     access_token = create_access_token(subject=user.id)

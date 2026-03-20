@@ -77,12 +77,6 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
       },
       {
-        path: 'settings/api-keys',
-        name: 'APIKeys',
-        component: () => import('@/views/settings/APIKeys.vue'),
-        meta: { requiresAuth: true },
-      },
-      {
         path: 'settings/oauth',
         name: 'OAuthAccounts',
         component: () => import('@/views/oauth/OAuthAccounts.vue'),
@@ -150,21 +144,15 @@ const routes: RouteRecordRaw[] = [
       },
       // 管理员页面
       {
-        path: 'admin/apikeys',
-        name: 'SystemDefaultKeys',
-        component: () => import('@/views/admin/SystemDefaultKeys.vue'),
-        meta: { requiresAdmin: true },
-      },
-      {
         path: 'admin/users',
         name: 'UserManagement',
         component: () => import('@/views/admin/UserManagement.vue'),
         meta: { requiresAdmin: true },
       },
       {
-        path: 'admin/monitor',
-        name: 'ApiMonitor',
-        component: () => import('@/views/admin/ApiMonitor.vue'),
+        path: 'admin/traffic',
+        name: 'TrafficStats',
+        component: () => import('@/views/admin/TrafficStats.vue'),
         meta: { requiresAdmin: true },
       },
     ],

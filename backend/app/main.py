@@ -19,8 +19,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, api_keys, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer, system_default_keys, admin_users, api_monitor
-from app.api import openapi_proxy
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer, admin_users, traffic
 
 # 配置日志
 logging.basicConfig(
@@ -98,182 +97,163 @@ async def startup_event():
     # 创建上传目录
     upload_dir = Path(settings.UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
-    
-    # 创建日志目录
-    log_dir = Path(settings.LOG_FILE).parent
-    log_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # 初始化数据库
-    try:
+    if settings.AUTO_CREATE_TABLES:
         init_db()
-        logger.info("数据库初始化成功")
-    except Exception as e:
-        logger.error(f"数据库初始化失败: {e}")
-    
-    # 发现并注册内置插件
-    try:
-        from app.services.plugins import PluginManager
-        plugin_manager = PluginManager()
-        discovered = plugin_manager.discover_builtin_plugins()
-        logger.info(f"发现并注册了 {len(discovered)} 个内置插件")
-    except Exception as e:
-        logger.error(f"插件发现失败: {e}")
-    
+        logger.info("数据库初始化完成")
+
     logger.info("应用启动完成")
 
 
-# 关闭事件
-@app.on_event("shutdown")
-async def shutdown_event():
-    """应用关闭时执行"""
-    logger.info("应用关闭中...")
-
-
-# 健康检查
-@app.get("/health", tags=["系统"])
-async def health_check():
-    """健康检查接口"""
-    return {
-        "code": 200,
-        "message": "success",
-        "data": {
-            "status": "healthy",
-            "version": settings.APP_VERSION
-        }
-    }
-
-
-# 根路径
 @app.get("/", tags=["系统"])
 async def root():
     """根路径"""
     return {
         "code": 200,
-        "message": "success",
+        "message": "AI创作者平台API服务正在运行",
         "data": {
-            "name": settings.APP_NAME,
+            "app_name": settings.APP_NAME,
             "version": settings.APP_VERSION,
-            "docs": "/docs",
-            "redoc": "/redoc"
+            "docs_url": "/docs",
+            "api_prefix": settings.API_V1_PREFIX
         }
     }
 
 
-# 注册路由
+@app.get("/health", tags=["系统"])
+async def health_check():
+    """健康检查"""
+    return {"code": 200, "message": "healthy", "data": None}
+
+
+# 认证相关路由
 app.include_router(
     auth.router,
     prefix=f"{settings.API_V1_PREFIX}/auth",
-    tags=["认证"]
+    tags=["认证与授权"]
 )
 
+# 创作工具相关路由
 app.include_router(
     writing.router,
     prefix=f"{settings.API_V1_PREFIX}/writing",
     tags=["AI写作"]
 )
 
+# 图片生成路由
 app.include_router(
     image.router,
     prefix=f"{settings.API_V1_PREFIX}/image",
     tags=["图片生成"]
 )
 
+# 视频生成路由
 app.include_router(
     video.router,
     prefix=f"{settings.API_V1_PREFIX}/video",
     tags=["视频生成"]
 )
 
+# PPT生成路由
 app.include_router(
     ppt.router,
     prefix=f"{settings.API_V1_PREFIX}/ppt",
     tags=["PPT生成"]
 )
 
+# 创作管理路由
 app.include_router(
     creations.router,
     prefix=f"{settings.API_V1_PREFIX}/creations",
-    tags=["创作记录"]
+    tags=["创作管理"]
 )
 
+# 发布管理路由
 app.include_router(
     publish.router,
     prefix=f"{settings.API_V1_PREFIX}/publish",
     tags=["发布管理"]
 )
 
+# AI模型管理路由
 app.include_router(
     models_api.router,
     prefix=f"{settings.API_V1_PREFIX}/models",
     tags=["AI模型管理"]
 )
 
+# 积分和会员路由
 app.include_router(
     credit.router,
     prefix=f"{settings.API_V1_PREFIX}/credit",
-    tags=["积分会员"]
+    tags=["积分与会员"]
 )
 
+# 运营管理路由
 app.include_router(
     operation.router,
     prefix=f"{settings.API_V1_PREFIX}/operation",
     tags=["运营管理"]
 )
 
+# OAuth平台管理路由
 app.include_router(
     oauth.router,
     prefix=f"{settings.API_V1_PREFIX}/oauth",
-    tags=["OAuth代理"]
+    tags=["OAuth平台"]
 )
 
-app.include_router(
-    api_keys.router,
-    prefix=f"{settings.API_V1_PREFIX}/api-keys",
-    tags=["API Key管理"]
-)
-
+# 统一AI调用路由
 app.include_router(
     ai.router,
     prefix=f"{settings.API_V1_PREFIX}/ai",
     tags=["统一AI调用"]
 )
 
+# 插件系统路由
 app.include_router(
     plugins.router,
     prefix=f"{settings.API_V1_PREFIX}/plugins",
     tags=["插件系统"]
 )
 
+# 模板管理路由
 app.include_router(
     templates.router,
     prefix=f"{settings.API_V1_PREFIX}/templates",
-    tags=["文章模板"]
+    tags=["模板管理"]
 )
 
+# 热点追踪路由
 app.include_router(
     hotspot.router,
     prefix=f"{settings.API_V1_PREFIX}/hotspot",
     tags=["热点追踪"]
 )
 
+# 标题优化路由
 app.include_router(
     title.router,
     prefix=f"{settings.API_V1_PREFIX}/title",
-    tags=["爆款标题"]
+    tags=["标题优化"]
 )
 
+# 图片素材路由
 app.include_router(
     image_stock.router,
     prefix=f"{settings.API_V1_PREFIX}/image-stock",
-    tags=["图库搜索"]
+    tags=["图片素材"]
 )
 
+# 平台转换路由
 app.include_router(
     platform_converter.router,
     prefix=f"{settings.API_V1_PREFIX}/converter",
-    tags=["多平台转换"]
+    tags=["平台转换"]
 )
 
+# 爆款模仿路由
 app.include_router(
     viral_analyzer.router,
     prefix=f"{settings.API_V1_PREFIX}/viral",
@@ -282,34 +262,20 @@ app.include_router(
 
 # 管理员接口
 app.include_router(
-    system_default_keys.router,
-    prefix=f"{settings.API_V1_PREFIX}/system-default-keys",
-    tags=["系统默认APIKey"]
-)
-
-app.include_router(
     admin_users.router,
     prefix=f"{settings.API_V1_PREFIX}/admin/users",
     tags=["管理员 - 用户管理"]
 )
 
+# 流量统计
 app.include_router(
-    api_monitor.router,
-    prefix=f"{settings.API_V1_PREFIX}/api-monitor",
-    tags=["API 监控"]
-)
-
-# OpenAPI代理路由（兼容OpenAI格式）
-app.include_router(
-    openapi_proxy.router,
-    tags=["OpenAPI代理"]
+    traffic.router,
+    prefix=f"{settings.API_V1_PREFIX}/traffic",
+    tags=["流量统计"]
 )
 
 
 if __name__ == "__main__":
-    # nest_asyncio 在 Python 3.13+ 上与 anyio/uvicorn 不兼容，已禁用
-    # 如需在 Windows 上运行 Playwright，请使用 Python 3.12 或更早版本
-    
     import uvicorn
     
     uvicorn.run(

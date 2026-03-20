@@ -38,8 +38,8 @@
             <el-button type="primary" size="small" @click="handleViewDetail(row)">
               详情
             </el-button>
-            <el-button type="warning" size="small" @click="handleResetModels(row)">
-              重置模型
+            <el-button type="warning" size="small" @click="handleResetPassword(row)">
+              重置密码
             </el-button>
           </template>
         </el-table-column>
@@ -87,10 +87,10 @@
         <el-table-column prop="name" label="名称" min-width="150" />
         <el-table-column prop="provider" label="提供商" width="120" />
         <el-table-column prop="model_name" label="模型" width="150" />
-        <el-table-column prop="system_default_source" label="来源" width="100">
+        <el-table-column prop="is_system_builtin" label="来源" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.system_default_source" type="warning">系统默认</el-tag>
-            <el-tag v-else>自定义</el-tag>
+            <el-tag v-if="row.is_system_builtin" type="warning">系统内置</el-tag>
+            <el-tag v-else>用户自定义</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="is_active" label="状态" width="80">
@@ -102,11 +102,6 @@
         </el-table-column>
       </el-table>
 
-      <el-divider>使用统计</el-divider>
-      <el-descriptions :column="3" border>
-        <el-descriptions-item label="总请求数">{{ usageStats.total_requests }}</el-descriptions-item>
-        <el-descriptions-item label="总 Token 数">{{ (usageStats.total_tokens / 10000).toFixed(2) }} 万</el-descriptions-item>
-      </el-descriptions>
     </el-dialog>
   </div>
 </template>
@@ -114,7 +109,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserList, getUserDetail, resetUserModels } from '@/api/adminUsers'
+import { getUserList, getUserDetail, resetUserPassword } from '@/api/adminUsers'
 
 const loading = ref(false)
 const users = ref<any[]>([])
@@ -126,7 +121,6 @@ const total = ref(0)
 const detailVisible = ref(false)
 const currentUser = ref<any>(null)
 const aiModels = ref<any[]>([])
-const usageStats = ref({ total_requests: 0, total_tokens: 0 })
 
 // 加载用户列表
 const loadUsers = async () => {
@@ -158,22 +152,23 @@ const handleViewDetail = async (user: any) => {
     const res = await getUserDetail(user.id)
     currentUser.value = res.data.user
     aiModels.value = res.data.ai_models
-    usageStats.value = res.data.usage_stats
     detailVisible.value = true
   } catch (error: any) {
     ElMessage.error(error.message || '加载详情失败')
   }
 }
 
-// 重置模型
-const handleResetModels = async (user: any) => {
+// 重置密码
+const handleResetPassword = async (user: any) => {
   try {
-    await ElMessageBox.confirm(`确定要重置用户 "${user.username}" 的模型吗？`, '警告', {
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      `确定要重置用户 "${user.username}" 的密码为 123456 吗？`,
+      '警告',
+      { type: 'warning' }
+    )
     
-    await resetUserModels(user.id)
-    ElMessage.success('重置成功')
+    await resetUserPassword(user.id)
+    ElMessage.success('密码已重置为 123456')
   } catch (error: any) {
     if (error !== 'cancel') {
       ElMessage.error(error.message || '重置失败')
