@@ -8,6 +8,34 @@
       <el-button link type="primary" size="small" @click="$emit('manage')">管理模板</el-button>
     </div>
 
+    <!-- 平台选择 -->
+    <div class="platform-selector">
+      <div
+        v-for="p in platforms"
+        :key="p.id"
+        class="platform-item"
+        :class="{ active: selectedPlatform === p.id }"
+        @click="selectPlatform(p.id)"
+      >
+        <span class="platform-icon">{{ getPlatformIcon(p.id) }}</span>
+        <span class="platform-name">{{ p.name }}</span>
+      </div>
+    </div>
+
+    <!-- 场景筛选 -->
+    <div v-if="currentCategories.length > 0" class="category-filter">
+      <el-tag
+        v-for="cat in currentCategories"
+        :key="cat.id"
+        :type="selectedCategory === cat.id ? '' : 'info'"
+        :effect="selectedCategory === cat.id ? 'dark' : 'plain'"
+        class="category-tag"
+        @click="selectCategory(cat.id)"
+      >
+        {{ cat.name }}
+      </el-tag>
+    </div>
+
     <div v-if="loading" class="state-block">
       <el-skeleton :rows="3" animated />
     </div>
@@ -47,10 +75,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { Check } from '@element-plus/icons-vue'
-import { getTemplates } from '@/api/templates'
-import type { ArticleTemplate, CSSProperties } from '@/types/template'
+import { getTemplates, getPlatforms } from '@/api/templates'
+import type { ContentTemplate, CSSProperties, PlatformType, PlatformInfo } from '@/types/template'
 
 const props = defineProps<{
   modelValue?: number
@@ -58,22 +86,71 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: number): void
-  (e: 'change', template: ArticleTemplate): void
+  (e: 'change', template: ContentTemplate): void
   (e: 'manage'): void
 }>()
 
-const templates = ref<ArticleTemplate[]>([])
+const platforms = ref<PlatformInfo[]>([])
+const selectedPlatform = ref<PlatformType>('wechat')
+const selectedCategory = ref<string>('')
+const templates = ref<ContentTemplate[]>([])
 const loading = ref(false)
 
-const selectTemplate = (template: ArticleTemplate) => {
+const currentCategories = computed(() => {
+  const platform = platforms.value.find(p => p.id === selectedPlatform.value)
+  return platform?.categories || []
+})
+
+const selectPlatform = (platform: PlatformType) => {
+  selectedPlatform.value = platform
+  selectedCategory.value = ''
+  loadTemplates()
+}
+
+const selectCategory = (category: string) => {
+  selectedCategory.value = selectedCategory.value === category ? '' : category
+  loadTemplates()
+}
+
+const selectTemplate = (template: ContentTemplate) => {
   emit('update:modelValue', template.id)
   emit('change', template)
+}
+
+const getPlatformIcon = (platform: PlatformType): string => {
+  const icons: Record<PlatformType, string> = {
+    wechat: '📱',
+    xiaohongshu: '📕',
+    toutiao: '📰',
+    ppt: '📊',
+    douyin: '🎬'
+  }
+  return icons[platform] || '📄'
+}
+
+const loadPlatforms = async () => {
+  try {
+    const res = await getPlatforms()
+    platforms.value = res.platforms || []
+    if (platforms.value.length > 0 && !selectedPlatform.value) {
+      selectedPlatform.value = platforms.value[0].id
+    }
+  } catch (error) {
+    console.error('加载平台列表失败:', error)
+  }
 }
 
 const loadTemplates = async () => {
   loading.value = true
   try {
-    const res = await getTemplates({ limit: 50 })
+    const params: any = { limit: 50 }
+    if (selectedPlatform.value) {
+      params.platform = selectedPlatform.value
+    }
+    if (selectedCategory.value) {
+      params.category = selectedCategory.value
+    }
+    const res = await getTemplates(params)
     templates.value = res.items || []
 
     if (!props.modelValue && templates.value.length > 0) {
@@ -86,7 +163,7 @@ const loadTemplates = async () => {
   }
 }
 
-const getPreviewStyle = (template: ArticleTemplate): Record<string, string> => {
+const getPreviewStyle = (template: ContentTemplate): Record<string, string> => {
   const container = template.styles?.container
   if (!container) return {}
 
@@ -96,7 +173,7 @@ const getPreviewStyle = (template: ArticleTemplate): Record<string, string> => {
   }
 }
 
-const getElementStyle = (template: ArticleTemplate, element: string): Record<string, string> => {
+const getElementStyle = (template: ContentTemplate, element: string): Record<string, string> => {
   const styles = template.styles?.[element] as CSSProperties
   if (!styles) return {}
 
@@ -122,8 +199,9 @@ watch(
   }
 )
 
-onMounted(() => {
-  loadTemplates()
+onMounted(async () => {
+  await loadPlatforms()
+  await loadTemplates()
 })
 
 defineExpose({
@@ -156,6 +234,60 @@ defineExpose({
   font-size: 13px;
   line-height: 1.6;
   color: #5f7690;
+}
+
+.platform-selector {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.platform-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.platform-icon {
+  font-size: 18px;
+}
+
+.platform-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.category-filter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.category-tag {
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
 }
 
 .state-block {
@@ -283,6 +415,12 @@ defineExpose({
 
   .template-grid {
     grid-template-columns: 1fr;
+  }
+
+  .platform-selector {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
   }
 }
 </style>

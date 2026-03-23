@@ -1,0 +1,3 @@
+[submodule "frontend/pptist"]
+	path = frontend/pptist
+	url = https://github.com/pipipi-pikachu/PPTist.git

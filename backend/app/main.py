@@ -19,7 +19,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer, admin_users, traffic
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer, admin_users, traffic, ppt_templates
 
 # 配置日志
 logging.basicConfig(
@@ -280,6 +280,13 @@ app.include_router(
     traffic.router,
     prefix=f"{settings.API_V1_PREFIX}/traffic",
     tags=["流量统计"]
+)
+
+# PPT模板管理
+app.include_router(
+    ppt_templates.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["PPT模板管理"]
 )
 
 

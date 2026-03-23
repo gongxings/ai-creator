@@ -1,5 +1,5 @@
 /**
- * 文章模板类型定义
+ * 内容模板类型定义 - 支持多平台
  */
 
 // CSS 属性配置
@@ -58,13 +58,34 @@ export interface TemplateStyles {
   [key: string]: CSSProperties | undefined
 }
 
-// 文章模板
-export interface ArticleTemplate {
+// 平台类型
+export type PlatformType = 'wechat' | 'xiaohongshu' | 'toutiao' | 'ppt' | 'douyin'
+
+// 平台信息
+export interface PlatformInfo {
+  id: PlatformType
+  name: string
+  categories: { id: string; name: string }[]
+}
+
+// 平台列表响应
+export interface PlatformsResponse {
+  platforms: PlatformInfo[]
+}
+
+// 内容模板（兼容旧版ArticleTemplate）
+export interface ContentTemplate {
   id: number
   name: string
   description?: string
   thumbnail?: string
+  platform: PlatformType
+  category?: string
+  style?: string
   styles: TemplateStyles
+  format_rules?: Record<string, any>
+  ai_prompt?: string
+  content_structure?: Record<string, any>
   is_system: boolean
   is_public: boolean
   user_id?: number
@@ -73,12 +94,21 @@ export interface ArticleTemplate {
   updated_at: string
 }
 
+// 向后兼容别名
+export type ArticleTemplate = ContentTemplate
+
 // 创建模板请求
 export interface TemplateCreate {
   name: string
   description?: string
   thumbnail?: string
+  platform: PlatformType
+  category?: string
+  style?: string
   styles: TemplateStyles
+  format_rules?: Record<string, any>
+  ai_prompt?: string
+  content_structure?: Record<string, any>
   is_public?: boolean
 }
 
@@ -87,14 +117,20 @@ export interface TemplateUpdate {
   name?: string
   description?: string
   thumbnail?: string
+  platform?: PlatformType
+  category?: string
+  style?: string
   styles?: TemplateStyles
+  format_rules?: Record<string, any>
+  ai_prompt?: string
+  content_structure?: Record<string, any>
   is_public?: boolean
 }
 
 // 模板列表响应
 export interface TemplateListResponse {
   total: number
-  items: ArticleTemplate[]
+  items: ContentTemplate[]
 }
 
 // 克隆模板请求

@@ -19,6 +19,8 @@ from app.schemas.creation import CreationCreate
 # 使用新的 LangChain 服务
 from app.services.langchain import LangChainService, quick_chat
 
+from app.services.ai.prompt_templates import get_platform_prompt
+
 logger = logging.getLogger(__name__)
 
 
@@ -842,3 +844,66 @@ class WritingService:
                 "plugin_invocations": [],
                 "usage": {}
             }
+    
+    @classmethod
+    async def generate_content_with_template(
+        cls,
+        db: Session,
+        platform: str,
+        category: str,
+        user_input: Dict[str, Any],
+        ai_model: AIModel,
+        style: Optional[str] = None,
+        template_id: Optional[int] = None
+    ) -> str:
+        """
+        使用平台模板生成内容
+        
+        Args:
+            db: 数据库连接
+            platform: 平台类型 (wechat/xiaohongshu/toutiao/ppt)
+            category: 场景分类
+            user_input: 用户输入
+            ai_model: AI模型配置
+            style: 风格类型
+            template_id: 模板ID（可选，如果提供则使用该模板的提示词）
+            
+        Returns:
+            生成的内容
+        """
+        from app.models.template import ContentTemplate
+        
+        # 如果提供了模板ID，使用模板的自定义提示词
+        if template_id:
+            template = db.query(ContentTemplate).filter(
+                ContentTemplate.id == template_id
+            ).first()
+            
+            if template and template.ai_prompt:
+                prompt_template = template.ai_prompt
+            else:
+                # 使用默认的平台提示词
+                prompt_template = get_platform_prompt(platform, category, style)
+        else:
+            # 使用默认的平台提示词
+            prompt_template = get_platform_prompt(platform, category, style)
+        
+        # 提取用户补充说明
+        additional_info = user_input.pop('additional_info', user_input.pop('additional_description', ''))
+        
+        # 填充提示词
+        try:
+            prompt = prompt_template.format(
+                topic=user_input.get('topic', ''),
+                additional_info=additional_info or '',
+                **user_input
+            )
+        except KeyError as e:
+            # 如果格式化失败，使用简单的方式
+            prompt = f"{prompt_template}\n\n【主题】{user_input.get('topic', '')}\n【补充信息】{additional_info}"
+        
+        # 调用 LangChain 服务生成内容
+        service = cls.get_langchain_service(ai_model)
+        response = await service.chat(prompt)
+        
+        return response.content

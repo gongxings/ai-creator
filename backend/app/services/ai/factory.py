@@ -70,8 +70,13 @@ class AIServiceFactory:
             # 阿里通义千问
             return service_class(api_key, model_name or "qwen-turbo", base_url or "https://dashscope.aliyuncs.com/api/v1")
         else:
-            # OpenAI及兼容接口
-            return service_class(api_key, model_name or "gpt-4", base_url)
+            # OpenAI及兼容接口 - 使用config字典
+            config = {
+                "model": model_name or "gpt-4",
+                "base_url": base_url or "https://api.openai.com/v1"
+            }
+            config.update(kwargs)
+            return service_class(api_key, config)
     
     @classmethod
     def create_from_model(

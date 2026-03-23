@@ -65,6 +65,12 @@ const routes: RouteRecordRaw[] = [
                 meta: {requiresAuth: true},
             },
             {
+                path: 'ppt/editor',
+                name: 'PPTEditor',
+                component: () => import('@/views/ppt/editor/PPTEditorPage.vue'),
+                meta: {requiresAuth: true},
+            },
+            {
                 path: 'publish',
                 name: 'PublishManagement',
                 component: () => import('@/views/publish/PublishManagement.vue'),
