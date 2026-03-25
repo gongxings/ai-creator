@@ -50,6 +50,7 @@ export interface PlatformListResponse {
 // 选题建议请求
 export interface TopicSuggestRequest {
   hot_title: string
+  url?: string
   user_domain?: string
   target_platforms?: string[]
 }
@@ -123,14 +124,16 @@ export function getTopicSuggestions(data: TopicSuggestRequest) {
 export interface ExtractKeywordsResponse {
   title: string
   keywords: string[]
+  additional_description?: string
 }
 
 /**
  * 从热点标题中提取关键词
  * @param title 热点标题
+ * @param url 可选的热点链接
  */
-export function extractKeywords(title: string) {
+export function extractKeywords(title: string, url?: string) {
   return request.post<ExtractKeywordsResponse>('/v1/hotspot/extract-keywords', null, {
-    params: { title },
+    params: { title, url },
   })
 }

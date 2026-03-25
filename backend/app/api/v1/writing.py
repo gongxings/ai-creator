@@ -146,7 +146,6 @@ async def generate_content(
     生成AI写作内容
     支持两种模式：
     1. API Key模式：提供model_id，系统使用配置的API Key
-    2. Cookie模式：提供platform（如'doubao'），系统使用用户授权的Cookie账号
     """
     # 检查并扣减积分（会员不扣积分）
     credits_required = 10  # 每次生成需要10积分

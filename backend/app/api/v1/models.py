@@ -14,6 +14,7 @@ from app.schemas.ai_model import (
     AIModelCreate,
     AIModelUpdate,
     AIModelResponse,
+    AIModelAdminResponse,
     AIModelTestRequest,
     AIModelTestResponse
 )
@@ -22,16 +23,21 @@ from app.services.ai.factory import AIServiceFactory
 router = APIRouter()
 
 
-def _model_to_response(model: AIModel, is_admin: bool, current_user_id: int) -> AIModelResponse:
+def _model_to_response(model: AIModel, is_admin: bool, current_user_id: int):
     """将模型转换为响应，自动计算 is_readonly"""
-    data = AIModelResponse.model_validate(model)
+    if is_admin:
+        # 管理员返回完整信息
+        data = AIModelAdminResponse.model_validate(model)
+    else:
+        # 普通用户返回安全信息（不含敏感字段）
+        data = AIModelResponse.model_validate(model)
     data.is_readonly = (model.is_system_builtin and not is_admin) or (
         model.is_system_builtin and model.user_id != current_user_id
     )
     return data
 
 
-@router.get("", response_model=List[AIModelResponse])
+@router.get("")
 async def get_models(
     capability: Optional[str] = Query(None, description="按能力筛选(text/image/video/audio)"),
     db: Session = Depends(get_db),
@@ -59,7 +65,7 @@ async def get_models(
     return [_model_to_response(m, is_admin, current_user.id) for m in models]
 
 
-@router.get("/{model_id}", response_model=AIModelResponse)
+@router.get("/{model_id}")
 async def get_model(
     model_id: int,
     db: Session = Depends(get_db),

@@ -103,11 +103,12 @@ import type { TopicSuggestResponse } from '@/api/hotspot'
 const props = defineProps<{
   visible: boolean
   hotTitle: string
+  hotUrl?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
-  (e: 'select', data: { toolType: string; title: string; direction: string; keywords?: string[] }): void
+  (e: 'select', data: { toolType: string; title: string; direction: string; keywords?: string[]; additionalDescription?: string }): void
 }>()
 
 const dialogVisible = computed({
@@ -145,6 +146,7 @@ const loadSuggestions = async () => {
   try {
     const res = await getTopicSuggestions({
       hot_title: props.hotTitle,
+      url: props.hotUrl,
     })
     suggestions.value = res
     // 默认选中第一个角度
@@ -164,12 +166,16 @@ const confirmSelection = () => {
 
   const angle = suggestions.value.angles[selectedAngleIndex.value]
   const toolType = angle.recommended_tools[0] || 'wechat_article'
+  
+  // 构建补充说明，包含热点背景和创作方向
+  const additionalDescription = `【热点背景】${suggestions.value.background}\n\n【创作方向】${angle.content_direction}`
 
   emit('select', {
     toolType,
     title: angle.title_suggestion,
     direction: angle.content_direction,
-    keywords: suggestions.value.keywords,  // 传递关键词
+    keywords: suggestions.value.keywords,
+    additionalDescription,
   })
   dialogVisible.value = false
 }

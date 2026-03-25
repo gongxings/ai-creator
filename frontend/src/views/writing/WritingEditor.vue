@@ -206,6 +206,7 @@ import TitleOptimizer from '@/components/title/TitleOptimizer.vue'
 import TitleGenerator from '@/components/title/TitleGenerator.vue'
 import ImagePicker from '@/components/image/ImagePicker.vue'
 import { getToolFormConfig } from '@/config/writingToolForms'
+import { useHotspotWritingStore } from '@/store/hotspotWriting'
 import type { AIModel, Creation } from '@/types'
 import type { ImageItem } from '@/api/imageStock'
 
@@ -233,19 +234,42 @@ const queryTopic = route.query.topic as string | undefined
 const queryDirection = route.query.direction as string | undefined
 const queryKeywords = route.query.keywords as string | undefined
 
+// 热点 Store
+const hotspotStore = useHotspotWritingStore()
+
 // 根据工具类型获取目标字段名
 const getTopicFieldName = (tool: string): string | null => {
   return topicFieldMapping[tool] || null
 }
 
-// 初始化 formData（包含 query 参数）
-const initFormDataFromQuery = (): Record<string, any> => {
+// 初始化 formData（包含 query 参数和热点数据）
+const initFormData = (): Record<string, any> => {
+  let data: Record<string, any> = {}
+  
+  // 优先从 Pinia store 获取热点数据
+  const hotspotData = hotspotStore.consumeHotspotData()
+  if (hotspotData) {
+    console.log('从热点 Store 获取数据:', hotspotData)
+    const fieldName = getTopicFieldName(hotspotData.tool_type)
+    if (fieldName) {
+      data[fieldName] = hotspotData.topic
+      if (hotspotData.keywords) {
+        data.keywords = hotspotData.keywords
+      }
+      if (hotspotData.additional_description) {
+        data.additional_description = hotspotData.additional_description
+      }
+    }
+    return data
+  }
+  
+  // 兼容旧的 query 参数方式
   if (!queryTopic) return {}
   
   const fieldName = getTopicFieldName(route.params.toolType as string)
   if (!fieldName) return {}
   
-  const data: Record<string, any> = {
+  data = {
     [fieldName]: queryTopic,
   }
   
@@ -271,7 +295,7 @@ const toolInfo = computed(() => {
 })
 
 const dynamicFormRef = ref<InstanceType<typeof DynamicToolForm>>()
-const formData = ref<Record<string, any>>(initFormDataFromQuery())
+const formData = ref<Record<string, any>>(initFormData())
 const aiModels = ref<AIModel[]>([])
 const selectedModel = ref<number>()
 const markdownContent = ref('')

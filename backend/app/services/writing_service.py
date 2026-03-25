@@ -705,15 +705,49 @@ class WritingService:
         if additional_description and additional_description.strip():
             base_prompt += f"\n\n【用户补充说明】\n{additional_description.strip()}"
         
+        # 检测补充说明中是否有URL
+        has_url = False
+        if additional_description:
+            import re
+            url_pattern = r'https?://[^\s）\)\]]+'
+            if re.search(url_pattern, additional_description):
+                has_url = True
+                logger.info("检测到用户补充说明中包含URL链接")
+        
         # 如果没有启用插件，直接生成
         if not enabled_plugins:
-            service = cls.get_langchain_service(ai_model)
-            response = await service.chat(base_prompt)
-            return {
-                "content": response.content,
-                "plugin_invocations": [],
-                "usage": {}
-            }
+            # 如果有URL但没有启用插件，自动添加web_fetch插件
+            if has_url:
+                logger.info("检测到URL但未启用插件，自动添加web_fetch插件")
+                enabled_plugins = ["web_fetch"]
+                
+                # 检查用户是否已安装web_fetch插件，如果没有则自动安装
+                from app.models.plugin import UserPlugin
+                existing = db.query(UserPlugin).filter(
+                    UserPlugin.user_id == user_id,
+                    UserPlugin.plugin_name == "web_fetch",
+                    UserPlugin.is_enabled == True
+                ).first()
+                
+                if not existing:
+                    logger.info(f"用户{user_id}未安装web_fetch插件，自动安装")
+                    user_plugin = UserPlugin(
+                        user_id=user_id,
+                        plugin_name="web_fetch",
+                        is_enabled=True,
+                        config={},
+                        is_auto_use=False
+                    )
+                    db.add(user_plugin)
+                    db.commit()
+            else:
+                service = cls.get_langchain_service(ai_model)
+                response = await service.chat(base_prompt)
+                return {
+                    "content": response.content,
+                    "plugin_invocations": [],
+                    "usage": {}
+                }
         
         # 初始化插件管理器（单例）
         plugin_manager = PluginManager()
@@ -744,6 +778,12 @@ class WritingService:
         
         system_prompt += """
 在创作过程中，如果需要最新信息、事实数据或计算结果，请使用相应的工具。
+
+【重要】如果用户的输入（特别是"补充说明"字段）中包含URL链接（以http://或https://开头），请：
+1. 先使用"网页抓取"工具获取该链接的内容
+2. 仔细阅读获取到的内容
+3. 基于获取到的内容进行创作，将信息自然地融入文章中
+
 工具返回的信息应该融入到你的创作中，而不是直接展示给用户。
 """
         

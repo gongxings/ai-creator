@@ -52,6 +52,7 @@ class PlatformListResponse(BaseModel):
 class TopicSuggestRequest(BaseModel):
     """选题建议请求"""
     hot_title: str = Field(..., description="热点标题")
+    url: Optional[str] = Field(None, description="可选的热点链接，用于获取内容生成更精准的选题建议")
     user_domain: Optional[str] = Field(None, description="用户领域（如：科技、娱乐、职场等）")
     target_platforms: Optional[List[str]] = Field(None, description="目标平台列表")
 
@@ -82,3 +83,4 @@ class ExtractKeywordsResponse(BaseModel):
     """提取关键词响应"""
     title: str = Field(..., description="原标题")
     keywords: List[str] = Field(..., description="提取的关键词列表")
+    additional_description: str = Field(default="", description="补充说明，包含内容摘要和参考链接")

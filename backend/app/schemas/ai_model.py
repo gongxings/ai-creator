@@ -37,14 +37,26 @@ class AIModelUpdate(BaseModel):
 
 
 class AIModelResponse(BaseModel):
-    """AI模型响应"""
+    """AI模型响应（安全版本，不包含敏感信息）"""
+    id: int
+    name: str
+    is_active: bool = True
+    is_default: bool = False
+    is_system_builtin: bool = False
+    description: Optional[str] = None
+    capabilities: List[str] = Field(default=["text"])
+    created_at: datetime
+    is_readonly: bool = Field(False, description="是否只读（系统内置模型对普通用户只读）")
+    
+    class Config:
+        from_attributes = True
+
+
+class AIModelAdminResponse(BaseModel):
+    """AI模型完整响应（仅管理员可见，包含敏感信息）"""
     id: int
     user_id: int
     name: str
-    provider: str
-    model_name: str
-    api_key: str
-    base_url: Optional[str] = None
     is_active: bool = True
     is_default: bool = False
     is_system_builtin: bool = False

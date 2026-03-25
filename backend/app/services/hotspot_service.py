@@ -325,6 +325,7 @@ class HotspotService:
     async def get_topic_suggestions(
         cls,
         hot_title: str,
+        url: Optional[str] = None,
         user_domain: Optional[str] = None,
         target_platforms: Optional[List[str]] = None,
         ai_model = None,
@@ -335,6 +336,7 @@ class HotspotService:
         
         Args:
             hot_title: 热点标题
+            url: 可选的热点链接
             user_domain: 用户领域
             target_platforms: 目标平台
             ai_model: AI 模型实例
@@ -345,9 +347,42 @@ class HotspotService:
         """
         from app.services.langchain import LangChainService
         
+        logger.info(f"选题建议请求: title={hot_title}, url={url}")
+        
+        # 如果有URL，先获取内容
+        article_content = ""
+        if url:
+            # 检查是否是视频平台链接
+            video_domains = ['kuaishou', 'douyin', 'bilibili', 'youku', 'iqiyi', 'qq.com/video']
+            is_video_url = any(domain in url.lower() for domain in video_domains)
+            
+            if is_video_url:
+                logger.info(f"检测到视频链接，跳过内容抓取: {url}")
+                # 视频链接无法直接获取内容，只基于标题生成
+                article_content = ""
+            else:
+                logger.info(f"获取热点文章内容: {url}")
+                try:
+                    from app.services.plugins.registry import PluginRegistry
+                    plugin_class = PluginRegistry.get_class("web_fetch")
+                    if plugin_class:
+                        plugin = plugin_class()
+                        fetch_result = await plugin.execute(url=url)
+                        if fetch_result.get("success"):
+                            article_content = fetch_result.get("data", {}).get("content", "")
+                            content_title = fetch_result.get("data", {}).get("title", "")
+                            logger.info(f"成功获取内容: title={content_title}, length={len(article_content)}")
+                        else:
+                            logger.warning(f"获取内容失败: {fetch_result.get('error')}")
+                    else:
+                        logger.warning("web_fetch 插件未找到")
+                except Exception as e:
+                    logger.error(f"获取热点内容失败: {e}")
+        
         # 构建提示词
         prompt = cls._build_topic_suggestion_prompt(
             hot_title=hot_title,
+            article_content=article_content if article_content else None,
             user_domain=user_domain,
             target_platforms=target_platforms,
         )
@@ -382,6 +417,7 @@ class HotspotService:
     def _build_topic_suggestion_prompt(
         cls,
         hot_title: str,
+        article_content: Optional[str] = None,
         user_domain: Optional[str] = None,
         target_platforms: Optional[List[str]] = None,
     ) -> str:
@@ -393,6 +429,11 @@ class HotspotService:
             platform_names = [cls._get_tool_name(p) for p in target_platforms]
             platform_text = f"目标平台：{', '.join(platform_names)}"
         
+        # 如果有文章内容，添加到提示词中
+        content_text = ""
+        if article_content:
+            content_text = f"\n## 热点文章内容\n以下是热点文章的实际内容，请仔细阅读并基于内容进行分析：\n{article_content[:5000]}"
+        
         return f"""你是一位资深的新媒体内容策划专家，擅长从热点事件中挖掘创作角度。
 
 ## 任务
@@ -402,6 +443,7 @@ class HotspotService:
 标题：{hot_title}
 {domain_text}
 {platform_text}
+{content_text}
 
 ## 请提供以下内容
 
@@ -537,20 +579,100 @@ class HotspotService:
         cls,
         title: str,
         ai_model = None,
-    ) -> List[str]:
+        url: str = None,
+    ) -> dict:
         """
-        从热点标题中提取关键词
+        从热点标题中提取关键词，如果有URL则获取内容生成补充说明
         
         Args:
             title: 热点标题
             ai_model: AI 模型实例
+            url: 可选的热点链接，用于获取内容生成补充说明
             
         Returns:
-            关键词列表（3-5个）
+            包含 keywords 和 additional_description 的字典
         """
         from app.services.langchain import LangChainService
         
-        prompt = f"""从以下标题中提取3-5个关键词，用于内容创作时的SEO优化。
+        logger.info(f"开始提取关键词: title={title}, url={url}")
+        
+        keywords = []
+        additional_description = ""
+        
+        try:
+            # 如果有URL，先获取网页内容
+            if url:
+                # 检查是否是视频平台链接
+                video_domains = ['kuaishou', 'douyin', 'bilibili', 'zhihu', 'xiaohongshu', 'weibo', 'toutiao', 'youku', 'iqiyi', 'qq.com/video']
+                is_video_url = any(domain in url.lower() for domain in video_domains)
+                
+                if is_video_url:
+                    logger.info(f"检测到视频链接，跳过内容抓取: {url}")
+                    content = ""
+                else:
+                    logger.info(f"获取热点链接内容: {url}")
+                    try:
+                        from app.services.plugins.registry import PluginRegistry
+                        plugin_class = PluginRegistry.get_class("web_fetch")
+                        if plugin_class:
+                            plugin = plugin_class()
+                            fetch_result = await plugin.execute(url=url)
+                            if fetch_result.get("success"):
+                                content = fetch_result.get("data", {}).get("content", "")
+                                content_title = fetch_result.get("data", {}).get("title", "")
+                                logger.info(f"成功获取内容: title={content_title}, length={len(content)}")
+                            else:
+                                content = ""
+                                logger.warning(f"获取内容失败: {fetch_result.get('error')}")
+                        else:
+                            content = ""
+                            logger.warning("web_fetch 插件未找到")
+                    except Exception as e:
+                        content = ""
+                        logger.error(f"获取热点内容失败: {e}")
+                
+                # 如果获取到内容，生成补充说明
+                if content:
+                    summary_prompt = f"""请阅读以下热点文章内容，然后：
+1. 用50-100字总结文章核心内容
+2. 提取3-5个与内容主题相关的关键词（每个2-6个字）
+
+文章标题：{content_title}
+文章内容：{content[:5000]}
+
+请按以下格式返回：
+摘要：<50-100字的摘要>
+关键词：关键词1,关键词2,关键词3"""
+                    
+                    if ai_model:
+                        service = LangChainService(
+                            provider=ai_model.provider,
+                            model=ai_model.model_name or "gpt-4",
+                            api_key=ai_model.api_key,
+                            api_base=ai_model.base_url,
+                        )
+                        summary_response = await service.chat(summary_prompt)
+                        summary_content = summary_response.content.strip()
+                        
+                        # 解析摘要和关键词
+                        lines = summary_content.split('\n')
+                        for line in lines:
+                            if line.startswith('摘要：'):
+                                additional_description = line[3:].strip()
+                            elif line.startswith('关键词：'):
+                                kw_text = line[4:].strip()
+                                keywords = [k.strip() for k in kw_text.split(',') if k.strip()][:5]
+                    
+                    # 补充说明包含摘要和原始链接
+                    if additional_description:
+                        additional_description = f"{additional_description}\n\n参考链接：{url}"
+                    else:
+                        additional_description = f"参考链接：{url}"
+                    
+                    logger.info(f"生成补充说明成功: keywords={keywords}, description_length={len(additional_description)}")
+            else:
+                # 没有URL，只提取关键词
+                keywords_prompt = f"""从以下标题中提取3-5个关键词，用于内容创作时的SEO优化。
 
 标题：{title}
 
@@ -562,32 +684,30 @@ class HotspotService:
 
 请直接返回关键词，用英文逗号分隔，不要其他内容。
 示例输出格式：关键词1,关键词2,关键词3"""
-        
-        try:
-            # 使用 LangChain 服务调用 AI
-            if ai_model:
-                service = LangChainService(
-                    provider=ai_model.provider,
-                    model=ai_model.model_name or "gpt-4",
-                    api_key=ai_model.api_key,
-                    api_base=ai_model.base_url,
-                )
-            else:
-                # 没有 AI 模型时返回空列表
+                
+                if ai_model:
+                    service = LangChainService(
+                        provider=ai_model.provider,
+                        model=ai_model.model_name or "gpt-4",
+                        api_key=ai_model.api_key,
+                        api_base=ai_model.base_url,
+                    )
+                    response = await service.chat(keywords_prompt)
+                    
+                    content = response.content.strip()
+                    content = content.strip('"\'')
+                    keywords = [k.strip() for k in content.split(',') if k.strip()][:5]
+                    
+                    logger.info(f"提取关键词成功: keywords={keywords}")
+            
+            # 如果没有AI模型或提取失败，返回空
+            if not ai_model:
                 logger.warning("没有配置 AI 模型，无法提取关键词")
-                return []
-            
-            response = await service.chat(prompt)
-            
-            # 解析返回的关键词
-            content = response.content.strip()
-            # 移除可能的引号和多余空格
-            content = content.strip('"\'')
-            keywords = [k.strip() for k in content.split(',') if k.strip()]
-            
-            # 最多返回5个关键词
-            return keywords[:5]
-            
+                
         except Exception as e:
             logger.error(f"提取关键词失败: {e}")
-            return []
+        
+        return {
+            "keywords": keywords[:5] if keywords else [],
+            "additional_description": additional_description
+        }

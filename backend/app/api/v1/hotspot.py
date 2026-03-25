@@ -150,6 +150,7 @@ async def get_topic_suggestions(
     try:
         result = await HotspotService.get_topic_suggestions(
             hot_title=request.hot_title,
+            url=request.url,
             user_domain=request.user_domain,
             target_platforms=request.target_platforms,
             ai_model=ai_model,
@@ -168,6 +169,7 @@ async def get_topic_suggestions(
 @router.post("/extract-keywords", response_model=ExtractKeywordsResponse)
 async def extract_keywords(
     title: str = Query(..., description="热点标题"),
+    url: str = Query(None, description="可选的热点链接，用于获取内容生成补充说明"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -175,8 +177,11 @@ async def extract_keywords(
     从热点标题中提取关键词
     
     需要登录才能使用（会消耗 AI 调用额度）
-    返回 3-5 个与标题相关的关键词
+    如果提供url，会先获取链接内容，然后生成关键词和补充说明
+    返回关键词列表和补充说明
     """
+    logger.info(f"提取关键词请求: title={title}, url={url}")
+    
     # 获取用户的默认 AI 模型
     ai_model = db.query(AIModel).filter(
         AIModel.user_id == current_user.id,
@@ -190,13 +195,16 @@ async def extract_keywords(
         )
     
     try:
-        keywords = await HotspotService.extract_keywords(
+        result = await HotspotService.extract_keywords(
             title=title,
             ai_model=ai_model,
+            url=url,
         )
+        logger.info(f"提取关键词成功: keywords={result.get('keywords')}, has_description={bool(result.get('additional_description'))}")
         return ExtractKeywordsResponse(
             title=title,
-            keywords=keywords,
+            keywords=result.get("keywords", []),
+            additional_description=result.get("additional_description", ""),
         )
     except Exception as e:
         logger.error(f"提取关键词失败: {e}")

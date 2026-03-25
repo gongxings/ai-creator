@@ -121,6 +121,7 @@
     <TopicSuggestDialog
       v-model:visible="suggestDialogVisible"
       :hot-title="selectedHotTitle"
+      :hot-url="selectedHotUrl"
       @select="onSelectAngle"
     />
   </div>
@@ -144,6 +145,7 @@ import { ElMessage, ElLoading } from 'element-plus'
 import { getHotList, getPlatforms, getCategories, extractKeywords } from '@/api/hotspot'
 import type { HotspotItem, PlatformInfo, CategoryInfo } from '@/api/hotspot'
 import TopicSuggestDialog from './TopicSuggestDialog.vue'
+import { useHotspotWritingStore } from '@/store/hotspotWriting'
 
 const router = useRouter()
 
@@ -166,6 +168,7 @@ const hotItems = ref<HotspotItem[]>([])
 // AI 选题建议弹窗
 const suggestDialogVisible = ref(false)
 const selectedHotTitle = ref('')
+const selectedHotUrl = ref('')
 
 // 根据分类筛选平台
 const filteredPlatforms = computed(() => {
@@ -281,49 +284,72 @@ const openHotLink = (item: HotspotItem) => {
 
 // 处理写作命令
 const handleWriteCommand = async (command: string, item: HotspotItem) => {
+  const hotspotStore = useHotspotWritingStore()
+  
   if (command === 'ai_suggest') {
     selectedHotTitle.value = item.title
+    selectedHotUrl.value = item.url || ''
     suggestDialogVisible.value = true
   } else {
-    // 先提取关键词，再跳转到写作编辑器
-    let keywords = ''
+    // 先提取关键词（包括获取URL内容），再跳转到写作编辑器
     const loadingInstance = ElLoading.service({
-      text: '正在分析关键词...',
+      text: '正在分析热点内容...',
       background: 'rgba(255, 255, 255, 0.8)',
     })
     
     try {
-      const res = await extractKeywords(item.title)
-      keywords = res.keywords.join(',')
+      // 传递 URL 给后端
+      const res = await extractKeywords(item.title, item.url)
+      const keywords = res.keywords?.join(',') || ''
+      const additionalDescription = res.additional_description || ''
+      
+      console.log('提取关键词结果:', { keywords, additionalDescription })
+      
+      // 存储到 Pinia
+      hotspotStore.setHotspotData({
+        topic: item.title,
+        keywords: keywords,
+        additional_description: additionalDescription,
+        tool_type: command,
+      })
+      
     } catch (error) {
       console.error('提取关键词失败:', error)
-      // 提取失败不阻止跳转，只是没有关键词
+      // 提取失败也跳转，只是没有关键词
+      hotspotStore.setHotspotData({
+        topic: item.title,
+        keywords: '',
+        additional_description: '',
+        tool_type: command,
+      })
     } finally {
       loadingInstance.close()
     }
     
-    // 跳转到写作编辑器，带上热点标题和关键词
+    // 跳转到写作编辑器，只需传递工具类型
     router.push({
       name: 'WritingEditor',
       params: { toolType: command },
-      query: { 
-        topic: item.title,
-        keywords: keywords || undefined,
-      },
     })
   }
 }
 
 // 选择 AI 建议的角度
-const onSelectAngle = (data: { toolType: string; title: string; direction: string; keywords?: string[] }) => {
+const onSelectAngle = (data: { toolType: string; title: string; direction: string; keywords?: string[]; additionalDescription?: string }) => {
+  const hotspotStore = useHotspotWritingStore()
+  
+  // 存储到 Pinia
+  hotspotStore.setHotspotData({
+    topic: data.title,
+    keywords: data.keywords?.join(',') || '',
+    additional_description: data.additionalDescription || '',
+    tool_type: data.toolType,
+  })
+  
+  // 跳转只需传递工具类型
   router.push({
     name: 'WritingEditor',
     params: { toolType: data.toolType },
-    query: {
-      topic: data.title,
-      direction: data.direction,
-      keywords: data.keywords?.join(',') || undefined,
-    },
   })
 }
 

@@ -23,7 +23,7 @@ const whiteList = [
 // 创建axios实例
 const service: AxiosInstance = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-    timeout: 60000,
+    timeout: 300000,  // 5分钟超时
     headers: {
         'Content-Type': 'application/json',
     },
