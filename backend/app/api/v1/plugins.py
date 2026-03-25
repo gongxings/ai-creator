@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.utils.deps import get_admin_user
 from app.models.plugin import (
     PluginMarket,
     UserPlugin,
@@ -661,3 +662,27 @@ async def get_plugin_stats(
         ).model_dump())
     
     return success_response(items)
+
+
+# ==================== 管理员 API ====================
+
+@router.post("/admin/sync", summary="同步插件到数据库")
+async def sync_plugins_to_database(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """管理员接口：重新扫描插件目录并同步到数据库"""
+    from app.services.plugins.plugin_manager import PluginManager
+    
+    try:
+        pm = PluginManager()
+        pm.discover_builtin_plugins()
+        count = pm.sync_to_database(db)
+        
+        return success_response({
+            "synced_count": count,
+            "message": f"成功同步 {count} 个插件"
+        })
+    except Exception as e:
+        logger.error(f"插件同步失败: {e}")
+        raise HTTPException(status_code=500, detail=f"插件同步失败: {str(e)}")

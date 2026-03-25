@@ -111,6 +111,21 @@ async def startup_event():
     except Exception as e:
         logger.error(f"启动埋点后台任务失败: {e}")
 
+    # 同步插件到数据库
+    try:
+        from app.services.plugins.plugin_manager import PluginManager
+        from app.core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            pm = PluginManager()
+            pm.discover_builtin_plugins()
+            count = pm.sync_to_database(db)
+            logger.info(f"插件同步完成，共 {count} 个插件")
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"插件同步失败: {e}")
+
     logger.info("应用启动完成")
 
 
