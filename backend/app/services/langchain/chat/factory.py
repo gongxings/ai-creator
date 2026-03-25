@@ -222,6 +222,24 @@ class LangChainChatFactory:
             # Stability AI 主要用于图片，不支持 chat
             raise ValueError("Stability AI 不支持文本对话，请使用图片生成功能")
         
+        elif provider == "huggingface":
+            # Hugging Face 使用 OpenAI 兼容接口
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(
+                model=model_name,
+                api_key=api_key,
+                base_url=base_url or "https://api-inference.huggingface.co/v1",
+            )
+        
+        elif provider == "modelscope":
+            # ModelScope 使用 OpenAI 兼容接口
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(
+                model=model_name,
+                api_key=api_key,
+                base_url=base_url or "https://api-inference.modelscope.cn/v1",
+            )
+        
         else:
             raise ValueError(f"未实现的自定义厂商: {provider}")
     

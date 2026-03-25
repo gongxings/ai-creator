@@ -37,6 +37,8 @@ class VideoGeneratorFactory:
         "minimax": ".providers.minimax.MiniMaxVideoGenerator",
         "stability": ".providers.stability.StabilityVideoGenerator",
         "replicate": ".providers.replicate.ReplicateVideoGenerator",
+        "huggingface": ".providers.huggingface.HuggingFaceVideoGenerator",
+        "modelscope": ".providers.modelscope.ModelScopeVideoGenerator",
     }
     
     @classmethod

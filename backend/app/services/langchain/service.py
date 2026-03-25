@@ -10,11 +10,9 @@ LangChain 统一服务入口
 这是新 LangChain 架构的核心服务层。
 """
 
-import asyncio
-import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Callable, Dict, List, Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
@@ -27,8 +25,7 @@ from langchain_core.messages import (
 from langchain_core.tools import BaseTool
 
 from .chat.factory import LangChainChatFactory
-from .config import get_provider_config, Capability
-from .tools import PluginToolAdapter, ToolExecutor, create_tool_from_plugin
+from .tools import ToolExecutor, create_tool_from_plugin
 
 logger = logging.getLogger(__name__)
 

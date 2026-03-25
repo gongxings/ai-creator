@@ -327,6 +327,96 @@ PROVIDERS: Dict[str, ProviderConfig] = {
             "chat": "/chat/completions",
         }
     ),
+    
+    # ======================== 开源模型平台 ========================
+    
+    "huggingface": ProviderConfig(
+        name="huggingface",
+        display_name="Hugging Face",
+        base_url="https://api-inference.huggingface.co/v1",
+        auth_type=AuthType.API_KEY,
+        capabilities=[Capability.TEXT, Capability.IMAGE, Capability.VIDEO],
+        langchain_class=None,  # 需自定义实现（使用OpenAI兼容接口）
+        models={
+            "text": [
+                "meta-llama/Llama-3.1-8B-Instruct",
+                "microsoft/Phi-3-mini-4k-instruct",
+                "mistralai/Mistral-7B-Instruct-v0.3",
+                "Qwen/Qwen2.5-7B-Instruct",
+            ],
+            "image": [
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                "stabilityai/stable-diffusion-2-1",
+                "runwayml/stable-diffusion-v1-5",
+                "CompVis/stable-diffusion-v1-4",
+                "stabilityai/sdxl-turbo",
+            ],
+            "video": [
+                "stabilityai/stable-video-diffusion-img2vid-xt",
+                "stabilityai/stable-video-diffusion-img2vid",
+                "cerspense/zeroscope_v2_576w",
+            ],
+        },
+        endpoints={
+            "chat": "/chat/completions",
+            "image": "/models/{model_id}",
+            "video": "/models/{model_id}",
+        }
+    ),
+    
+    "modelscope": ProviderConfig(
+        name="modelscope",
+        display_name="ModelScope",
+        base_url="https://api-inference.modelscope.cn/v1",
+        auth_type=AuthType.API_KEY,
+        capabilities=[Capability.TEXT, Capability.IMAGE, Capability.VIDEO],
+        langchain_class=None,  # 需自定义实现（使用OpenAI兼容接口）
+        models={
+            "text": [
+                "Qwen/Qwen2.5-7B-Instruct",
+                "Qwen/Qwen2.5-14B-Instruct",
+                "iic/nlp_gpt3_text-generation_chinese-base",
+            ],
+            "image": [
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                "iic/Colorize-SD",
+                "AI-ModelScope/dreamshaper-xl-v2-turbo",
+                "iic/GroundingDINO_SwinT",
+            ],
+            "video": [
+                "iic/text-to-video-synthesis",
+                "iic/VideoComposer",
+                "AI-ModelScope/video-crafter",
+            ],
+        },
+        endpoints={
+            "chat": "/chat/completions",
+            "image": "/models/{model_id}",
+            "video": "/models/{model_id}",
+        }
+    ),
+    
+    "leonardo": ProviderConfig(
+        name="leonardo",
+        display_name="Leonardo AI",
+        base_url="https://cloud.leonardo.ai/api/rest/v1",
+        auth_type=AuthType.API_KEY,
+        capabilities=[Capability.IMAGE],
+        langchain_class=None,  # 需自定义实现
+        models={
+            "image": [
+                "leonardo-phoenix",
+                "leonardo-lightning-xl",
+                "leonardo-kinexl",
+                "leonardo-diffusion-xl",
+                "sd-1.5",
+                "playground-v2-5",
+            ],
+        },
+        endpoints={
+            "image": "/generations",
+        }
+    ),
 }
 
 
@@ -390,11 +480,15 @@ def get_endpoint(provider: str, capability: str) -> Optional[str]:
 PROVIDER_GROUPS = {
     "international": {
         "name": "国际厂商",
-        "providers": ["openai", "anthropic", "google", "stability", "replicate"]
+        "providers": ["openai", "anthropic", "google", "stability", "replicate", "leonardo"]
     },
     "domestic": {
         "name": "国内厂商",
         "providers": ["zhipu", "qwen", "baidu", "doubao", "hunyuan", "minimax", "spark", "moonshot", "deepseek", "baichuan"]
+    },
+    "opensource": {
+        "name": "开源模型平台",
+        "providers": ["huggingface", "modelscope"]
     }
 }
 

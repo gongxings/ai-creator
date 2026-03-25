@@ -40,6 +40,9 @@ class ImageGeneratorFactory:
         "hunyuan": ".providers.hunyuan.HunyuanImageGenerator",
         "google": ".providers.google.GoogleImageGenerator",
         "replicate": ".providers.replicate.ReplicateImageGenerator",
+        "huggingface": ".providers.huggingface.HuggingFaceImageGenerator",
+        "modelscope": ".providers.modelscope.ModelScopeImageGenerator",
+        "leonardo": ".providers.leonardo.LeonardoImageGenerator",
     }
     
     @classmethod
