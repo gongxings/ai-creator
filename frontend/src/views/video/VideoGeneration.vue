@@ -25,7 +25,7 @@
                 <el-option
                   v-for="model in videoModels"
                   :key="model.id"
-                  :label="`${model.name} (${model.provider})`"
+                  :label="`${model.name}`"
                   :value="model.id"
                 />
               </el-select>

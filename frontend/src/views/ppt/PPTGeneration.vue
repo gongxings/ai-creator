@@ -16,7 +16,7 @@
               <el-option
                 v-for="model in textModels"
                 :key="model.id"
-                :label="`${model.name} (${model.provider})`"
+                :label="`${model.name}`"
                 :value="model.id"
               />
             </el-select>
