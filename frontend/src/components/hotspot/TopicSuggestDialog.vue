@@ -38,8 +38,6 @@
               v-for="(angle, index) in suggestions.angles"
               :key="index"
               class="angle-card"
-              :class="{ selected: selectedAngleIndex === index }"
-              @click="selectedAngleIndex = index"
             >
               <div class="angle-header">
                 <span class="angle-index">{{ index + 1 }}</span>
@@ -53,21 +51,22 @@
                 {{ angle.content_direction }}
               </div>
               <div class="angle-meta">
-                <div class="tools">
-                  <span class="label">推荐工具：</span>
-                  <el-tag
-                    v-for="tool in angle.recommended_tools"
-                    :key="tool"
-                    size="small"
-                    type="success"
-                  >
-                    {{ getToolName(tool) }}
-                  </el-tag>
-                </div>
                 <div class="audience">
                   <span class="label">目标受众：</span>
                   {{ angle.target_audience }}
                 </div>
+              </div>
+              <div class="tools-actions">
+                <span class="label">选择工具开始写作：</span>
+                <el-button
+                  v-for="tool in angle.recommended_tools"
+                  :key="tool"
+                  size="small"
+                  type="primary"
+                  @click.stop="selectToolAndWrite(tool, angle)"
+                >
+                  {{ getToolName(tool) }}
+                </el-button>
               </div>
             </div>
           </div>
@@ -82,14 +81,7 @@
     </div>
 
     <template #footer>
-      <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button
-        type="primary"
-        :disabled="selectedAngleIndex === null || !suggestions"
-        @click="confirmSelection"
-      >
-        使用该角度写作
-      </el-button>
+      <el-button @click="dialogVisible = false">关闭</el-button>
     </template>
   </el-dialog>
 </template>
@@ -118,7 +110,6 @@ const dialogVisible = computed({
 
 const loading = ref(false)
 const suggestions = ref<TopicSuggestResponse | null>(null)
-const selectedAngleIndex = ref<number | null>(null)
 
 // 工具名称映射
 const toolNameMap: Record<string, string> = {
@@ -141,7 +132,6 @@ const loadSuggestions = async () => {
 
   loading.value = true
   suggestions.value = null
-  selectedAngleIndex.value = null
 
   try {
     const res = await getTopicSuggestions({
@@ -149,10 +139,6 @@ const loadSuggestions = async () => {
       url: props.hotUrl,
     })
     suggestions.value = res
-    // 默认选中第一个角度
-    if (res.angles && res.angles.length > 0) {
-      selectedAngleIndex.value = 0
-    }
   } catch (error) {
     console.error('获取选题建议失败:', error)
   } finally {
@@ -160,15 +146,16 @@ const loadSuggestions = async () => {
   }
 }
 
-// 确认选择
-const confirmSelection = () => {
-  if (selectedAngleIndex.value === null || !suggestions.value) return
+// 选择工具并开始写作
+const selectToolAndWrite = (toolType: string, angle: any) => {
+  if (!suggestions.value) return
 
-  const angle = suggestions.value.angles[selectedAngleIndex.value]
-  const toolType = angle.recommended_tools[0] || 'wechat_article'
+  // 构建补充说明，包含热点背景、创作方向和参考链接
+  const baseDescription = `【热点背景】${suggestions.value.background}\n\n【创作方向】${angle.content_direction}`
   
-  // 构建补充说明，包含热点背景和创作方向
-  const additionalDescription = `【热点背景】${suggestions.value.background}\n\n【创作方向】${angle.content_direction}`
+  // 添加参考链接
+  const urlText = props.hotUrl ? `\n\n参考链接：${props.hotUrl}` : ''
+  const additionalDescription = baseDescription + urlText
 
   emit('select', {
     toolType,
