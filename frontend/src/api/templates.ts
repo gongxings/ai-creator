@@ -4,7 +4,6 @@
 import request from './request'
 import type {
   ContentTemplate,
-  ArticleTemplate,
   TemplateCreate,
   TemplateUpdate,
   TemplateListResponse,
@@ -52,7 +51,7 @@ export function deleteTemplate(id: number) {
 }
 
 // 克隆模板
-export function cloneTemplate(id: number, data?: TemplateCloneRequest) {
+export function cloneTemplate(id: number, data?: string) {
   return request.post<ContentTemplate>(`/v1/templates/${id}/clone`, data || {})
 }
 

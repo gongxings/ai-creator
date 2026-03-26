@@ -188,7 +188,7 @@
                   </el-button>
                 </div>
                 <div v-if="slide.slide_type === 'content'" class="bullets-edit">
-                  <div v-for="(bullet, bIndex) in slide.bullets" :key="bIndex" class="bullet-item">
+                  <div v-for="(_, bIndex) in slide.bullets" :key="bIndex" class="bullet-item">
                     <span class="bullet-dot">{{ bIndex + 1 }}</span>
                     <el-input v-model="slide.bullets![bIndex]" placeholder="要点" size="small" />
                     <el-button link type="danger" size="small" @click="removeBullet(index, bIndex)">
@@ -242,10 +242,20 @@
                 <div v-if="selectedTemplateId === 'user-' + template.id" class="selected-badge">
                   <el-icon><Check /></el-icon>
                 </div>
+                <el-button 
+                  v-if="isPPTTemplateOwner(template)"
+                  class="delete-btn"
+                  type="danger"
+                  size="small"
+                  circle
+                  @click.stop="handleDeleteTemplate(template)"
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
               </div>
               <div class="template-info">
                 <div class="template-name">{{ template.name }}</div>
-                <div class="template-desc">自定义模板</div>
+                <div class="template-desc">{{ template.is_system ? '系统模板' : '自定义模板' }}</div>
               </div>
             </div>
             
@@ -299,17 +309,19 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { MagicStick, Delete, Close, ArrowLeft, ArrowRight, VideoPlay, Check, Upload } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { getAIModels } from '@/api/models'
 import { generatePPTOutline, getPPTOutlines, getPPTOutline, getSavedPPTs, getSavedPPT, type PPTOutline, type PPTOutlineItem } from '@/api/ppt'
-import { getPPTTemplates, type PPTTemplate } from '@/api/pptTemplate'
+import { getPPTTemplates, getPPTTemplateDetail, deletePPTTemplate, type PPTTemplate } from '@/api/pptTemplate'
 import { convertOutlineToAIPPT } from '@/utils/pptistConverter'
 import PPTXUpload from '@/components/ppt/PPTXUpload.vue'
+import { useUserStore } from '@/store/user'
 import type { AIModel } from '@/types'
 
 const router = useRouter()
+const userStore = useUserStore()
 const generatingOutline = ref(false)
 const generatingPPT = ref(false)
 const loadingHistory = ref(false)
@@ -328,14 +340,14 @@ const showUploadDialog = ref(false)
 
 // PPTist内置模板（带封面图）
 const pptTemplates = ref([
-  { id: 'template_1', name: '简约红', style: '简约', description: '简洁大方的红色主题', cover: '/pptist/imgs/template_1.webp' },
-  { id: 'template_2', name: '商务蓝', style: '商务', description: '专业商务蓝色主题', cover: '/pptist/imgs/template_2.webp' },
-  { id: 'template_3', name: '清新绿', style: '清新', description: '清新自然的绿色主题', cover: '/pptist/imgs/template_3.webp' },
-  { id: 'template_4', name: '典雅紫', style: '典雅', description: '高端典雅紫色主题', cover: '/pptist/imgs/template_4.webp' },
-  { id: 'template_5', name: '活力橙', style: '活力', description: '充满活力的橙色主题', cover: '/pptist/imgs/template_5.webp' },
-  { id: 'template_6', name: '科技黑', style: '科技', description: '科技感黑色主题', cover: '/pptist/imgs/template_6.webp' },
-  { id: 'template_7', name: '温暖黄', style: '温暖', description: '温馨舒适的黄色主题', cover: '/pptist/imgs/template_7.webp' },
-  { id: 'template_8', name: '优雅粉', style: '优雅', description: '优雅浪漫的粉色主题', cover: '/pptist/imgs/template_8.webp' },
+  { id: 'template_1', name: '简约红', style: '简约', description: '简洁大方的红色主题', cover: '/pptist/public/imgs/template_1.webp' },
+  { id: 'template_2', name: '商务蓝', style: '商务', description: '专业商务蓝色主题', cover: '/pptist/public/imgs/template_2.webp' },
+  { id: 'template_3', name: '清新绿', style: '清新', description: '清新自然的绿色主题', cover: '/pptist/public/imgs/template_3.webp' },
+  { id: 'template_4', name: '典雅紫', style: '典雅', description: '高端典雅紫色主题', cover: '/pptist/public/imgs/template_4.webp' },
+  { id: 'template_5', name: '活力橙', style: '活力', description: '充满活力的橙色主题', cover: '/pptist/public/imgs/template_5.webp' },
+  { id: 'template_6', name: '科技黑', style: '科技', description: '科技感黑色主题', cover: '/pptist/public/imgs/template_6.webp' },
+  { id: 'template_7', name: '温暖黄', style: '温暖', description: '温馨舒适的黄色主题', cover: '/pptist/public/imgs/template_7.webp' },
+  { id: 'template_8', name: '优雅粉', style: '优雅', description: '优雅浪漫的粉色主题', cover: '/pptist/public/imgs/template_8.webp' },
 ])
 
 const form = reactive({
@@ -429,6 +441,57 @@ const handleUploadSuccess = (template: { id: number; name: string; thumbnail?: s
   ElMessage.success('模板上传成功')
 }
 
+const handleDeleteTemplate = async (template: PPTTemplate) => {
+  // 权限检查
+  if (!isPPTTemplateOwner(template)) {
+    ElMessage.warning('只能删除自己创建的模板')
+    return
+  }
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除模板"${template.name}"吗？删除后无法恢复。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    await deletePPTTemplate(template.id)
+    
+    // 从列表中移除
+    const index = userTemplates.value.findIndex(t => t.id === template.id)
+    if (index > -1) {
+      userTemplates.value.splice(index, 1)
+    }
+    
+    // 如果当前选中的是被删除的模板，重置选择
+    if (selectedTemplateId.value === 'user-' + template.id) {
+      selectedTemplateId.value = 'template_1'
+    }
+    
+    ElMessage.success('模板删除成功')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除模板失败:', error)
+      ElMessage.error(error.response?.data?.detail || '删除失败')
+    }
+  }
+}
+
+// 判断PPT模板是否属于当前用户
+const isPPTTemplateOwner = (template: PPTTemplate): boolean => {
+  // 系统模板不属于任何人
+  if (template.is_system) return false
+  // 如果没有user_id，认为是公共模板
+  if (!template.user_id) return false
+  // 判断是否是当前用户的模板
+  const currentUserId = userStore.userInfo?.id
+  return currentUserId !== undefined && template.user_id === currentUserId
+}
+
 const openSavedPPT = async (id: number) => {
   try {
     const res = await getSavedPPT(id)
@@ -499,15 +562,37 @@ const handleGeneratePPT = async () => {
     // 2. 将丰富后的大纲转换为AIPPT格式
     const aiSlides = convertOutlineToAIPPT(enrichedOutline)
     
-    // 3. 存储数据到localStorage
-    localStorage.setItem('pptist_aippt_data', JSON.stringify({
+    // 3. 准备存储数据
+    const aipptData: any = {
       slides: aiSlides,
       templateId: selectedTemplateId.value
-    }))
+    }
+    
+    // 如果是用户上传的模板（user-前缀），预先加载模板数据
+    if (selectedTemplateId.value.startsWith('user-')) {
+      const templateIdNum = parseInt(selectedTemplateId.value.replace('user-', ''))
+      try {
+        const templateRes = await getPPTTemplateDetail(templateIdNum)
+        console.log('获取到的模板数据:', templateRes.data)
+        
+        // 检查ppt_layout是否存在且包含slides
+        const pptLayout = templateRes.data?.ppt_layout
+        if (pptLayout && pptLayout.slides && Array.isArray(pptLayout.slides)) {
+          aipptData.templateData = pptLayout
+        } else {
+          console.warn('模板数据格式不正确，将使用默认模板', pptLayout)
+        }
+      } catch (err) {
+        console.error('获取模板详情失败:', err)
+      }
+    }
+    
+    // 4. 存储数据到localStorage
+    localStorage.setItem('pptist_aippt_data', JSON.stringify(aipptData))
     
     ElMessage.success('内容已丰富，正在跳转到编辑器...')
     
-    // 4. 跳转到编辑器
+    // 5. 跳转到编辑器
     router.push('/ppt/editor')
   } catch (e: any) {
     ElMessage.error(e.message || '生成失败')
@@ -947,6 +1032,18 @@ onMounted(() => {
   justify-content: center;
   color: #fff;
   font-size: 16px;
+}
+
+.delete-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.template-card:hover .delete-btn {
+  opacity: 1;
 }
 
 .template-info {

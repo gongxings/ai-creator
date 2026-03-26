@@ -14,8 +14,14 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.formparsers import MultiPartParser
 import logging
+
+# 在创建应用前设置multipart解析器最大大小 (50MB)
+MultiPartParser.max_part_size = 50 * 1024 * 1024
+MultiPartParser.spool_max_size = 50 * 1024 * 1024
 
 from app.core.config import settings
 from app.core.database import init_db
@@ -45,6 +51,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 挂载静态文件目录
+import os
+os.makedirs("uploads/images", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 # 全局异常处理

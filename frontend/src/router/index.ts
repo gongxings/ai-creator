@@ -65,7 +65,7 @@ const routes: RouteRecordRaw[] = [
                 meta: {requiresAuth: true},
             },
             {
-                path: 'ppt/editor',
+                path: 'ppt/editor/:id?',
                 name: 'PPTEditor',
                 component: () => import('@/views/ppt/editor/PPTEditorPage.vue'),
                 meta: {requiresAuth: true},

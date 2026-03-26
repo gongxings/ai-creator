@@ -60,10 +60,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { ElMessage, UploadFile, UploadInstance, UploadProps } from 'element-plus'
+import { ref } from 'vue'
+import { ElMessage, UploadInstance, UploadProps } from 'element-plus'
 import { Upload, Picture } from '@element-plus/icons-vue'
-import { convertPPTXToJSON, enrichSlidesWithType, readFileAsArrayBuffer } from '@/utils/pptxConverter'
+import { readFileAsArrayBuffer } from '@/utils/pptxConverter'
+import { importPPTXTemplate } from '@/utils/pptxTemplateImport'
 import { generateThumbnail } from '@/utils/thumbnailGenerator'
 import { uploadPPTTemplate } from '@/api/pptTemplate'
 
@@ -90,19 +91,28 @@ const handleFileChange: UploadProps['onChange'] = async (uploadFile) => {
   file.value = uploadFile.raw
   formData.value.name = uploadFile.name.replace('.pptx', '')
   
-  try {
-    // 解析PPTX
-    const arrayBuffer = await readFileAsArrayBuffer(uploadFile.raw)
-    const json = await convertPPTXToJSON(arrayBuffer)
-    const enrichedJson = enrichSlidesWithType(json)
-    
-    jsonResult.value = enrichedJson
-    
-    // 生成缩略图
-    const thumbnailDataUrl = await generateThumbnail(enrichedJson)
-    thumbnail.value = thumbnailDataUrl
-    
-    ElMessage.success('PPTX解析成功')
+    try {
+      // 解析PPTX
+      const arrayBuffer = await readFileAsArrayBuffer(uploadFile.raw)
+      const templateData = await importPPTXTemplate(arrayBuffer)
+      
+      console.log('=== PPTX转换结果 ===')
+      console.log('幻灯片数量:', templateData.slides?.length)
+      console.log('主题:', templateData.theme)
+      
+      const firstSlide = templateData.slides?.[0]
+      if (firstSlide) {
+        console.log('第一页背景:', firstSlide.background)
+        console.log('第一页元素数量:', firstSlide.elements?.length)
+      }
+      
+      jsonResult.value = templateData
+      
+      // 生成缩略图
+      const thumbnailDataUrl = await generateThumbnail(templateData)
+      thumbnail.value = thumbnailDataUrl
+      
+      ElMessage.success('PPTX解析成功')
   } catch (error: any) {
     console.error('解析失败:', error)
     ElMessage.error(error.message || 'PPTX解析失败')
@@ -128,12 +138,25 @@ const handleUpload = async () => {
   uploading.value = true
   
   try {
+    const layoutJson = JSON.stringify(jsonResult.value)
+    console.log('上传数据:', {
+      name: formData.value.name,
+      description: formData.value.description,
+      pptx_file_size: file.value.size,
+      thumbnail_size: thumbnail.value?.length || 0,
+      layout_json_size: layoutJson.length,
+    })
+    
+    // 将JSON转为文件上传
+    const layoutBlob = new Blob([layoutJson], { type: 'application/json' })
+    const layoutFile = new File([layoutBlob], 'layout.json', { type: 'application/json' })
+    
     const res = await uploadPPTTemplate({
       name: formData.value.name,
       description: formData.value.description || undefined,
       pptx_file: file.value,
       thumbnail: thumbnail.value || undefined,
-      layout_json: JSON.stringify(jsonResult.value),
+      layout_file: layoutFile,
     })
     
     ElMessage.success('模板上传成功')
@@ -143,6 +166,7 @@ const handleUpload = async () => {
     resetState()
   } catch (error: any) {
     console.error('上传失败:', error)
+    console.error('错误详情:', error.response?.data)
     ElMessage.error(error.response?.data?.detail || '上传失败')
   } finally {
     uploading.value = false

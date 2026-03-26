@@ -11,6 +11,7 @@ export interface PPTTemplate {
   category?: string
   style?: string
   is_system: boolean
+  user_id?: number
   use_count: number
   created_at: string
 }
@@ -40,7 +41,7 @@ export function uploadPPTTemplate(data: {
   description?: string
   pptx_file: File
   thumbnail?: string
-  layout_json: string
+  layout_file: File
 }) {
   const formData = new FormData()
   formData.append('name', data.name)
@@ -51,7 +52,7 @@ export function uploadPPTTemplate(data: {
   if (data.thumbnail) {
     formData.append('thumbnail', data.thumbnail)
   }
-  formData.append('layout_json', data.layout_json)
+  formData.append('layout_file', data.layout_file)
   
   return request.post<{ data: { id: number; name: string; thumbnail?: string } }>('/v1/ppt-templates/upload', formData, {
     headers: {

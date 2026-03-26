@@ -6,6 +6,24 @@
 import type { ProviderOption, ModelCapability } from '@/types'
 
 export const providerOptions: ProviderOption[] = [
+  // ======================== 开源模型平台 ========================
+  {
+    value: 'huggingface',
+    label: 'Hugging Face',
+    authType: 'api_key',
+    defaultBaseUrl: 'https://api-inference.huggingface.co/v1',
+    capabilities: ['text', 'image', 'video'],
+    supportsCustomUrl: true,
+  },
+  {
+    value: 'modelscope',
+    label: 'ModelScope',
+    authType: 'api_key',
+    defaultBaseUrl: 'https://api-inference.modelscope.cn/v1',
+    capabilities: ['text', 'image', 'video'],
+    supportsCustomUrl: true,
+  },
+
   // ======================== 国外厂商 ========================
   {
     value: 'openai',

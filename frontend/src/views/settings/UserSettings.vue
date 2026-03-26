@@ -108,6 +108,10 @@
 
         <el-form-item label="提供商" required>
           <el-select v-model="modelForm.provider" placeholder="选择AI服务提供商" style="width: 100%" @change="handleProviderChange">
+            <el-option-group label="开源模型平台">
+              <el-option label="Hugging Face" value="huggingface" />
+              <el-option label="ModelScope" value="modelscope" />
+            </el-option-group>
             <el-option-group label="国外厂商">
               <el-option label="OpenAI" value="openai" />
               <el-option label="Anthropic" value="anthropic" />

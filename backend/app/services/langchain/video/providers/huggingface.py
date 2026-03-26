@@ -13,6 +13,7 @@ API文档: https://huggingface.co/docs/api-inference/
 
 import asyncio
 import logging
+import os
 from typing import List, Optional
 
 import httpx
@@ -20,6 +21,7 @@ import httpx
 from ..base import VideoGeneratorBase, VideoGenerationResult, VideoGenerationMode
 
 logger = logging.getLogger(__name__)
+
 
 
 class HuggingFaceVideoGenerator(VideoGeneratorBase):
@@ -159,7 +161,7 @@ class HuggingFaceVideoGenerator(VideoGeneratorBase):
                     video_base64 = base64.b64encode(response.content).decode("utf-8")
                     return VideoGenerationResult.ok(
                         videos=[f"data:{content_type};base64,{video_base64}"],
-                        model=model,
+                        model=model or self.default_model,
                         provider=self.provider_name,
                         duration=duration,
                         is_base64=True
@@ -171,14 +173,14 @@ class HuggingFaceVideoGenerator(VideoGeneratorBase):
                         if isinstance(data, dict) and "video" in data:
                             return VideoGenerationResult.ok(
                                 videos=[data["video"]],
-                                model=model,
+                                model=model or self.default_model,
                                 provider=self.provider_name,
                                 duration=duration
                             )
                         elif isinstance(data, list) and len(data) > 0:
                             return VideoGenerationResult.ok(
                                 videos=data,
-                                model=model,
+                                model=model or self.default_model,
                                 provider=self.provider_name,
                                 duration=duration
                             )
@@ -188,7 +190,7 @@ class HuggingFaceVideoGenerator(VideoGeneratorBase):
                         video_base64 = base64.b64encode(response.content).decode("utf-8")
                         return VideoGenerationResult.ok(
                             videos=[video_base64],
-                            model=model,
+                            model=model or self.default_model,
                             provider=self.provider_name,
                             duration=duration,
                             is_base64=True

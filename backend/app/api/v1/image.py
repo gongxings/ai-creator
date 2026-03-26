@@ -1,10 +1,12 @@
 """
 图片生成API
 """
-from typing import Optional
+import os
+import base64
 import uuid
 import asyncio
 from datetime import datetime
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 import logging
@@ -20,6 +22,64 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# 图片存储目录
+IMAGE_STORAGE_DIR = "uploads/images"
+
+
+def save_image_from_url_or_base64(image_data: str, filename: str = None) -> str:
+    """
+    保存图片到本地存储，返回保存后的URL
+    
+    Args:
+        image_data: 图片URL或base64数据
+        filename: 可选的文件名
+    
+    Returns:
+        保存后的URL路径
+    """
+    os.makedirs(IMAGE_STORAGE_DIR, exist_ok=True)
+    
+    unique_id = uuid.uuid4().hex[:12]
+    if not filename:
+        filename = f"image_{unique_id}.png"
+    else:
+        # 清理文件名
+        filename = f"{unique_id}_{filename.replace('/', '_').replace('\\', '_')}"
+    
+    filepath = os.path.join(IMAGE_STORAGE_DIR, filename)
+    
+    if image_data.startswith("data:"):
+        # base64 数据
+        header, b64data = image_data.split(",", 1)
+        # 提取 mime 类型
+        mime = header.replace("data:", "").replace(";base64", "")
+        ext = "png" if "png" in mime else "jpg"
+        filepath = filepath.replace(".png", f".{ext}") if ".png" in filepath else filepath
+        filepath = filepath.replace(".jpg", f".{ext}") if ".jpg" in filepath else filepath
+        
+        img_data = base64.b64decode(b64data)
+        with open(filepath, "wb") as f:
+            f.write(img_data)
+    elif image_data.startswith("http"):
+        # URL 下载
+        import httpx
+        try:
+            response = httpx.get(image_data, timeout=30.0)
+            response.raise_for_status()
+            with open(filepath, "wb") as f:
+                f.write(response.content)
+        except Exception as e:
+            logger.error(f"下载图片失败: {e}")
+            raise ValueError(f"下载图片失败: {e}")
+    else:
+        # 纯base64
+        img_data = base64.b64decode(image_data)
+        with open(filepath, "wb") as f:
+            f.write(img_data)
+    
+    # 返回相对URL
+    return f"/uploads/images/{os.path.basename(filepath)}"
+
 
 class ImageGenerateRequest(BaseModel):
     """图片生成请求"""
@@ -29,7 +89,6 @@ class ImageGenerateRequest(BaseModel):
     height: int = 1024
     num_images: int = 1
     style: Optional[str] = None
-    platform: Optional[str] = None  # 新增：支持Cookie模式（如'doubao'）或API Key模式（为空）
 
 
 class ImageVariationRequest(BaseModel):
@@ -60,14 +119,10 @@ class ImageTaskResponse(BaseModel):
 
 
 # Background task processing functions
-async def process_image_generation(db: Session, creation_id: int, request_data: dict, user_id: int, platform: Optional[str] = None):
-    """后台处理图片生成任务"""
+async def process_image_generation(db: Session, creation_id: int, request_data: dict, user_id: int):
+    """后台处理图片生成任务 - 只使用 AIModel"""
     try:
-        from app.models.oauth_account import OAuthAccount
-        from app.services.oauth.encryption import decrypt_credentials
-        from app.services.ai.doubao_service import DoubaoService
-
-        logger.info(f"Starting image generation for creation {creation_id}, platform={platform}")
+        logger.info(f"Starting image generation for creation {creation_id}")
 
         creation = db.query(Creation).filter(Creation.id == creation_id).first()
         if not creation:
@@ -76,148 +131,88 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
 
         logger.info(f"Creation found: user_id={creation.user_id}, status={creation.status}")
 
-        # 判断是Cookie模式还是API Key模式
-        if platform:
-            # Cookie模式
-            logger.info(f"Using Cookie mode for platform: {platform}")
-            
-            # 获取用户的OAuth账号
-            oauth_account = db.query(OAuthAccount).filter(
-                OAuthAccount.user_id == user_id,
-                OAuthAccount.platform == platform,
-                OAuthAccount.is_active == True,
-                OAuthAccount.is_expired == False
-            ).first()
+        # 使用用户配置的 AIModel
+        logger.info("Using AIModel for image generation")
+        
+        from app.models.ai_model import AIModel
+        from app.services.langchain.image.factory import ImageGeneratorFactory
 
-            if not oauth_account:
-                logger.error(f"No active OAuth account for platform {platform}")
-                creation.status = "failed"
-                creation.error_message = f"未找到有效的 {platform} 账号"
-                creation.output_data = {"error": f"未找到有效的 {platform} 账号"}
-                db.commit()
-                return
+        # 查询用户启用的、具备图片生成能力的 AIModel
+        ai_model = db.query(AIModel).filter(
+            AIModel.user_id == user_id,
+            AIModel.is_active == True,
+            AIModel.capabilities.contains(["image"])
+        ).first()
 
-            # 解密凭证
-            try:
-                credentials = decrypt_credentials(oauth_account.credentials)
-                cookies = credentials.get("cookies", {})
-                logger.info(f"Cookies decrypted: {list(cookies.keys())} cookies")
-            except Exception as e:
-                logger.error(f"Failed to decrypt credentials: {e}")
-                creation.status = "failed"
-                creation.error_message = f"解密凭证失败: {str(e)}"
-                creation.output_data = {"error": f"解密凭证失败: {str(e)}"}
-                db.commit()
-                return
+        if not ai_model:
+            logger.error("No active AI model with image capability found")
+            raise ValueError("请先配置支持图片生成的AI模型")
 
-            # 调用DoubaoService生成图片
-            if platform == "doubao":
-                service = DoubaoService(cookies=cookies)
-                
-                # 验证Cookie
-                is_valid = await service.validate_cookies()
-                if not is_valid:
-                    logger.warning(f"Cookie validation failed for {platform}")
-                    creation.status = "failed"
-                    creation.error_message = f"{platform} Cookie已过期"
-                    creation.output_data = {"error": f"{platform} Cookie已过期"}
-                    db.commit()
-                    return
-                
-                # 生成图片
-                result = await service.generate_image(
-                    prompt=request_data.get("prompt", ""),
-                    size=f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}",
-                    style=request_data.get("style"),
-                    negative_prompt=request_data.get("negative_prompt"),
-                    num_images=request_data.get("num_images", 1)
-                )
-                
-                logger.info(f"Image generation result: {result}")
-                
-                # 处理结果
-                if "error" in result:
-                    error_msg = result.get("error", "图片生成失败")
-                    logger.error(f"Image generation error: {error_msg}")
-                    creation.status = "failed"
-                    creation.error_message = error_msg
-                    creation.output_data = result
-                else:
-                    images = result.get("images", [])
-                    logger.info(f"Generated {len(images)} images")
-                    creation.status = "completed"
-                    creation.output_data = {"images": images}
-                
-                db.commit()
-            else:
-                logger.error(f"Unsupported platform: {platform}")
-                creation.status = "failed"
-                creation.error_message = f"不支持的平台: {platform}"
-                creation.output_data = {"error": f"不支持的平台: {platform}"}
-                db.commit()
-        else:
-            # API Key模式（原有逻辑）
-            logger.info("Using API Key mode")
-            
-            from app.models.platform_config import PlatformConfig
-            from app.services.oauth.adapters import PLATFORM_ADAPTERS
+        logger.info(f"Using AI model: {ai_model.name}, provider: {ai_model.provider}, model: {ai_model.model_name}")
 
-            # 获取默认平台配置（原有逻辑）
-            platform_config = db.query(PlatformConfig).filter(
-                PlatformConfig.platform_id == "doubao"
-            ).first()
+        # 构建请求参数
+        prompt = request_data.get("prompt", "")
+        negative_prompt = request_data.get("negative_prompt")
+        style = request_data.get("style")
+        size = f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}"
 
-            if not platform_config:
-                logger.error("Doubao platform config not found")
-                raise ValueError("平台配置未找到")
+        logger.info(f"Generating image with AIModel: prompt={prompt}, size={size}, provider={ai_model.provider}")
 
-            # 获取豆包适配器（原有逻辑）
-            adapter_class = PLATFORM_ADAPTERS.get("doubao")
-            if not adapter_class:
-                logger.error("Doubao adapter not found")
-                raise ValueError("平台适配器未找到")
-
-            adapter = adapter_class("doubao", {
-                "oauth_config": platform_config.oauth_config,
-                "litellm_config": platform_config.litellm_config,
-                "quota_config": platform_config.quota_config,
-            })
-
-            # 调用原有逻辑...
-            prompt = request_data.get("prompt", "")
-            negative_prompt = request_data.get("negative_prompt")
-            style = request_data.get("style")
-            size = f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}"
-
-            logger.info(f"Generating image with adapter: prompt={prompt}, size={size}")
-
-            # 注意：这里假设adapter已支持Cookie，实际需要检查实现
-            result = await adapter.generate_image(
-                prompt=prompt,
-                cookies={},  # 使用空Cookie（API Key模式）
-                negative_prompt=negative_prompt,
-                style=style,
-                size=size
+        try:
+            # 使用 ImageGeneratorFactory 创建图片生成器
+            generator = ImageGeneratorFactory.create(
+                provider=ai_model.provider,
+                api_key=ai_model.api_key,
+                model=ai_model.model_name,
+                api_base=ai_model.base_url,
             )
 
-            logger.info(f"Image generation result: {result}")
+            # 生成图片
+            result = await generator.generate(
+                prompt=prompt,
+                size=size,
+                negative_prompt=negative_prompt,
+                style=style,
+            )
 
-            if "error" in result:
-                error_msg = result.get("error", "图片生成失败")
+            logger.info(f"Image generation result: success={result.success}")
+
+            if not result.success:
+                error_msg = result.error or "图片生成失败"
                 logger.error(f"Image generation error: {error_msg}")
                 raise ValueError(error_msg)
 
-            images = result.get("images", [])
+            images = result.images or []
             if not images:
                 logger.error("No images generated")
                 raise ValueError("未生成任何图片")
 
+            # 保存图片到本地存储
+            saved_images = []
+            for i, img_data in enumerate(images):
+                try:
+                    saved_url = save_image_from_url_or_base64(img_data, f"generated_{i}")
+                    saved_images.append(saved_url)
+                    logger.info(f"图片已保存: {saved_url}")
+                except Exception as e:
+                    logger.error(f"保存第 {i+1} 张图片失败: {e}")
+                    # 即使保存失败，也保留原始数据
+                    saved_images.append(img_data)
+
             creation.status = "completed"
-            creation.output_data = {"images": images}
+            creation.output_data = {"images": saved_images}
             creation.error_message = None
             db.commit()
 
             logger.info(f"Image generation completed for creation {creation_id}, {len(images)} images generated")
+
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.error(f"Image generation failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise ValueError(f"图片生成失败: {str(e)}")
 
     except Exception as e:
         logger.error(f"Image generation failed: {e}")
@@ -307,16 +302,14 @@ async def generate_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """文本生成图片 - 支持API Key和Cookie两种模式"""
+    """文本生成图片 - 使用用户配置的AIModel"""
     try:
-        # Cookie模式不需要积分，API Key模式需要积分
-        if not request.platform:
-            # API Key模式：计算所需积分（每张图片100积分）
-            required_credits = request.num_images * 100
-            
-            # 检查积分余额
-            if current_user.credits < required_credits:
-                raise HTTPException(status_code=402, detail="积分不足")
+        # 计算所需积分（每张图片100积分）
+        required_credits = request.num_images * 100
+        
+        # 检查积分余额
+        if current_user.credits < required_credits:
+            raise HTTPException(status_code=402, detail="积分不足")
         
         # 生成任务ID
         task_id = f"img_{uuid.uuid4().hex[:16]}"
@@ -334,27 +327,24 @@ async def generate_image(
                 "num_images": request.num_images,
                 "style": request.style,
                 "task_id": task_id,
-                "platform": request.platform,
             },
             status="processing"
         )
         db.add(creation)
         
-        # 仅在API Key模式下扣除积分
-        if not request.platform:
-            required_credits = request.num_images * 100
-            current_user.credits -= required_credits
-            transaction = CreditTransaction(
-                user_id=current_user.id,
-                transaction_type=TransactionType.CONSUME,
-                amount=-required_credits,
-                balance_before=current_user.credits + required_credits,
-                balance_after=current_user.credits,
-                description=f"图片生成: {request.num_images}张",
-                related_id=creation.id,
-                related_type="creation"
-            )
-            db.add(transaction)
+        # 扣除积分
+        current_user.credits -= required_credits
+        transaction = CreditTransaction(
+            user_id=current_user.id,
+            transaction_type=TransactionType.CONSUME,
+            amount=-required_credits,
+            balance_before=current_user.credits + required_credits,
+            balance_after=current_user.credits,
+            description=f"图片生成: {request.num_images}张",
+            related_id=creation.id,
+            related_type="creation"
+        )
+        db.add(transaction)
         
         db.commit()
         db.refresh(creation)
@@ -362,7 +352,7 @@ async def generate_image(
         # 添加后台任务处理图片生成
         background_tasks.add_task(
             process_image_generation,
-            db, creation.id, request.dict(), current_user.id, request.platform
+            db, creation.id, request.model_dump(), current_user.id
         )
         
         return success_response(

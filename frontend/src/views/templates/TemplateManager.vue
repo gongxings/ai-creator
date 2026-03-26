@@ -51,18 +51,33 @@
         >
           <!-- 预览区域 -->
           <div class="card-preview" @click="handlePreview(template)">
-            <div 
-              class="preview-content"
-              :style="getPreviewStyle(template)"
-            >
-              <div class="preview-h1" :style="getElementStyle(template, 'h1')">示例标题</div>
-              <div class="preview-p" :style="getElementStyle(template, 'p')">这是一段示例正文内容，用于展示模板的排版效果。</div>
-              <div class="preview-quote" :style="getElementStyle(template, 'blockquote')">引用文字示例</div>
-            </div>
-            <div class="preview-overlay">
-              <el-icon><ZoomIn /></el-icon>
-              <span>查看预览</span>
-            </div>
+            <!-- PPT模板显示缩略图 -->
+            <template v-if="template.platform === 'ppt' && template.thumbnail">
+              <img 
+                :src="template.thumbnail" 
+                :alt="template.name"
+                class="ppt-thumbnail"
+              />
+              <div class="preview-overlay">
+                <el-icon><ZoomIn /></el-icon>
+                <span>使用模板</span>
+              </div>
+            </template>
+            <!-- 普通文章模板显示样式预览 -->
+            <template v-else>
+              <div 
+                class="preview-content"
+                :style="getPreviewStyle(template)"
+              >
+                <div class="preview-h1" :style="getElementStyle(template, 'h1')">示例标题</div>
+                <div class="preview-p" :style="getElementStyle(template, 'p')">这是一段示例正文内容，用于展示模板的排版效果。</div>
+                <div class="preview-quote" :style="getElementStyle(template, 'blockquote')">引用文字示例</div>
+              </div>
+              <div class="preview-overlay">
+                <el-icon><ZoomIn /></el-icon>
+                <span>查看预览</span>
+              </div>
+            </template>
           </div>
 
           <!-- 信息区域 -->
@@ -85,9 +100,9 @@
           <!-- 操作区域 -->
           <div class="card-actions">
             <el-button-group>
-              <el-tooltip content="编辑" placement="top">
+              <el-tooltip :content="canEdit(template) ? '编辑' : '只能编辑自己创建的模板'" placement="top">
                 <el-button 
-                  :disabled="template.is_system"
+                  :disabled="!canEdit(template)"
                   size="small"
                   @click="handleEdit(template)"
                 >
@@ -99,9 +114,9 @@
                   <el-icon><CopyDocument /></el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="删除" placement="top">
+              <el-tooltip :content="canDelete(template) ? '删除' : '只能删除自己创建的模板'" placement="top">
                 <el-button 
-                  :disabled="template.is_system"
+                  :disabled="!canDelete(template)"
                   size="small"
                   type="danger"
                   @click="handleDelete(template)"
@@ -162,6 +177,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Plus, 
@@ -176,7 +192,11 @@ import TemplateEditor from '@/components/TemplateEditor.vue'
 import ContentPreview from '@/components/ContentPreview.vue'
 import { sampleMarkdown } from '@/services/markdownRenderer'
 import { getTemplates, deleteTemplate, cloneTemplate } from '@/api/templates'
+import { useUserStore } from '@/store/user'
 import type { ArticleTemplate, CSSProperties } from '@/types/template'
+
+const router = useRouter()
+const userStore = useUserStore()
 
 const templates = ref<ArticleTemplate[]>([])
 const loading = ref(false)
@@ -234,6 +254,27 @@ const loadTemplates = async () => {
   }
 }
 
+// 判断模板是否属于当前用户
+const isOwner = (template: ArticleTemplate): boolean => {
+  // 系统模板不属于任何人
+  if (template.is_system) return false
+  // 如果没有user_id，认为是公共模板
+  if (!template.user_id) return false
+  // 判断是否是当前用户的模板
+  const currentUserId = userStore.userInfo?.id
+  return currentUserId !== undefined && template.user_id === currentUserId
+}
+
+// 判断是否可以编辑（只有自己的模板可以编辑）
+const canEdit = (template: ArticleTemplate): boolean => {
+  return isOwner(template)
+}
+
+// 判断是否可以删除（只有自己的模板可以删除）
+const canDelete = (template: ArticleTemplate): boolean => {
+  return isOwner(template)
+}
+
 // 创建模板
 const handleCreate = () => {
   editingTemplate.value = null
@@ -246,12 +287,32 @@ const handleEdit = (template: ArticleTemplate) => {
     ElMessage.warning('系统预设模板不能编辑，请克隆后修改')
     return
   }
+  if (!isOwner(template)) {
+    ElMessage.warning('只能编辑自己创建的模板')
+    return
+  }
+  
+  // PPT模板跳转到PPT编辑页面
+  if (template.platform === 'ppt') {
+    // 保存模板ID，编辑器会从API加载模板数据
+    localStorage.setItem('pptist_template_id', String(template.id))
+    localStorage.removeItem('pptist_slides') // 清除之前的slides
+    router.push(`/ppt/editor/${template.id}`)
+    return
+  }
+  
   editingTemplate.value = template
   showEditor.value = true
 }
 
 // 预览模板
 const handlePreview = (template: ArticleTemplate) => {
+  // PPT模板跳转到PPT生成页面
+  if (template.platform === 'ppt') {
+    router.push(`/ppt/editor/${template.id}`)
+    return
+  }
+  
   previewTemplate.value = template
   previewDialogVisible.value = true
 }
@@ -292,6 +353,10 @@ const handleDelete = async (template: ArticleTemplate) => {
     ElMessage.warning('系统预设模板不能删除')
     return
   }
+  if (!isOwner(template)) {
+    ElMessage.warning('只能删除自己创建的模板')
+    return
+  }
 
   try {
     await ElMessageBox.confirm(
@@ -316,7 +381,7 @@ const handleDelete = async (template: ArticleTemplate) => {
 }
 
 // 保存模板
-const handleSaveTemplate = (template: ArticleTemplate) => {
+const handleSaveTemplate = () => {
   showEditor.value = false
   loadTemplates()
 }
@@ -456,6 +521,13 @@ onMounted(() => {
       background: #f5f7fa;
       cursor: pointer;
       overflow: hidden;
+
+      .ppt-thumbnail {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 8px;
+      }
 
       .preview-content {
         height: 100%;

@@ -31,19 +31,27 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Loading } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { savePPT } from '@/api/ppt'
+import { getPPTTemplateDetail } from '@/api/pptTemplate'
 
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
 const iframeRef = ref<HTMLIFrameElement>()
 const title = ref('PPT编辑器')
 const iframeReady = ref(false)
 const loading = ref(false)
 const loadingTip = ref('加载中...')
 const currentPPTId = ref<number | null>(null)
+const pendingSlides = ref<any>(null) // 待发送的slides数据
+
+// 从路由参数获取模板ID
+const templateId = computed(() => {
+  const id = route.params.id
+  return id ? Number(id) : null
+})
 
 // PPTist部署地址
 // 开发环境：http://localhost:5173/
@@ -101,6 +109,19 @@ const sendSlidesToIframe = (slides: any) => {
   }
 }
 
+const sendTemplateToIframe = (template: any) => {
+  if (iframeRef.value && iframeReady.value) {
+    loading.value = true
+    loadingTip.value = '正在加载模板...'
+    // ppt_layout数据格式是 { slides, ... }，直接发送给iframe
+    const slides = template.slides || template
+    iframeRef.value.contentWindow?.postMessage({
+      type: 'LOAD_SLIDES',
+      data: { slides }
+    }, '*')
+  }
+}
+
 const onIframeLoad = () => {
   console.log('PPTist iframe loaded')
 }
@@ -119,6 +140,45 @@ const handleExport = () => {
   }, '*')
 }
 
+// 根据ID加载模板
+const loadTemplateById = async (id: number) => {
+  loading.value = true
+  loadingTip.value = '正在加载模板...'
+  try {
+    const res = await getPPTTemplateDetail(id)
+    const template = res.data
+    
+    console.log('加载模板成功:', template.name, 'ppt_layout:', template.ppt_layout)
+    
+    // 更新标题
+    title.value = template.name || 'PPT编辑器'
+    
+    // 将模板ID保存到localStorage，用于保存时使用
+    localStorage.setItem('pptist_template_id', String(id))
+    
+    // PPT模板的布局数据在ppt_layout字段
+    if (template.ppt_layout && template.ppt_layout.slides) {
+      const slides = template.ppt_layout.slides
+      
+      // 如果iframe已ready，直接发送数据
+      if (iframeReady.value) {
+        sendSlidesToIframe(slides)
+      } else {
+        // 缓存数据，等iframe ready后发送
+        pendingSlides.value = slides
+      }
+    } else {
+      // 没有布局数据，关闭loading
+      loading.value = false
+      ElMessage.info('该模板暂无PPT布局数据')
+    }
+  } catch (error: any) {
+    console.error('加载模板失败:', error)
+    ElMessage.error(error.message || '加载模板失败')
+    loading.value = false
+  }
+}
+
 // 监听来自iframe的消息
 const handleMessage = async (event: MessageEvent) => {
   const { type, data } = event.data || {}
@@ -126,18 +186,27 @@ const handleMessage = async (event: MessageEvent) => {
   switch (type) {
     case 'READY':
       iframeReady.value = true
-      // iframe准备就绪后，检查是否有AIPPT数据
-      const aipptData = loadAIPPTDataFromStorage()
-      if (aipptData) {
-        // 发送AIPPT数据
-        sendAIPPTToIframe(aipptData)
-        // 清除数据，避免重复生成
-        localStorage.removeItem('pptist_aippt_data')
+      // 如果有待发送的slides数据，发送给iframe
+      if (pendingSlides.value) {
+        sendSlidesToIframe(pendingSlides.value)
+        pendingSlides.value = null
+      } else if (templateId.value) {
+        // 有模板ID但还没加载，开始加载
+        loadTemplateById(templateId.value)
       } else {
-        // 没有AIPPT数据，加载已保存的幻灯片
-        const slides = loadSlidesFromStorage()
-        if (slides) {
-          sendSlidesToIframe(slides)
+        // iframe准备就绪后，检查是否有AIPPT数据
+        const aipptData = loadAIPPTDataFromStorage()
+        if (aipptData) {
+          // 发送AIPPT数据
+          sendAIPPTToIframe(aipptData)
+          // 清除数据，避免重复生成
+          localStorage.removeItem('pptist_aippt_data')
+        } else {
+          // 没有AIPPT数据，加载已保存的幻灯片
+          const slides = loadSlidesFromStorage()
+          if (slides) {
+            sendSlidesToIframe(slides)
+          }
         }
       }
       break
@@ -145,14 +214,16 @@ const handleMessage = async (event: MessageEvent) => {
       loadingTip.value = '正在生成PPT，请稍候...'
       break
     case 'AIPPT_SUCCESS':
+    case 'SLIDES_LOADED':
       loading.value = false
-      ElMessage.success('PPT生成成功')
+      if (type === 'AIPPT_SUCCESS') {
+        ElMessage.success('PPT生成成功')
+      }
       break
     case 'SAVE_SUCCESS':
       // 保存到localStorage
       if (data?.slides) {
         localStorage.setItem('pptist_slides', JSON.stringify(data.slides))
-        // 保存到数据库
         await saveToDatabase(data.slides)
       }
       break
