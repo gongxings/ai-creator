@@ -229,6 +229,41 @@ const getGroupBounds = (elements: any[]) => {
   }
 }
 
+const getElementBounds = (el: any) => {
+  if (el?.type === 'group' && el.elements?.length) {
+    const childBounds = el.elements.map((child: any) => {
+      const bounds = getElementBounds(child)
+      const left = (child.left || 0) + bounds.minX
+      const top = (child.top || 0) + bounds.minY
+      return {
+        minX: left,
+        minY: top,
+        maxX: left + bounds.width,
+        maxY: top + bounds.height,
+      }
+    })
+
+    const minX = Math.min(...childBounds.map(item => item.minX))
+    const minY = Math.min(...childBounds.map(item => item.minY))
+    const maxX = Math.max(...childBounds.map(item => item.maxX))
+    const maxY = Math.max(...childBounds.map(item => item.maxY))
+
+    return {
+      minX,
+      minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    }
+  }
+
+  return {
+    minX: 0,
+    minY: 0,
+    width: el?.width || 0,
+    height: el?.height || 0,
+  }
+}
+
 const calculateRotatedPosition = (
   ax: number,
   ay: number,
@@ -752,8 +787,14 @@ export function convertPPTXToSlides(
           }
 
           let groupElements = (el.elements || []).map((_el: any) => {
-            let left = (_el.left || 0) + originLeft
-            let top = (_el.top || 0) + originTop
+            const bounds = getElementBounds(_el)
+            const localLeft = (_el.left || 0) - (el.__groupOffsetX || 0) + bounds.minX
+            const localTop = (_el.top || 0) - (el.__groupOffsetY || 0) + bounds.minY
+            const localWidth = bounds.width || (_el.width || 0)
+            const localHeight = bounds.height || (_el.height || 0)
+
+            let left = localLeft + originLeft
+            let top = localTop + originTop
             let rotate = _el.rotate || 0
 
             if (el.rotate) {
@@ -764,10 +805,10 @@ export function convertPPTXToSlides(
                 childBounds.minY,
                 childBounds.width || originWidth,
                 childBounds.height || originHeight,
-                _el.left || 0,
-                _el.top || 0,
-                _el.width || 0,
-                _el.height || 0,
+                localLeft,
+                localTop,
+                localWidth,
+                localHeight,
                 el.rotate,
                 rotate
               )
@@ -780,6 +821,13 @@ export function convertPPTXToSlides(
               ..._el,
               left,
               top,
+              width: localWidth,
+              height: localHeight,
+            }
+
+            if (_el.type === 'group' && (bounds.minX || bounds.minY)) {
+              element.__groupOffsetX = bounds.minX
+              element.__groupOffsetY = bounds.minY
             }
 
             if (el.isFlipH && 'isFlipH' in element) element.isFlipH = true
@@ -797,8 +845,8 @@ export function convertPPTXToSlides(
         if (el.type === 'diagram') {
           const diagramElements = (el.elements || []).map((_el: any) => ({
             ..._el,
-            left: (_el.left || 0) + originLeft,
-            top: (_el.top || 0) + originTop,
+            left: (_el.left || 0) - (el.__groupOffsetX || 0) + originLeft,
+            top: (_el.top || 0) - (el.__groupOffsetY || 0) + originTop,
           }))
           parseElements(diagramElements)
           continue
@@ -826,7 +874,7 @@ export function convertPPTXToSlides(
 
           if (el.autoFit?.type === 'shape' && el.content) {
             const maxFontSize = getMaxFontSize(el.content)
-            const widthPadding = Math.min(Math.max(maxFontSize * ratio * 0.2, 8), 24)
+            const widthPadding = Math.min(Math.max(maxFontSize * ratio * 0.35, 10), 40)
             convertedEl.width += widthPadding
           }
 
