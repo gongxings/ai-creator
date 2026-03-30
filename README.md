@@ -139,6 +139,6 @@ ANTHROPIC_API_KEY=sk-ant-xxx
 
 | 公众号 | 解答群 |
 |--------|--------|
-| ![公众号](https://biyebang.com.cn/upload/wechat_Official-Account.png) | ![解答群](https://biyebang.com.cn/upload/wechat_group.jpg) |
+| ![公众号](https://biyebang.com.cn/upload/wechat_Official-Account.png) | ![解答群](https://biyebang.com.cn/upload/image-TYbA.png) |
 
 ⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！
