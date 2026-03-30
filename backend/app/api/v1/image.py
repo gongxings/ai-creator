@@ -43,8 +43,11 @@ def save_image_from_url_or_base64(image_data: str, filename: str = None) -> str:
     if not filename:
         filename = f"image_{unique_id}.png"
     else:
-        # 清理文件名
-        filename = f"{unique_id}_{filename.replace('/', '_').replace('\\', '_')}"
+        # 清理文件名并确保有扩展名
+        clean_name = filename.replace('/', '_').replace('\\', '_')
+        if not clean_name.endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+            clean_name = f"{clean_name}.png"
+        filename = f"{unique_id}_{clean_name}"
     
     filepath = os.path.join(IMAGE_STORAGE_DIR, filename)
     
@@ -54,8 +57,9 @@ def save_image_from_url_or_base64(image_data: str, filename: str = None) -> str:
         # 提取 mime 类型
         mime = header.replace("data:", "").replace(";base64", "")
         ext = "png" if "png" in mime else "jpg"
-        filepath = filepath.replace(".png", f".{ext}") if ".png" in filepath else filepath
-        filepath = filepath.replace(".jpg", f".{ext}") if ".jpg" in filepath else filepath
+        # 替换扩展名
+        base = filepath.rsplit(".", 1)[0] if "." in filepath else filepath
+        filepath = f"{base}.{ext}"
         
         img_data = base64.b64decode(b64data)
         with open(filepath, "wb") as f:
@@ -116,6 +120,7 @@ class ImageTaskResponse(BaseModel):
     status: str
     images: Optional[list[str]] = None
     progress: Optional[int] = None
+    error_message: Optional[str] = None
 
 
 # Background task processing functions
@@ -155,8 +160,9 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
         negative_prompt = request_data.get("negative_prompt")
         style = request_data.get("style")
         size = f"{request_data.get('width', 1024)}x{request_data.get('height', 1024)}"
+        num_images = request_data.get("num_images", 1)
 
-        logger.info(f"Generating image with AIModel: prompt={prompt}, size={size}, provider={ai_model.provider}")
+        logger.info(f"Generating {num_images} image(s) with AIModel: prompt={prompt}, size={size}, provider={ai_model.provider}")
 
         try:
             # 使用 ImageGeneratorFactory 创建图片生成器
@@ -167,25 +173,27 @@ async def process_image_generation(db: Session, creation_id: int, request_data: 
                 api_base=ai_model.base_url,
             )
 
-            # 生成图片
-            result = await generator.generate(
-                prompt=prompt,
-                size=size,
-                negative_prompt=negative_prompt,
-                style=style,
-            )
-
-            logger.info(f"Image generation result: success={result.success}")
-
-            if not result.success:
-                error_msg = result.error or "图片生成失败"
-                logger.error(f"Image generation error: {error_msg}")
-                raise ValueError(error_msg)
-
-            images = result.images or []
+            # 生成图片（支持多张）
+            images = []
+            for i in range(num_images):
+                logger.info(f"Generating image {i+1}/{num_images}")
+                result = await generator.generate(
+                    prompt=prompt,
+                    size=size,
+                    negative_prompt=negative_prompt,
+                    style=style,
+                    n=1,
+                )
+                
+                if result.success and result.images:
+                    images.extend(result.images)
+                else:
+                    logger.warning(f"Image {i+1} generation failed: {result.error}")
+            
+            # 如果没有任何图片生成成功，返回错误
             if not images:
-                logger.error("No images generated")
-                raise ValueError("未生成任何图片")
+                error_msg = result.error if result else "图片生成失败"
+                raise ValueError(error_msg)
 
             # 保存图片到本地存储
             saved_images = []
@@ -304,8 +312,8 @@ async def generate_image(
 ):
     """文本生成图片 - 使用用户配置的AIModel"""
     try:
-        # 计算所需积分（每张图片100积分）
-        required_credits = request.num_images * 100
+        # 计算所需积分（每张图片10积分）
+        required_credits = request.num_images * 10
         
         # 检查积分余额
         if current_user.credits < required_credits:
@@ -597,8 +605,11 @@ async def get_image_task_status(
             raise HTTPException(status_code=404, detail="任务不存在")
         
         images = None
+        error_message = None
         if creation.status == "completed" and creation.output_data:
             images = creation.output_data.get("images", [])
+        elif creation.status == "failed" and creation.output_data:
+            error_message = creation.output_data.get("error", creation.error_message)
         
         progress = 100 if creation.status == "completed" else (
             50 if creation.status == "processing" else 0
@@ -609,7 +620,8 @@ async def get_image_task_status(
                 task_id=task_id,
                 status=creation.status,
                 images=images,
-                progress=progress
+                progress=progress,
+                error_message=error_message
             ),
             message="获取成功"
         )
@@ -618,3 +630,51 @@ async def get_image_task_status(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取任务状态失败: {str(e)}")
+
+
+@router.get("/gallery")
+async def get_image_gallery(
+    page: int = 1,
+    page_size: int = 12,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """获取用户图库"""
+    try:
+        from sqlalchemy import desc
+        
+        # 查询用户的图片创作记录
+        query = db.query(Creation).filter(
+            Creation.user_id == current_user.id,
+            Creation.creation_type == "image",
+            Creation.status == "completed"
+        )
+        
+        total = query.count()
+        creations = query.order_by(desc(Creation.created_at)).offset((page - 1) * page_size).limit(page_size).all()
+        
+        items = []
+        for creation in creations:
+            if creation.output_data and isinstance(creation.output_data, dict):
+                images = creation.output_data.get("images", [])
+                for img_url in images:
+                    if img_url and isinstance(img_url, str):
+                        items.append({
+                            "id": creation.id,
+                            "url": img_url,
+                            "prompt": creation.input_data.get("prompt", "") if creation.input_data else "",
+                            "created_at": str(creation.created_at) if creation.created_at else None,
+                        })
+        
+        return success_response(
+            data={
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "items": items,
+            },
+            message="获取成功"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取图库失败: {str(e)}")

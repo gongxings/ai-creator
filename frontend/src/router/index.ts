@@ -161,6 +161,12 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/views/admin/TrafficStats.vue'),
                 meta: {requiresAdmin: true, requiresAuth: true},
             },
+            {
+                path: 'admin/model-usage',
+                name: 'ModelUsageLogs',
+                component: () => import('@/views/admin/ModelUsageLogs.vue'),
+                meta: {requiresAdmin: true, requiresAuth: true},
+            },
         ],
     },
 ]

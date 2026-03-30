@@ -76,8 +76,8 @@ def step_create_tables():
         OperationStatistics
     from app.models.oauth_account import OAuthAccount
     from app.models.oauth_usage_log import OAuthUsageLog
+    from app.models.model_usage_log import AIModelUsageLog
     from app.models.platform_config import PlatformConfig
-    from app.models.api_key import APIKey, APIKeyUsageLog
     from app.models.plugin import PluginMarket, UserPlugin, CreationPluginSelection, PluginInvocation, PluginReview
     from app.models.template import ArticleTemplate
 

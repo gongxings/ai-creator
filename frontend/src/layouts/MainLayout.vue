@@ -71,6 +71,7 @@
               <el-menu-item index="/operation/statistics">数据统计</el-menu-item>
               <el-menu-item index="/admin/users">用户管理</el-menu-item>
               <el-menu-item index="/admin/traffic">流量统计</el-menu-item>
+              <el-menu-item index="/admin/model-usage">调用监控</el-menu-item>
             </el-sub-menu>
 
 <!--            <el-sub-menu v-if="userStore.isAdmin" index="/admin">-->
@@ -224,6 +225,9 @@
             <el-menu-item index="/operation/coupons">优惠券</el-menu-item>
             <el-menu-item index="/operation/referral">推广管理</el-menu-item>
             <el-menu-item index="/operation/statistics">数据统计</el-menu-item>
+            <el-menu-item index="/admin/users">用户管理</el-menu-item>
+            <el-menu-item index="/admin/traffic">流量统计</el-menu-item>
+            <el-menu-item index="/admin/model-usage">调用监控</el-menu-item>
           </el-sub-menu>
 
           <el-menu-item-group>

@@ -25,7 +25,7 @@ MultiPartParser.spool_max_size = 50 * 1024 * 1024
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer, admin_users, traffic, ppt_templates
+from app.api.v1 import auth, writing, image, video, ppt, creations, publish, models as models_api, credit, operation, oauth, ai, plugins, templates, hotspot, title, image_stock, platform_converter, viral_analyzer, admin_users, traffic, ppt_templates, model_usage
 
 # 配置日志
 logging.basicConfig(
@@ -313,6 +313,13 @@ app.include_router(
     ppt_templates.router,
     prefix=f"{settings.API_V1_PREFIX}",
     tags=["PPT模板管理"]
+)
+
+# 模型调用监控
+app.include_router(
+    model_usage.router,
+    prefix=f"{settings.API_V1_PREFIX}/admin/model-usage",
+    tags=["管理员 - 模型调用监控"]
 )
 
 

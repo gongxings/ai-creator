@@ -269,13 +269,30 @@ class WritingService:
     }
     
     @staticmethod
-    def get_langchain_service(ai_model: AIModel) -> LangChainService:
-        """根据AI模型配置获取 LangChain 服务实例"""
+    def get_langchain_service(
+        ai_model: AIModel,
+        user_id: int = None,
+        tool: str = None,
+        creation_id: int = None
+    ) -> LangChainService:
+        """根据AI模型配置获取 LangChain 服务实例
+        
+        Args:
+            ai_model: AI模型实例
+            user_id: 用户ID（用于监控日志）
+            tool: 调用步骤标识（用于监控日志）
+            creation_id: 关联创作ID（用于监控日志）
+        """
         return LangChainService(
             provider=ai_model.provider,
             model=ai_model.model_name or "gpt-4",
             api_key=ai_model.api_key,
             api_base=ai_model.base_url,
+            # 监控参数
+            user_id=user_id,
+            ai_model_id=ai_model.id,
+            tool=tool,
+            creation_id=creation_id,
             # 双密钥厂商的额外参数
             secret_key=getattr(ai_model, 'secret_key', None),
             app_id=getattr(ai_model, 'app_id', None),
@@ -369,9 +386,20 @@ class WritingService:
         db: Session,
         tool_type: str,
         user_input: Dict[str, Any],
-        ai_model: AIModel
+        ai_model: AIModel,
+        user_id: int = None,
+        creation_id: int = None
     ) -> str:
-        """生成内容"""
+        """生成内容
+        
+        Args:
+            db: 数据库会话
+            tool_type: 工具类型
+            user_input: 用户输入
+            ai_model: AI模型实例
+            user_id: 用户ID（用于监控日志）
+            creation_id: 关联创作ID（用于监控日志）
+        """
         # 获取提示词模板
         if tool_type not in cls.TOOL_PROMPTS:
             raise ValueError(f"不支持的写作工具类型: {tool_type}")
@@ -396,7 +424,12 @@ class WritingService:
             prompt += f"\n\n【用户补充说明】\n{additional_description.strip()}"
         
         # 调用 LangChain 服务生成内容
-        service = cls.get_langchain_service(ai_model)
+        service = cls.get_langchain_service(
+            ai_model,
+            user_id=user_id,
+            tool=tool_type,
+            creation_id=creation_id
+        )
         response = await service.chat(prompt)
         
         return response.content
@@ -407,9 +440,18 @@ class WritingService:
         db: Session,
         content: str,
         optimization_type: str,
-        ai_model: AIModel
+        ai_model: AIModel,
+        user_id: int = None
     ) -> str:
-        """优化内容"""
+        """优化内容
+        
+        Args:
+            db: 数据库会话
+            content: 内容
+            optimization_type: 优化类型
+            ai_model: AI模型实例
+            user_id: 用户ID（用于监控日志）
+        """
         optimization_prompts = {
             "seo": f"请对以下内容进行SEO优化，提高搜索引擎友好度：\n\n{content}",
             "readability": f"请优化以下内容的可读性，使其更易理解：\n\n{content}",
@@ -424,7 +466,11 @@ class WritingService:
         prompt = optimization_prompts[optimization_type]
         
         # 调用 LangChain 服务优化内容
-        service = cls.get_langchain_service(ai_model)
+        service = cls.get_langchain_service(
+            ai_model,
+            user_id=user_id,
+            tool=f"optimize_{optimization_type}"
+        )
         response = await service.chat(prompt)
         
         return response.content
@@ -741,7 +787,11 @@ class WritingService:
                     db.add(user_plugin)
                     db.commit()
             else:
-                service = cls.get_langchain_service(ai_model)
+                service = cls.get_langchain_service(
+                    ai_model,
+                    user_id=user_id,
+                    tool=tool_type
+                )
                 response = await service.chat(base_prompt)
                 return {
                     "content": response.content,
@@ -757,7 +807,11 @@ class WritingService:
         
         if not plugins:
             # 没有有效插件，直接生成
-            service = cls.get_langchain_service(ai_model)
+            service = cls.get_langchain_service(
+                ai_model,
+                user_id=user_id,
+                tool=tool_type
+            )
             response = await service.chat(base_prompt)
             return {
                 "content": response.content,
@@ -859,7 +913,12 @@ class WritingService:
         # 将插件转换为 LangChain Tools
         langchain_tools = [create_tool_from_plugin(plugin) for plugin in plugins]
         
-        service = cls.get_langchain_service(ai_model)
+        service = cls.get_langchain_service(
+            ai_model,
+            user_id=user_id,
+            tool=tool_type,
+            creation_id=creation_id
+        )
         
         try:
             # 使用带工具的对话

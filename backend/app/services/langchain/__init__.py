@@ -101,6 +101,9 @@ from .compat import (
     get_ai_service_factory,
 )
 
+# 回调监控
+from .callbacks import UsageCallbackHandler
+
 # 工具
 from .tools import (
     PluginToolAdapter,
@@ -162,6 +165,9 @@ __all__ = [
     "LangChainAIService",
     "LangChainAIServiceFactory",
     "get_ai_service_factory",
+    
+    # 回调监控
+    "UsageCallbackHandler",
     
     # 工具
     "PluginToolAdapter",

@@ -156,10 +156,11 @@ const filterForm = reactive({ toolType: '', dateRange: null as any, keyword: '' 
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 
 const toolNameMap: Record<string, string> = {
-  wechat_article: '公众号', xiaohongshu_note: '小红书', official_document: '公文', marketing_copy: '营销', academic_paper: '论文', press_release: '新闻', video_script: '视频', story_novel: '故事', business_plan: '商业', work_report: '报告', resume: '简历', lesson_plan: '教案', content_rewrite: '改写', translation: '翻译'
+  wechat_article: '公众号', xiaohongshu_note: '小红书', official_document: '公文', marketing_copy: '营销', academic_paper: '论文', press_release: '新闻', video_script: '视频', story_novel: '故事', business_plan: '商业', work_report: '报告', resume: '简历', lesson_plan: '教案', content_rewrite: '改写', translation: '翻译',
+  image: '图片生成', video: '视频生成', ppt: 'PPT生成'
 }
 const toolIconMap: Record<string, any> = { wechat_article: Document, xiaohongshu_note: Edit, official_document: Document, marketing_copy: Edit, academic_paper: Document, press_release: Document, video_script: Edit, story_novel: Edit, business_plan: Document, work_report: Document, resume: Document, lesson_plan: Document, content_rewrite: Edit, translation: Edit }
-const toolColorMap: Record<string, string> = { wechat_article: '#07c160', xiaohongshu_note: '#ff2442', official_document: '#409eff', marketing_copy: '#f56c6c', academic_paper: '#909399', press_release: '#67c23a', video_script: '#e6a23c', story_novel: '#c71585', business_plan: '#1e90ff', work_report: '#409eff', resume: '#67c23a', lesson_plan: '#e6a23c', content_rewrite: '#909399', translation: '#409eff' }
+const toolColorMap: Record<string, string> = { wechat_article: '#07c160', xiaohongshu_note: '#ff2442', official_document: '#409eff', marketing_copy: '#f56c6c', academic_paper: '#909399', press_release: '#67c23a', video_script: '#e6a23c', story_novel: '#c71585', business_plan: '#1e90ff', work_report: '#409eff', resume: '#67c23a', lesson_plan: '#e6a23c', content_rewrite: '#909399', translation: '#409eff', image: '#7c3aed', video: '#0ea5e9', ppt: '#f97316' }
 const fetchCreations = async () => {
   loading.value = true
   try {
@@ -220,7 +221,13 @@ const handleConverted = (results: any[]) => {
 const getToolName = (toolType: string) => toolNameMap[toolType] || toolType || '未知工具'
 const getToolIcon = (toolType: string) => toolIconMap[toolType] || Document
 const getToolColor = (toolType: string) => toolColorMap[toolType] || '#409eff'
-const getToolTagType = (toolType: string) => ({ wechat_article: 'success', xiaohongshu_note: 'danger', official_document: 'primary', marketing_copy: 'warning', academic_paper: 'info', press_release: 'success', video_script: 'warning', story_novel: '', business_plan: 'primary', work_report: 'primary', resume: 'success', lesson_plan: 'warning', content_rewrite: 'info', translation: 'primary' }[toolType] || '')
+const getToolTagType = (toolType: string): '' | 'success' | 'info' | 'warning' | 'danger' => {
+  const map: Record<string, '' | 'success' | 'info' | 'warning' | 'danger'> = {
+    wechat_article: 'success', xiaohongshu_note: 'danger', official_document: 'primary', marketing_copy: 'warning', academic_paper: 'info', press_release: 'success', video_script: 'warning', story_novel: '', business_plan: 'primary', work_report: 'primary', resume: 'success', lesson_plan: 'warning', content_rewrite: 'info', translation: 'primary',
+    image: '', video: 'info', ppt: 'warning'
+  }
+  return map[toolType] || ''
+}
 const getContentPreview = (content: string) => (content || '').replace(/[#*`\[\]()_~>-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120)
 const getWordCount = (content: string) => (content || '').replace(/[#*`\[\]()_~>-]/g, '').replace(/\s+/g, '').length
 const formatDate = (value: string) => value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '-'

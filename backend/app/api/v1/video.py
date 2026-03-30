@@ -555,3 +555,52 @@ async def generate_subtitles(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"字幕生成失败: {str(e)}")
+
+
+@router.get("/gallery")
+async def get_video_gallery(
+    page: int = 1,
+    page_size: int = 12,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """获取用户视频库"""
+    try:
+        from sqlalchemy import desc
+        
+        # 查询用户的视频创作记录（支持多种creation_type）
+        query = db.query(Creation).filter(
+            Creation.user_id == current_user.id,
+            Creation.status == "completed",
+            Creation.output_data.isnot(None)
+        )
+        
+        creations = query.order_by(desc(Creation.created_at)).offset((page - 1) * page_size).limit(page_size).all()
+        
+        items = []
+        for creation in creations:
+            if creation.output_data and isinstance(creation.output_data, dict):
+                video_url = creation.output_data.get("video_url")
+                if video_url and isinstance(video_url, str):
+                    items.append({
+                        "id": creation.id,
+                        "url": video_url,
+                        "prompt": creation.input_data.get("prompt", creation.input_data.get("text", "")) if creation.input_data else "",
+                        "created_at": str(creation.created_at) if creation.created_at else None,
+                    })
+        
+        # 重新查询总数
+        total = len(items)
+        
+        return success_response(
+            data={
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "items": items,
+            },
+            message="获取成功"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取视频库失败: {str(e)}")

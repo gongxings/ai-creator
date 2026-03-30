@@ -86,6 +86,10 @@ class LangChainService:
         model: str,
         api_key: str,
         api_base: Optional[str] = None,
+        user_id: Optional[int] = None,
+        ai_model_id: Optional[int] = None,
+        tool: Optional[str] = None,
+        creation_id: Optional[int] = None,
         **kwargs
     ):
         """
@@ -96,6 +100,10 @@ class LangChainService:
             model: 模型名称
             api_key: API 密钥
             api_base: 自定义 API 地址
+            user_id: 用户ID（监控用）
+            ai_model_id: AI模型ID（监控用）
+            tool: 调用步骤标识（监控用）
+            creation_id: 关联创作ID（监控用）
             **kwargs: 其他厂商特定参数
         """
         self.provider = provider
@@ -103,6 +111,12 @@ class LangChainService:
         self.api_key = api_key
         self.api_base = api_base
         self.extra_kwargs = kwargs
+        
+        # 监控参数
+        self._monitor_user_id = user_id
+        self._monitor_ai_model_id = ai_model_id
+        self._monitor_tool = tool
+        self._monitor_creation_id = creation_id
         
         # 创建 LangChain Chat Model
         self._chat_model = LangChainChatFactory.create(
@@ -115,6 +129,21 @@ class LangChainService:
         
         # 工具执行器
         self._tool_executor = ToolExecutor()
+    
+    def _build_callbacks(self) -> List:
+        """构建监控回调列表"""
+        if self._monitor_user_id and self._monitor_ai_model_id:
+            from .callbacks import UsageCallbackHandler
+            return [UsageCallbackHandler(
+                user_id=self._monitor_user_id,
+                ai_model_id=self._monitor_ai_model_id,
+                provider=self.provider,
+                model_name=self.model,
+                tool=self._monitor_tool or "chat",
+                request_type="chat",
+                creation_id=self._monitor_creation_id,
+            )]
+        return []
     
     @property
     def chat_model(self) -> BaseChatModel:
@@ -141,6 +170,13 @@ class LangChainService:
             ChatResponse 对象
         """
         messages = self._build_messages(message, system_prompt, history)
+        monitor_callbacks = self._build_callbacks()
+        if monitor_callbacks:
+            user_callbacks = kwargs.pop("callbacks", None)
+            if user_callbacks:
+                kwargs["callbacks"] = list(user_callbacks) + monitor_callbacks
+            else:
+                kwargs["callbacks"] = monitor_callbacks
         
         try:
             response = await self._chat_model.ainvoke(messages, **kwargs)
@@ -194,6 +230,13 @@ class LangChainService:
         
         # 构建消息
         messages = self._build_messages(message, system_prompt, history)
+        monitor_callbacks = self._build_callbacks()
+        if monitor_callbacks:
+            user_callbacks = kwargs.pop("callbacks", None)
+            if user_callbacks:
+                kwargs["callbacks"] = list(user_callbacks) + monitor_callbacks
+            else:
+                kwargs["callbacks"] = monitor_callbacks
         
         # 工具调用循环
         iteration = 0
@@ -262,6 +305,13 @@ class LangChainService:
             文本片段
         """
         messages = self._build_messages(message, system_prompt, history)
+        monitor_callbacks = self._build_callbacks()
+        if monitor_callbacks:
+            user_callbacks = kwargs.pop("callbacks", None)
+            if user_callbacks:
+                kwargs["callbacks"] = list(user_callbacks) + monitor_callbacks
+            else:
+                kwargs["callbacks"] = monitor_callbacks
         
         try:
             async for chunk in self._chat_model.astream(messages, **kwargs):
